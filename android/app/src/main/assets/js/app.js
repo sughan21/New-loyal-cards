@@ -1082,7 +1082,7 @@ class LoyaltyApp {
 
   async initiateRepeatVisitApproval() {
     this.closeAllModals();
-    this.showToast("⚠️ Daily stamp already collected! Extra visit today requires cashier approval or PIN (7788).", "gold");
+    this.showToast("⚠️ Daily stamp already collected! Extra visit today requires cashier approval.", "gold");
     const modal = document.getElementById('repeatApprovalModal');
     if (modal) modal.classList.add('active');
 
@@ -1156,7 +1156,7 @@ class LoyaltyApp {
     if (sentViaSupabase) {
       this.pollRepeatApprovalStatus(requestId);
     } else {
-      this.showToast("Store terminal connecting. You can also ask cashier for 4-digit PIN.", "gold");
+      this.showToast("Store terminal connecting. Cashier will approve on store screen.", "gold");
     }
   }
 

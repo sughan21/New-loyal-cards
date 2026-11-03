@@ -790,16 +790,12 @@
         </p>
       </div>
 
-      <!-- Cashier PIN Fallback -->
-      <div style="background: #f8f6f2; border-radius: 14px; padding: 12px; border: 1px solid #e7dfd4;">
-        <div style="font-size: 0.74rem; color: var(--text-secondary); margin-bottom: 8px;">Cashier busy? Enter 4-digit
-          Cashier PIN:</div>
-        <div style="display: flex; gap: 8px;">
-          <input type="password" id="manualCashierPinInput" class="custom-input" maxlength="4" placeholder="4-Digit PIN"
-            style="flex: 1; text-align: center; font-size: 1.1rem; letter-spacing: 0.2em; padding: 8px; background: #ffffff; border: 1px solid #d8cec3; color: var(--text-pure);">
-          <button id="verifyPinBtn" type="button" class="primary-btn"
-            style="white-space: nowrap; padding: 8px 18px; margin: 0; background: linear-gradient(135deg, #2b1810, #170d08); color: #ffffff; font-weight: 800; border: 1px solid #4a2c1d;">Confirm</button>
-        </div>
+      <!-- Bottom Close Button -->
+      <div style="margin-top: 14px;">
+        <button type="button" class="modal-close-trigger primary-btn"
+          style="width: 100%; margin: 0; padding: 12px; font-weight: 800; font-size: 0.92rem; border-radius: 14px; background: linear-gradient(135deg, #2b1810 0%, #170d08 100%); color: #ffffff; cursor: pointer; box-shadow: 0 4px 14px rgba(35, 20, 10, 0.15);">
+          ✓ Close &amp; Wait for Cashier
+        </button>
       </div>
     </div>
   </div>
