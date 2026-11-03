@@ -1118,6 +1118,16 @@ class StoreOwnerApp {
     }
 
     // Dynamic preset buttons
+    const ghBtn = document.getElementById('useGithubCloudPresetBtn');
+    const githubCloudUrl = `https://sughan21.github.io/New-loyal-cards/download.html?store_scan=${encodeURIComponent(this.storeConfig.storeCode)}`;
+    if (ghBtn) {
+      ghBtn.onclick = () => {
+        localStorage.setItem('standee_target_url', githubCloudUrl);
+        this.generateStoreQRCodes();
+        this.showToast("☁️ QR updated to Permanent GitHub Cloud Link (24/7)!", "gold");
+      };
+    }
+
     const cfBtn = document.getElementById('useCloudflarePresetBtn');
     if (cfBtn) {
       if (this.activeTunnelUrl) {
