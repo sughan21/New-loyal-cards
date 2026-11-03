@@ -1,11 +1,10 @@
-{
-  "version": "1.5.0",
-  "versionCode": 6,
-  "releaseDate": "2026-11-03",
-  "title": "Loyalty Pass Stable Release",
-  "notes": "Real-time cloud sync, 6-tick rewards, cashier approvals, and automatic in-app updates.",
-  "customerApk": "apks/LoyaltyPass-Customer.apk",
-  "ownerApk": "apks/StoreTerminal-Owner.apk",
-  "downloadUrl": "download.html"
+﻿{
+    "version":  "1.5.0",
+    "versionCode":  7,
+    "releaseDate":  "2026-11-03",
+    "title":  "Loyalty Pass Update",
+    "notes":  "Latest features and improvements released by store owner.",
+    "customerApk":  "apks/LoyaltyPass-Customer.apk",
+    "ownerApk":  "apks/StoreTerminal-Owner.apk",
+    "downloadUrl":  "download.html"
 }
-
