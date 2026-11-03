@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="js/vendor/html5-qrcode.min.js"></script>
+</head>
+<body>
+  <div id="status">Scanning...</div>
+  <h2 id="result1"></h2>
+  <h2 id="result2"></h2>
+
+  <script>
+    async function decode() {
+      const qr = new Html5Qrcode("status");
+      
+      try {
+        const resp1 = await fetch('assets/user_qr1.png');
+        const blob1 = await resp1.blob();
+        const file1 = new File([blob1], 'qr1.png', { type: 'image/png' });
+        const res1 = await qr.scanFile(file1, true);
+        document.getElementById('result1').innerText = "QR1: " + res1;
+      } catch (e) {
+        document.getElementById('result1').innerText = "QR1 Error: " + e;
+      }
+
+      try {
+        const resp2 = await fetch('assets/user_qr2.png');
+        const blob2 = await resp2.blob();
+        const file2 = new File([blob2], 'qr2.png', { type: 'image/png' });
+        const res2 = await qr.scanFile(file2, true);
+        document.getElementById('result2').innerText = "QR2: " + res2;
+      } catch (e) {
+        document.getElementById('result2').innerText = "QR2 Error: " + e;
+      }
+    }
+    decode();
+  </script>
+</body>
+</html>

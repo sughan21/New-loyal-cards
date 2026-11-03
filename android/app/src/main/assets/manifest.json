@@ -1,0 +1,44 @@
+{
+  "id": "/index.html",
+  "name": "Loyalty Reward — Customer Loyalty Pass",
+  "short_name": "Loyalty Pass",
+  "description": "Digital customer loyalty card. Collect 6 purchase stamps in store to unlock and redeem free gifts!",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
+  "prefer_related_applications": false,
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["shopping", "lifestyle", "finance"],
+  "shortcuts": [
+    {
+      "name": "Scan Store QR",
+      "short_name": "Scan QR",
+      "description": "Scan store counter QR to collect +1 stamp",
+      "url": "./index.html?action=scan",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "My Loyalty Card",
+      "short_name": "Card",
+      "description": "View stamp progress and gift voucher",
+      "url": "./index.html",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}

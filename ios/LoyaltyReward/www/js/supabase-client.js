@@ -1,0 +1,498 @@
+/* ==========================================================================
+   GOLDEN PERKS - SUPABASE CLOUD DATABASE CLIENT & REPOSITORY
+   Connects Customer App and Store Owner Portal directly to Supabase
+   Supports Real-time Approvals, Cloud Sync, and Local Offline Fallback
+   ========================================================================== */
+
+const SUPABASE_CONFIG = {
+  url: "https://rhqpiskqgfmotazjzbnm.supabase.co",
+  anonKey: "sb_publishable_Jf7gwY9zb3exmw8RD98ERQ_o66Pq2xY"
+};
+
+class LoyaltySupabaseRepository {
+  constructor() {
+    this.client = null;
+    this.isReady = false;
+    this.activeChannels = new Map();
+    this.init();
+  }
+
+  init() {
+    try {
+      if (window.supabase && typeof window.supabase.createClient === 'function') {
+        this.client = window.supabase.createClient(
+          SUPABASE_CONFIG.url,
+          SUPABASE_CONFIG.anonKey,
+          {
+            realtime: {
+              params: {
+                eventsPerSecond: 10
+              }
+            }
+          }
+        );
+        this.isReady = true;
+        console.log("⚡ Supabase Cloud Database Connected:", SUPABASE_CONFIG.url);
+      } else {
+        console.warn("⚠️ Supabase JS SDK not detected on window. Using local/REST fallback.");
+      }
+    } catch (e) {
+      console.error("❌ Failed to initialize Supabase client:", e);
+    }
+  }
+
+
+
+  // --- Data Mappers ---
+  toDbCustomer(u) {
+    if (!u) return null;
+    const row = {
+      phone: String(u.phone).trim(),
+      name: u.name || '',
+      password: u.password || '',
+      stamps: parseInt(u.stamps, 10) || 0,
+      gifts_earned: parseInt(u.giftsEarned, 10) || 0,
+      member_id: u.memberId || '',
+      history: Array.isArray(u.history) ? u.history : [],
+      last_stamp_date: u.lastStampDate || null,
+      last_updated: u.lastUpdated || Date.now()
+    };
+    if (u.deviceName) row.device_name = u.deviceName;
+    if (u.deviceId) row.device_id = u.deviceId;
+    return row;
+  }
+
+  toLocalCustomer(db) {
+    if (!db) return null;
+    let dev = db.device_name || '';
+    let devId = db.device_id || '';
+    if (Array.isArray(db.history)) {
+      for (const h of db.history) {
+        if (!dev && h && h.device) dev = h.device;
+        if (!devId && h && h.deviceId) devId = h.deviceId;
+      }
+    }
+    return {
+      phone: String(db.phone),
+      name: db.name || '',
+      password: db.password || '',
+      stamps: parseInt(db.stamps, 10) || 0,
+      giftsEarned: parseInt(db.gifts_earned, 10) || 0,
+      memberId: db.member_id || '',
+      deviceName: dev,
+      deviceId: devId,
+      history: Array.isArray(db.history) ? db.history : [],
+      lastStampDate: db.last_stamp_date || null,
+      lastUpdated: db.last_updated || Date.now(),
+      createdAt: db.created_at ? new Date(db.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : ''
+    };
+  }
+
+  toDbRequest(r) {
+    if (!r) return null;
+    return {
+      id: r.id,
+      phone: String(r.phone).trim(),
+      name: r.name || '',
+      member_id: r.memberId || '',
+      current_stamps: parseInt(r.currentStamps, 10) || 0,
+      time_str: r.timeStr || '',
+      date_str: r.dateStr || '',
+      timestamp: r.timestamp || Date.now(),
+      status: r.status || 'pending'
+    };
+  }
+
+  toLocalRequest(db) {
+    if (!db) return null;
+    return {
+      id: db.id,
+      phone: String(db.phone),
+      name: db.name || '',
+      memberId: db.member_id || '',
+      currentStamps: parseInt(db.current_stamps, 10) || 0,
+      timeStr: db.time_str || '',
+      dateStr: db.date_str || '',
+      timestamp: db.timestamp || (db.created_at ? new Date(db.created_at).getTime() : Date.now()),
+      status: db.status || 'pending'
+    };
+  }
+
+  // --- Customers API ---
+  async fetchAllCustomers() {
+    if (!this.isReady) return null;
+    try {
+      const { data, error } = await this.client
+        .from('customers')
+        .select('*')
+        .order('last_updated', { ascending: false });
+
+      if (error) {
+        console.warn("Supabase fetchAllCustomers error:", error);
+        return null;
+      }
+      return Array.isArray(data) ? data.map(d => this.toLocalCustomer(d)) : [];
+    } catch (e) {
+      console.warn("Supabase network error:", e);
+      return null;
+    }
+  }
+
+  async fetchCustomer(phone) {
+    if (!this.isReady || !phone) return null;
+    try {
+      const { data, error } = await this.client
+        .from('customers')
+        .select('*')
+        .eq('phone', String(phone).trim())
+        .maybeSingle();
+
+      if (error) {
+        console.warn("Supabase fetchCustomer error:", error);
+        return null;
+      }
+      return data ? this.toLocalCustomer(data) : null;
+    } catch (e) {
+      console.warn("Supabase network error:", e);
+      return null;
+    }
+  }
+
+  async upsertCustomer(customer) {
+    if (!this.isReady || !customer || !customer.phone) return false;
+    try {
+      const row = this.toDbCustomer(customer);
+      let { error } = await this.client
+        .from('customers')
+        .upsert(row, { onConflict: 'phone' });
+
+      // If device_name column isn't created in Supabase yet, retry without device_name
+      if (error && error.message && error.message.includes('device_name')) {
+        delete row.device_name;
+        const res = await this.client.from('customers').upsert(row, { onConflict: 'phone' });
+        error = res.error;
+      }
+
+      if (error) {
+        console.error("Supabase upsertCustomer error:", error);
+        return false;
+      }
+      return true;
+    } catch (e) {
+      console.error("Supabase network error:", e);
+      return false;
+    }
+  }
+
+  async upsertCustomers(customersList) {
+    if (!this.isReady || !Array.isArray(customersList) || customersList.length === 0) return false;
+    try {
+      let rows = customersList.map(c => this.toDbCustomer(c)).filter(Boolean);
+      let { error } = await this.client
+        .from('customers')
+        .upsert(rows, { onConflict: 'phone' });
+
+      if (error && error.message && error.message.includes('device_name')) {
+        rows = rows.map(r => {
+          const c = { ...r };
+          delete c.device_name;
+          return c;
+        });
+        const res = await this.client.from('customers').upsert(rows, { onConflict: 'phone' });
+        error = res.error;
+      }
+
+      if (error) {
+        console.error("Supabase upsertCustomers error:", error);
+        return false;
+      }
+      return true;
+    } catch (e) {
+      console.error("Supabase network error:", e);
+      return false;
+    }
+  }
+
+  // --- Stamp Requests API ---
+  async createStampRequest(req) {
+    if (!this.isReady || !req) return false;
+    try {
+      const row = this.toDbRequest(req);
+      const { error } = await this.client
+        .from('stamp_requests')
+        .upsert(row, { onConflict: 'id' });
+
+      if (error) {
+        console.error("Supabase createStampRequest error:", error);
+        return false;
+      }
+      return true;
+    } catch (e) {
+      console.error("Supabase network error:", e);
+      return false;
+    }
+  }
+
+  async fetchPendingStampRequests() {
+    if (!this.isReady) return [];
+    try {
+      const cutoff = Date.now() - (12 * 60 * 60 * 1000); // last 12 hours
+      const { data, error } = await this.client
+        .from('stamp_requests')
+        .select('*')
+        .eq('status', 'pending')
+        .gte('timestamp', cutoff)
+        .order('timestamp', { ascending: false });
+
+      if (error) {
+        console.warn("Supabase fetchPendingStampRequests error:", error);
+        return [];
+      }
+      return Array.isArray(data) ? data.map(d => this.toLocalRequest(d)) : [];
+    } catch (e) {
+      console.warn("Supabase network error:", e);
+      return [];
+    }
+  }
+
+  async getStampRequestStatus(requestId) {
+    if (!this.isReady || !requestId) return 'not_found';
+    try {
+      const { data, error } = await this.client
+        .from('stamp_requests')
+        .select('status')
+        .eq('id', requestId)
+        .maybeSingle();
+
+      if (error || !data) return 'not_found';
+      return data.status || 'pending';
+    } catch (e) {
+      return 'not_found';
+    }
+  }
+
+  async resolveStampRequest(requestId, action, customerObj = null) {
+    if (!this.isReady || !requestId) return { success: false, error: 'Not ready' };
+    try {
+      // 1. Update request status
+      const { data: updatedReq, error: reqErr } = await this.client
+        .from('stamp_requests')
+        .update({ status: action })
+        .eq('id', requestId)
+        .select()
+        .single();
+
+      if (reqErr) {
+        return { success: false, error: reqErr.message };
+      }
+
+      // 2. If approved, add stamp to customer in database
+      if (action === 'approved' && updatedReq) {
+        const phone = updatedReq.phone;
+        const currentCust = customerObj || await this.fetchCustomer(phone);
+        if (currentCust) {
+          const currentStamps = parseInt(currentCust.stamps, 10) || 0;
+          if (currentStamps < 6) {
+            const nextStamps = currentStamps + 1;
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            const dateStr = now.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+            const todayIso = now.toISOString().split('T')[0];
+
+            const newHistItem = {
+              date: `${dateStr}, ${timeStr}`,
+              type: 'stamp',
+              note: `Store Purchase (2nd Visit Cashier Approved) - Tick #${nextStamps} of 6 Collected`
+            };
+
+            const updatedHistory = [newHistItem, ...(currentCust.history || [])];
+            currentCust.stamps = nextStamps;
+            currentCust.history = updatedHistory;
+            currentCust.lastStampDate = todayIso;
+            currentCust.lastUpdated = Date.now();
+
+            await this.upsertCustomer(currentCust);
+          }
+        }
+      }
+
+      return { success: true, status: action };
+    } catch (e) {
+      return { success: false, error: e.message };
+    }
+  }
+
+  // --- Realtime Subscriptions ---
+  subscribeToRequestStatus(requestId, onStatusChange) {
+    if (!this.isReady || !requestId) return null;
+    const channelName = `req_status_${requestId}`;
+
+    if (this.activeChannels.has(channelName)) {
+      this.unsubscribe(channelName);
+    }
+
+    const channel = this.client
+      .channel(channelName)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'stamp_requests',
+          filter: `id=eq.${requestId}`
+        },
+        (payload) => {
+          if (payload.new && payload.new.status) {
+            onStatusChange(payload.new.status, this.toLocalRequest(payload.new));
+          }
+        }
+      )
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          console.log(`📡 Realtime connected for request ${requestId}`);
+        }
+      });
+
+    this.activeChannels.set(channelName, channel);
+    return channel;
+  }
+
+  subscribeToPendingRequests(onNewOrUpdatedRequest) {
+    if (!this.isReady) return null;
+    const channelName = 'owner_pending_stream';
+
+    if (this.activeChannels.has(channelName)) {
+      this.unsubscribe(channelName);
+    }
+
+    const channel = this.client
+      .channel(channelName)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'stamp_requests'
+        },
+        (payload) => {
+          if (payload.new) {
+            onNewOrUpdatedRequest(this.toLocalRequest(payload.new), payload.eventType);
+          }
+        }
+      )
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          console.log("📡 Realtime live stream connected for Store Owner");
+        }
+      });
+
+    this.activeChannels.set(channelName, channel);
+    return channel;
+  }
+
+  subscribeToCustomerUpdates(phone, onUpdate) {
+    if (!this.isReady || !phone) return null;
+    const channelName = `cust_sync_${phone}`;
+
+    if (this.activeChannels.has(channelName)) {
+      this.unsubscribe(channelName);
+    }
+
+    const channel = this.client
+      .channel(channelName)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'customers',
+          filter: `phone=eq.${String(phone).trim()}`
+        },
+        (payload) => {
+          if (payload.new) {
+            onUpdate(this.toLocalCustomer(payload.new));
+          }
+        }
+      )
+      .subscribe();
+
+    this.activeChannels.set(channelName, channel);
+    return channel;
+  }
+
+  unsubscribe(channelName) {
+    if (this.activeChannels.has(channelName)) {
+      const ch = this.activeChannels.get(channelName);
+      if (ch && this.client) {
+        this.client.removeChannel(ch);
+      }
+      this.activeChannels.delete(channelName);
+    }
+  }
+}
+
+// Global Singleton Instance
+window.loyaltyDb = new LoyaltySupabaseRepository();
+
+// --- Universal Device Info & Unique Hardware ID Detector ---
+window.detectDeviceInfo = async function() {
+  let userDeviceName = '';
+  let deviceId = '';
+  let modelFallback = '';
+
+  // 1. Android & iOS Native App Bridge
+  try {
+    const bridge = window.IosBridge || window.AndroidBridge;
+    if (bridge) {
+      if (typeof bridge.getUserDeviceName === 'function') {
+        userDeviceName = bridge.getUserDeviceName();
+      }
+      if (typeof bridge.getDeviceId === 'function') {
+        deviceId = bridge.getDeviceId();
+      }
+      if (typeof bridge.getDeviceName === 'function') {
+        modelFallback = bridge.getDeviceName();
+      }
+    }
+  } catch (e) {}
+
+  // 2. Generate or retrieve persistent unique Device ID if not available from Android
+  if (!deviceId) {
+    try {
+      deviceId = localStorage.getItem('golden_device_uuid');
+      if (!deviceId) {
+        deviceId = 'DEV_' + Math.random().toString(36).substring(2, 10).toUpperCase() + '_' + Date.now().toString(36).toUpperCase();
+        localStorage.setItem('golden_device_uuid', deviceId);
+      }
+    } catch (e) {
+      deviceId = 'DEV_' + Date.now();
+    }
+  }
+
+  // 3. User device name resolution (priority to user custom name over brand)
+  let finalDeviceName = userDeviceName && userDeviceName.trim().length > 0 ? userDeviceName.trim() : '';
+
+  if (!finalDeviceName) {
+    const ua = navigator.userAgent || '';
+    if (/iPhone/i.test(ua)) {
+      const match = ua.match(/OS (\d+[_\.]\d+)/);
+      finalDeviceName = match ? `Apple iPhone (iOS ${match[1].replace('_', '.')})` : "Apple iPhone";
+    } else if (/iPad/i.test(ua)) {
+      finalDeviceName = "Apple iPad";
+    } else if (modelFallback) {
+      finalDeviceName = modelFallback;
+    } else {
+      finalDeviceName = "Mobile Device";
+    }
+  }
+
+  return {
+    deviceName: finalDeviceName,
+    deviceId: deviceId
+  };
+};
+
+window.detectDeviceName = async function() {
+  const info = await window.detectDeviceInfo();
+  return info.deviceName;
+};

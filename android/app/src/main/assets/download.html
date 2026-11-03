@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Download Loyalty Pass — Loyalty Reward</title>
+  <meta name="description" content="Download the official Loyalty Reward customer app or access your digital loyalty card directly in your browser.">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=20261022h">
+  <link rel="icon" type="image/png" sizes="64x64" href="favicon-64.png?v=20261022h">
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon.png?v=20261022h">
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png?v=20261022h">
+  <link rel="shortcut icon" type="image/x-icon" href="favicon.ico?v=20261022h">
+  <link rel="apple-touch-icon" href="assets/logo.png?v=20261022h">
+
+  <script>
+    // Bypass browser tab favicon cache immediately
+    (function() {
+      try {
+        const link = document.createElement('link');
+        link.type = 'image/png';
+        link.rel = 'shortcut icon';
+        link.href = 'favicon-64.png?v=' + Date.now();
+        document.head.appendChild(link);
+      } catch(e) {}
+    })();
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: linear-gradient(180deg, #fdfbf7 0%, #f6f0e6 100%);
+      color: #2a1d15;
+      font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 14px;
+      margin: 0;
+      -webkit-font-smoothing: antialiased;
+      position: relative;
+    }
+
+    /* Ambient Warm Glow behind the card */
+    body::before {
+      content: '';
+      position: fixed;
+      top: -80px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 500px;
+      height: 320px;
+      background: radial-gradient(circle, rgba(212, 155, 79, 0.12) 0%, rgba(212, 155, 79, 0) 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .download-container {
+      position: relative;
+      z-index: 10;
+      width: 100%;
+      max-width: 410px;
+      margin: 0 auto;
+      background: #ffffff;
+      border: 1px solid #e7dfd4;
+      border-radius: 26px;
+      padding: 28px 20px 22px 20px;
+      box-shadow: 0 16px 40px -8px rgba(36, 23, 17, 0.09), 0 3px 12px rgba(0, 0, 0, 0.03);
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    /* Brand Logo Frame */
+    .brand-logo-frame {
+      width: 72px;
+      height: 72px;
+      margin: 0 auto 12px auto;
+      background: #170d08;
+      border-radius: 18px;
+      padding: 6px;
+      border: 1.5px solid rgba(212, 155, 79, 0.4);
+      box-shadow: 0 8px 20px rgba(23, 13, 8, 0.15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.2s ease;
+    }
+
+    .brand-logo-frame:hover {
+      transform: translateY(-2px);
+    }
+
+    .brand-hero-logo {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      border-radius: 12px;
+    }
+
+    /* Headline & Subtitle */
+    .app-headline {
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: #170d08;
+      margin: 0 0 4px 0;
+      letter-spacing: -0.025em;
+    }
+
+    .app-tagline {
+      font-size: 0.84rem;
+      color: #695547;
+      margin: 0 auto 14px auto;
+      max-width: 310px;
+      line-height: 1.45;
+      font-weight: 500;
+    }
+
+    /* Pill Badge */
+    .feature-pill-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      background: #241711;
+      border: 1px solid rgba(184, 119, 55, 0.45);
+      color: #f5ce99;
+      font-size: 0.68rem;
+      font-weight: 800;
+      padding: 4px 12px;
+      border-radius: 20px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 16px;
+    }
+
+    /* Elevated Download Card Box */
+    .download-card-highlight {
+      background: linear-gradient(180deg, #faf7f2 0%, #f4ede3 100%);
+      border: 1.5px solid #e3d7c7;
+      border-radius: 18px;
+      padding: 16px 14px 13px 14px;
+      margin-bottom: 12px;
+      width: 100%;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+    }
+
+    /* Primary Dark Golden Button */
+    .btn-download-apk {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      background: linear-gradient(135deg, #2c1a12 0%, #170d08 100%);
+      color: #ffffff;
+      font-size: 0.94rem;
+      font-weight: 800;
+      padding: 14px 14px;
+      border-radius: 14px;
+      text-decoration: none;
+      box-shadow: 0 8px 20px rgba(23, 13, 8, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      border: 1px solid rgba(212, 155, 79, 0.45);
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .btn-download-apk:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 26px rgba(23, 13, 8, 0.3);
+      border-color: rgba(212, 155, 79, 0.75);
+    }
+
+    .btn-download-apk:active {
+      transform: translateY(0);
+      box-shadow: 0 4px 12px rgba(23, 13, 8, 0.2);
+    }
+
+    .btn-download-apk svg {
+      flex-shrink: 0;
+      width: 19px;
+      height: 19px;
+    }
+
+    #apkBtnLabel {
+      white-space: nowrap;
+      letter-spacing: -0.01em;
+    }
+
+    /* Metadata Chips Row */
+    .apk-meta-row {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 6px;
+      margin-top: 10px;
+      white-space: nowrap;
+    }
+
+    .meta-chip {
+      display: inline-flex;
+      align-items: center;
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: #705847;
+      background: rgba(255, 255, 255, 0.8);
+      border: 1px solid rgba(184, 119, 55, 0.2);
+      padding: 2.5px 8px;
+      border-radius: 10px;
+    }
+
+    /* Live Download Status Banner */
+    .download-status-box {
+      margin-top: 12px;
+      padding: 10px 12px;
+      background: #f0fdf4;
+      border: 1.5px solid #86efac;
+      border-radius: 12px;
+      font-size: 0.76rem;
+      color: #166534;
+      text-align: left;
+      line-height: 1.45;
+      animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Modern Divider */
+    .divider-wrap {
+      display: flex;
+      align-items: center;
+      width: 100%;
+      margin: 14px 0 12px 0;
+      color: #a38f80;
+      font-size: 0.68rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .divider-wrap::before, .divider-wrap::after {
+      content: '';
+      flex: 1;
+      border-bottom: 1px solid #e7ded3;
+    }
+
+    .divider-wrap::before { margin-right: 10px; }
+    .divider-wrap::after { margin-left: 10px; }
+
+    /* Secondary Action: Instant Web Pass Tile (Apple Wallet Style) */
+    .action-card-tile {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      width: 100%;
+      background: #ffffff;
+      border: 1.5px solid #e5dbcd;
+      border-radius: 16px;
+      padding: 11px 14px;
+      text-decoration: none;
+      color: #170d08;
+      box-shadow: 0 3px 10px rgba(35, 20, 10, 0.03);
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      margin-bottom: 10px;
+    }
+
+    .action-card-tile:hover {
+      background: #fdfbf8;
+      border-color: #b87737;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(35, 20, 10, 0.07);
+    }
+
+    .tile-icon-badge {
+      width: 38px;
+      height: 38px;
+      border-radius: 11px;
+      background: rgba(184, 119, 55, 0.12);
+      border: 1px solid rgba(184, 119, 55, 0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.15rem;
+      flex-shrink: 0;
+    }
+
+    .tile-text-col {
+      flex: 1;
+      text-align: left;
+      min-width: 0;
+    }
+
+    .tile-title {
+      font-size: 0.9rem;
+      font-weight: 800;
+      color: #170d08;
+      margin-bottom: 1px;
+      white-space: nowrap;
+    }
+
+    .tile-sub {
+      font-size: 0.72rem;
+      font-weight: 500;
+      color: #7a6556;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .tile-arrow {
+      color: #b87737;
+      transition: transform 0.2s ease;
+      flex-shrink: 0;
+    }
+
+    .action-card-tile:hover .tile-arrow {
+      transform: translateX(3px);
+    }
+
+    /* Tertiary Action: Open Installed Native App */
+    .action-card-secondary {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      width: 100%;
+      background: rgba(184, 119, 55, 0.06);
+      border: 1px dashed rgba(184, 119, 55, 0.35);
+      border-radius: 12px;
+      padding: 9px 12px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: #7a481c;
+      text-decoration: none;
+      transition: all 0.15s ease;
+      margin-bottom: 14px;
+      white-space: nowrap;
+    }
+
+    .action-card-secondary:hover {
+      background: rgba(184, 119, 55, 0.12);
+      border-style: solid;
+      color: #4a280b;
+    }
+
+    .action-card-secondary strong {
+      font-weight: 800;
+    }
+
+    /* 3-Step Modern Stepper */
+    .stepper-card {
+      width: 100%;
+      background: #faf7f2;
+      border: 1px solid #ebd9c8;
+      border-radius: 18px;
+      padding: 13px 15px 12px 15px;
+      text-align: left;
+      margin-bottom: 0;
+    }
+
+    .stepper-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid rgba(184, 119, 55, 0.15);
+    }
+
+    .stepper-badge {
+      font-size: 0.74rem;
+      font-weight: 800;
+      color: #241711;
+      letter-spacing: 0.02em;
+    }
+
+    .stepper-sub {
+      font-size: 0.68rem;
+      color: #8c7362;
+      font-weight: 600;
+    }
+
+    .steps-flow {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .step-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+    }
+
+    .step-num {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #241711;
+      color: #f5ce99;
+      font-size: 0.68rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .step-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .step-main {
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: #170d08;
+      margin-bottom: 1px;
+    }
+
+    .step-desc {
+      font-size: 0.7rem;
+      color: #786455;
+      line-height: 1.35;
+    }
+
+    .app-panel {
+      width: 100%;
+    }
+
+    /* Mobile Responsive Optimizations */
+    @media (max-width: 480px) {
+      body {
+        padding: 14px 10px;
+      }
+
+      .download-container {
+        padding: 22px 14px 18px 14px;
+        border-radius: 22px;
+        max-width: 390px;
+      }
+
+      .brand-logo-frame {
+        width: 66px;
+        height: 66px;
+        margin: 0 auto 10px auto;
+        border-radius: 16px;
+      }
+
+      .app-headline {
+        font-size: 1.38rem;
+      }
+
+      .app-tagline {
+        font-size: 0.8rem;
+        margin-bottom: 12px;
+        max-width: 290px;
+      }
+
+      .btn-download-apk {
+        padding: 13px 12px;
+        font-size: 0.88rem;
+        gap: 8px;
+      }
+
+      .btn-download-apk svg {
+        width: 18px;
+        height: 18px;
+      }
+
+      .action-card-tile {
+        padding: 10px 12px;
+        gap: 10px;
+        border-radius: 14px;
+      }
+
+      .tile-icon-badge {
+        width: 35px;
+        height: 35px;
+        font-size: 1.05rem;
+      }
+
+      .tile-title {
+        font-size: 0.86rem;
+      }
+
+      .tile-sub {
+        font-size: 0.69rem;
+      }
+
+      .action-card-secondary {
+        font-size: 0.75rem;
+        padding: 8px 10px;
+        margin-bottom: 12px;
+      }
+
+      .stepper-card {
+        padding: 11px 13px;
+        border-radius: 16px;
+      }
+
+      .stepper-badge {
+        font-size: 0.72rem;
+      }
+
+      .step-main {
+        font-size: 0.76rem;
+      }
+
+      .step-desc {
+        font-size: 0.68rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <main class="download-container">
+    <!-- Brand Logo Frame -->
+    <div class="brand-logo-frame">
+      <img src="assets/logo.png?v=20261022h" alt="Sugar Cubes Hopes Logo" class="brand-hero-logo">
+    </div>
+
+    <h1 class="app-headline">Loyalty Reward</h1>
+    <p class="app-tagline">Scan in-store, collect 6 purchase ticks &amp; unlock your instant free gift!</p>
+
+    <!-- CUSTOMER LOYALTY PASS APP PANEL -->
+    <div id="customerAppPanel" class="app-panel">
+      
+      <!-- Status Badge -->
+      <div class="feature-pill-badge">
+        <span>✦ Official Customer App ✦</span>
+      </div>
+
+      <!-- PRIMARY: Customer Download Card -->
+      <div class="download-card-highlight">
+        <a id="apkDownloadLink" href="apks/LoyaltyPass-Customer.apk" class="btn-download-apk" download="LoyaltyPass-Customer.apk" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          <span id="apkBtnLabel">Download Customer App (APK)</span>
+        </a>
+
+        <!-- Metadata Row with Clean Chips -->
+        <div class="apk-meta-row">
+          <span class="meta-chip">✓ Free APK</span>
+          <span class="meta-chip">10.6 MB</span>
+          <span class="meta-chip">Android 8.0+</span>
+        </div>
+
+        <!-- Real-time Download Feedback Banner -->
+        <div id="apkDownloadStatus" class="download-status-box" style="display: none;">
+          <div style="font-weight: 700; margin-bottom: 3px; display: flex; align-items: center; gap: 6px;">
+            <span>📥 Downloading LoyaltyPass-Customer.apk...</span>
+          </div>
+          <div>Please check your notification bar or browser Downloads drawer. Tap the downloaded APK to install!</div>
+        </div>
+      </div>
+
+      <!-- DIVIDER -->
+      <div class="divider-wrap">
+        <span>Or Instant Access</span>
+      </div>
+
+      <!-- SECONDARY: Instant Web Pass Tile (Apple Wallet Style) -->
+      <a id="webPassBtn" href="customer/index.html" class="action-card-tile">
+        <div class="tile-icon-badge">🌐</div>
+        <div class="tile-text-col">
+          <div class="tile-title">Instant Web Pass</div>
+          <div class="tile-sub">Open in browser • No app needed</div>
+        </div>
+        <svg class="tile-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <polyline points="9 18 15 12 9 6"></polyline>
+        </svg>
+      </a>
+
+      <!-- iOS Only Pass Link (Hidden by default, shown automatically on iPhone/iPad) -->
+      <a id="iosWebPassLink" href="customer/index.html" class="btn-download-apk" style="display: none; background: linear-gradient(135deg, #2b1c15 0%, #1c110b 100%); margin-bottom: 10px;">
+        <span>🍏 Open Apple Loyalty Pass (Safari)</span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><polyline points="9 18 15 12 9 6"></polyline></svg>
+      </a>
+
+      <!-- TERTIARY: Deep Link to Native App if Already Installed -->
+      <a id="nativeAppLink" href="loyaltypass://scan" class="action-card-secondary">
+        <span>📱 Already installed? <strong>Open Pass ↗</strong></span>
+      </a>
+
+      <!-- STEPPER: Quick 3-Step Setup Instructions -->
+      <div class="stepper-card">
+        <div class="stepper-header">
+          <span class="stepper-badge">ℹ️ Quick Install Guide</span>
+          <span class="stepper-sub">30-sec setup</span>
+        </div>
+        <div class="steps-flow">
+          <div class="step-item">
+            <div class="step-num">1</div>
+            <div class="step-info">
+              <div class="step-main">Tap Download APK</div>
+              <div class="step-desc">Official package saves directly to device.</div>
+            </div>
+          </div>
+          <div class="step-item">
+            <div class="step-num">2</div>
+            <div class="step-info">
+              <div class="step-main">Open &amp; Install</div>
+              <div class="step-desc">Tap downloaded file &amp; allow install.</div>
+            </div>
+          </div>
+          <div class="step-item">
+            <div class="step-num">3</div>
+            <div class="step-info">
+              <div class="step-main">Collect Free Stamps</div>
+              <div class="step-desc">Scan store counter QR to claim gifts!</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <script>
+    // Determine target host dynamically
+    const isFile = window.location.protocol === 'file:';
+    const localServerBase = 'http://localhost:8085';
+    const baseUrl = isFile ? localServerBase : window.location.origin;
+
+    // Preserve any incoming store scan tokens only if provided in URL
+    const params = new URLSearchParams(window.location.search);
+    const storeToken = params.get('store_scan') || params.get('token') || params.get('code') || '';
+
+    // Target Customer Pass URL for browser fallback & desktop view
+    const customerPassUrl = storeToken
+      ? (isFile ? './customer/index.html?store_scan=' + encodeURIComponent(storeToken) : `${baseUrl}/customer/?store_scan=${encodeURIComponent(storeToken)}`)
+      : (isFile ? './customer/index.html' : `${baseUrl}/customer/`);
+
+    const webPassBtn = document.getElementById('webPassBtn');
+    if (webPassBtn) {
+      webPassBtn.href = customerPassUrl;
+    }
+
+    // Wire up Customer APK download link
+    const apkLink = document.getElementById('apkDownloadLink');
+    const apkBtnLabel = document.getElementById('apkBtnLabel');
+    const apkStatus = document.getElementById('apkDownloadStatus');
+
+    if (apkLink) {
+      const apkUrl = isFile ? `${localServerBase}/apks/LoyaltyPass-Customer.apk` : `${baseUrl}/apks/LoyaltyPass-Customer.apk`;
+      apkLink.href = apkUrl;
+
+      apkLink.addEventListener('click', function(e) {
+        // Immediate visual feedback
+        if (apkStatus) apkStatus.style.display = 'block';
+        if (apkBtnLabel) apkBtnLabel.textContent = 'Starting Download...';
+
+        setTimeout(() => {
+          if (apkBtnLabel) apkBtnLabel.textContent = 'Download Again (APK)';
+        }, 3500);
+
+        if (isFile) {
+          e.preventDefault();
+          // Test if localhost server is running; if so, download from it
+          const img = new Image();
+          img.onload = function() {
+            window.location.href = apkUrl;
+          };
+          img.onerror = function() {
+            // Local server not reachable, open relative file directly
+            const a = document.createElement('a');
+            a.href = 'apks/LoyaltyPass-Customer.apk';
+            a.download = 'LoyaltyPass-Customer.apk';
+            a.target = '_blank';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+          };
+          img.src = `${localServerBase}/favicon.ico?v=` + Date.now();
+        }
+      });
+    }
+
+    // Wire up Native App link with intelligent device detection & fallback
+    const nativeLink = document.getElementById('nativeAppLink');
+    if (nativeLink) {
+      const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+      const isAndroid = /Android/i.test(navigator.userAgent);
+
+      if (!isMobile) {
+        // Desktop PC (Windows / Mac): Custom scheme loyaltypass:// has no desktop handler.
+        // Opens the Customer Pass directly in the browser with full functionality!
+        nativeLink.href = customerPassUrl;
+      } else if (isAndroid) {
+        // Android Device: Try opening the native APK app via deep link.
+        // If the app is not installed, seamlessly fall back to the browser pass after timeout.
+        const deepLink = 'loyaltypass://scan?store_scan=' + encodeURIComponent(storeToken);
+        nativeLink.href = deepLink;
+
+        nativeLink.addEventListener('click', function(e) {
+          const start = Date.now();
+          let appOpened = false;
+
+          const onVisibilityChange = function() {
+            if (document.hidden || document.webkitHidden) {
+              appOpened = true;
+            }
+          };
+          document.addEventListener('visibilitychange', onVisibilityChange);
+          window.addEventListener('pagehide', onVisibilityChange);
+
+          setTimeout(function() {
+            document.removeEventListener('visibilitychange', onVisibilityChange);
+            window.removeEventListener('pagehide', onVisibilityChange);
+            if (!appOpened && (Date.now() - start < 2000)) {
+              window.location.href = customerPassUrl;
+            }
+          }, 1200);
+        });
+      } else {
+        // iOS or other mobile
+        nativeLink.href = customerPassUrl;
+      }
+    }
+
+    // Auto-Detect iOS (iPhone / iPad) and provide seamless Apple Safari PWA flow
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    if (isIOS) {
+      const apkCard = document.querySelector('#customerAppPanel .download-card-highlight');
+      if (apkCard) apkCard.style.display = 'none';
+
+      const pill = document.querySelector('#customerAppPanel .feature-pill-badge span');
+      if (pill) pill.innerText = '✦ Official Apple iOS Pass ✦';
+
+      const iosBtn = document.getElementById('iosWebPassLink');
+      if (iosBtn) {
+        iosBtn.style.display = 'flex';
+        iosBtn.href = isFile ? './customer/index.html?store_scan=' + encodeURIComponent(storeToken) : `${baseUrl}/customer/?store_scan=${encodeURIComponent(storeToken)}`;
+      }
+
+      const nativeBtn = document.getElementById('nativeAppLink');
+      if (nativeBtn) nativeBtn.style.display = 'none';
+
+      const stepsBox = document.querySelector('#customerAppPanel .stepper-card');
+      if (stepsBox) {
+        stepsBox.innerHTML = `
+          <div class="stepper-header">
+            <span class="stepper-badge">🍏 iPhone Safari Setup</span>
+            <span class="stepper-sub">10-sec</span>
+          </div>
+          <div class="steps-flow">
+            <div class="step-item">
+              <div class="step-num">1</div>
+              <div class="step-info">
+                <div class="step-main">Open Apple Pass</div>
+                <div class="step-desc">Tap "Open Apple Loyalty Pass" above in Safari.</div>
+              </div>
+            </div>
+            <div class="step-item">
+              <div class="step-num">2</div>
+              <div class="step-info">
+                <div class="step-main">Tap Share Button</div>
+                <div class="step-desc">Tap the Safari Share icon (square with arrow up).</div>
+              </div>
+            </div>
+            <div class="step-item">
+              <div class="step-num">3</div>
+              <div class="step-info">
+                <div class="step-main">Add to Home Screen</div>
+                <div class="step-desc">Select "Add to Home Screen" to install!</div>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+    }
+  </script>
+</body>
+</html>

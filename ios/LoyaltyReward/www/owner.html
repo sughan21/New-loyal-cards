@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Loyalty Reward — Store Owner Admin Portal</title>
+  <meta name="description"
+    content="Dedicated Store Owner Admin Portal for managing customer loyalty stamps, standee QR codes, and gift rewards.">
+  <meta name="theme-color" content="#ffffff">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Store Terminal">
+  <meta name="application-name" content="Store Terminal">
+
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/svg+xml" href="icons/owner-icon-512.png">
+  <link rel="icon" type="image/png" sizes="64x64" href="icons/owner-icon-512.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="icons/owner-icon-512.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/owner-icon-512.png">
+  <link rel="shortcut icon" type="image/x-icon" href="icons/owner-icon-512.png">
+  <link rel="apple-touch-icon" href="icons/owner-icon-512.png">
+
+  <script>
+    // Bypass browser tab favicon cache immediately
+    (function () {
+      try {
+        const link = document.createElement('link');
+        link.type = 'image/png';
+        link.rel = 'shortcut icon';
+        link.href = 'icons/owner-icon-512.png' + Date.now();
+        document.head.appendChild(link);
+      } catch (e) { }
+    })();
+  </script>
+
+  <!-- Google Fonts: Plus Jakarta Sans & Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap"
+    rel="stylesheet">
+
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="css/style.css">
+
+  <!-- External Libraries for QR & Confetti (Local for 100% Offline APK Support) -->
+  <script src="js/vendor/qrcode.min.js"></script>
+  <script src="js/vendor/confetti.browser.min.js"></script>
+</head>
+
+<body class="store-mode-active">
+
+  <!-- Top Navigation Header -->
+  <header class="app-header" style="justify-content: flex-end;">
+    <div class="header-actions">
+    <a href="../customer/" class="mode-toggle-btn" target="_blank" title="Open Customer App">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+        <polyline points="15 3 21 3 21 9"></polyline>
+        <line x1="10" y1="14" x2="21" y2="3"></line>
+      </svg>
+      Customer App Pass ↗
+    </a>
+    <button id="ownerLogoutHeaderBtn" class="mode-toggle-btn"
+      style="display: none; background: rgba(239, 68, 68, 0.15); border-color: rgba(239, 68, 68, 0.4); color: #fca5a5;">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+        <polyline points="16 17 21 12 16 7"></polyline>
+        <line x1="21" y1="12" x2="9" y2="12"></line>
+      </svg>
+      Sign Out
+    </button>
+  </div>
+  </header>
+
+  <!-- Main Application Wrapper -->
+  <main class="main-wrapper">
+    <div class="app-container" style="max-width: 960px;">
+
+      <!-- =====================================================================
+           SECTION 1: STORE OWNER LOGIN SCREEN
+           ===================================================================== -->
+      <div id="ownerAuthSection" class="glass-panel auth-panel" style="max-width: 440px; margin: 30px auto;">
+        <div class="auth-hero">
+          <img src="assets/logo.png?v=2026" alt="Loyalty App Logo" class="auth-hero-img">
+          <h2>Store Owner Login</h2>
+          <p>Access customer directory, real-time analytics, and counter standee QR.</p>
+        </div>
+
+        <form id="ownerLoginForm" class="auth-form" style="display: flex;">
+          <div
+            style="background: var(--bg-surface-elevated); border: 1px solid var(--border-medium); padding: 12px 14px; border-radius: var(--radius-md); font-size: 0.78rem; color: var(--text-secondary); text-align: left;">
+            <strong style="color: var(--text-pure); display: block; margin-bottom: 2px;">✦ Merchant Terminal
+              Access</strong>
+            Authorized store staff only. Default credentials: <code style="color: var(--gold-light);">admin</code> /
+            <code style="color: var(--gold-light);">admin123</code>
+          </div>
+
+          <div class="input-group">
+            <label for="ownerUsername">Store Owner Username / ID</label>
+            <div class="input-field-wrapper">
+              <span class="input-field-icon">🏪</span>
+              <input type="text" id="ownerUsername" class="custom-input" placeholder="e.g. admin" value="admin"
+                required>
+            </div>
+          </div>
+
+          <div class="input-group">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
+              <label for="ownerPassword" style="margin-bottom: 0;">Store Admin Password / PIN</label>
+              <button type="button" id="ownerForgotBtn" class="forgot-link-btn">Forgot Password / PIN?</button>
+            </div>
+            <div class="input-field-wrapper">
+              <span class="input-field-icon">🔑</span>
+              <input type="password" id="ownerPassword" class="custom-input has-toggle" placeholder="e.g. admin123"
+                value="admin123" required>
+              <button type="button" class="password-toggle-btn" aria-label="Show password" title="Show password" tabindex="-1">
+                <svg class="eye-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                  <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+                <svg class="eye-off-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: none;">
+                  <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                  <line x1="1" y1="1" x2="23" y2="23"></line>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <button type="submit" class="primary-btn">
+            <span>Log In to Owner Dashboard</span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <polyline points="9 18 15 12 9 6"></polyline>
+            </svg>
+          </button>
+
+          <button type="button" id="demoOwnerLoginBtn" class="demo-login-btn">
+            <span>⚡ One-Click Store Owner Login</span>
+          </button>
+        </form>
+      </div>
+
+      <!-- =====================================================================
+           SECTION 2: STORE OWNER MANAGEMENT DASHBOARD
+           ===================================================================== -->
+      <div id="ownerDashboardSection" class="store-owner-dashboard" style="display: none; width: 100%;">
+
+        <!-- Store Owner Top Header -->
+        <div class="owner-header-bar">
+          <div class="owner-title-wrap">
+            <div class="owner-badge-icon">
+              <img src="assets/logo.png?v=2026" alt="Loyalty Reward Brand Logo" class="owner-badge-logo-img">
+            </div>
+            <div class="owner-title-text">
+              <h3 id="ownerStoreTitleDisplay">Loyalty Reward • Store Owner Portal</h3>
+              <p>Customer Loyalty Tracker & 6-Tick Management Terminal</p>
+            </div>
+          </div>
+
+          <div class="owner-header-actions">
+            <a href="index.html" class="mode-toggle-btn" target="_blank" title="Open Customer App">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                <polyline points="15 3 21 3 21 9"></polyline>
+                <line x1="10" y1="14" x2="21" y2="3"></line>
+              </svg>
+              Customer Pass ↗
+            </a>
+            <button id="ownerLogoutBtn" class="mode-toggle-btn"
+              style="background: rgba(239, 68, 68, 0.15); border-color: rgba(239, 68, 68, 0.4); color: #fca5a5;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                <polyline points="16 17 21 12 16 7"></polyline>
+                <line x1="21" y1="12" x2="9" y2="12"></line>
+              </svg>
+              Sign Out Owner
+            </button>
+          </div>
+        </div>
+
+        <!-- Live Same-Day Approval Alerts Banner -->
+        <div id="repeatApprovalAlertBanner" class="repeat-approval-banner" style="display: none;">
+          <div class="approval-banner-header">
+            <div class="approval-banner-title-wrap">
+              <div class="approval-banner-icon">🔔</div>
+              <div class="approval-banner-text">
+                <h4>Customer Awaiting 2nd Stamp Confirmation</h4>
+                <p>A customer already collected today's free daily stamp and is requesting a 2nd purchase tick.</p>
+              </div>
+            </div>
+            <span id="pendingRequestsBadge" class="approval-pending-badge">0 PENDING</span>
+          </div>
+          <div id="pendingRequestsList" class="approval-requests-list">
+            <!-- Rendered dynamically -->
+          </div>
+        </div>
+
+        <!-- Store Owner Metrics Grid -->
+        <div class="owner-metrics-grid">
+          <div class="metric-card">
+            <div class="metric-icon gold">👥</div>
+            <div class="metric-info">
+              <h4 id="ownerTotalCustomers">0</h4>
+              <p>Total Customers</p>
+            </div>
+          </div>
+
+          <div class="metric-card">
+            <div class="metric-icon emerald">🎁</div>
+            <div class="metric-info">
+              <h4 id="ownerReadyForGiftCount">0</h4>
+              <p>Ready For Gift (6/6 Ticks)</p>
+            </div>
+          </div>
+
+          <div class="metric-card">
+            <div class="metric-icon purple">⚡</div>
+            <div class="metric-info">
+              <h4 id="ownerOneTickLeftCount">0</h4>
+              <p>1 Tick Remaining</p>
+            </div>
+          </div>
+
+          <div class="metric-card">
+            <div class="metric-icon gold">★</div>
+            <div class="metric-info">
+              <h4 id="ownerTotalGiftsGiven">0</h4>
+              <p>Gifts Redeemed</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Live Customer Database & Stamp Manager Card -->
+        <div class="glass-panel owner-card-panel">
+          <div class="owner-section-header">
+            <div class="owner-section-title-wrap">
+              <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                <h3 style="font-size: 1.15rem; font-weight: 800; color: var(--text-pure); margin: 0;">Customer Loyalty
+                  Progress Directory</h3>
+                <span id="liveSyncBadge"
+                  style="display: inline-flex; align-items: center; gap: 5px; font-size: 0.68rem; font-weight: 700; color: #10b981; background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 20px; padding: 2px 8px;">
+                  <span
+                    style="width: 6px; height: 6px; background: #10b981; border-radius: 50%; display: inline-block;"></span>
+                  LIVE CLOUD SYNC
+                </span>
+                <button id="manualSyncBtn" type="button"
+                  style="background: #f7f4ee; border: 1px solid #dcd4cb; color: #5a4537; border-radius: 8px; padding: 3px 8px; font-size: 0.7rem; cursor: pointer;">
+                  🔄 Refresh Now
+                </button>
+              </div>
+              <p style="font-size: 0.78rem; color: var(--text-muted); margin-top: 2px;">
+                Shows exact stamps collected, remaining tick boxes, and fast cashier stamp/gift buttons.
+              </p>
+            </div>
+
+            <!-- Live Search Bar -->
+            <div class="owner-search-wrap">
+              <svg class="owner-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              </svg>
+              <input type="text" id="ownerCustomerSearch" class="owner-search-input"
+                placeholder="Search customer name or phone...">
+            </div>
+          </div>
+
+          <!-- Category Quick Filter Pills Bar -->
+          <div class="owner-filter-pills-container">
+            <div class="owner-filter-pills" role="tablist" aria-label="Customer Category Filters">
+              <button type="button" class="filter-pill active" data-filter="all" role="tab" aria-selected="true">
+                <span class="pill-label">All Customers</span>
+                <span class="pill-count" id="pillCountAll">0</span>
+              </button>
+              <button type="button" class="filter-pill" data-filter="ready" role="tab" aria-selected="false">
+                <span class="pill-icon">🎉</span>
+                <span class="pill-label">Ready for Gift</span>
+                <span class="pill-count" id="pillCountReady">0</span>
+              </button>
+              <button type="button" class="filter-pill" data-filter="urgent" role="tab" aria-selected="false">
+                <span class="pill-icon">⚡</span>
+                <span class="pill-label">1 Tick Left</span>
+                <span class="pill-count" id="pillCountUrgent">0</span>
+              </button>
+              <button type="button" class="filter-pill" data-filter="progress" role="tab" aria-selected="false">
+                <span class="pill-icon">⏳</span>
+                <span class="pill-label">In Progress</span>
+                <span class="pill-count" id="pillCountProgress">0</span>
+              </button>
+              <button type="button" class="filter-pill" data-filter="new" role="tab" aria-selected="false">
+                <span class="pill-icon">★</span>
+                <span class="pill-label">New Customers</span>
+                <span class="pill-count" id="pillCountNew">0</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Table Header for Precision Column Alignment -->
+          <div class="customer-table-header">
+            <div class="th-col th-customer">Customer</div>
+            <div class="th-col th-progress">Stamps (6 Ticks)</div>
+            <div class="th-col th-status">Remaining Status</div>
+            <div class="th-col th-action">Action & History</div>
+          </div>
+
+          <!-- Customer Directory Table List -->
+          <div id="ownerCustomerList" class="owner-customer-list">
+            <!-- Dynamically populated customer directory rows -->
+          </div>
+
+          <!-- Quick Register Customer at Counter Form -->
+          <div class="add-customer-panel">
+            <div class="add-customer-panel-title">
+              ⚡ Quick Register Customer at Counter (Optional)
+            </div>
+            <form id="ownerAddCustomerForm" class="add-customer-form">
+              <input type="text" id="ownerNewCustName" class="custom-input" placeholder="Enter Customer Name" required>
+              <input type="tel" id="ownerNewCustPhone" class="custom-input" placeholder="Enter 10-Digit Mobile Number"
+                required>
+              <button type="submit" class="primary-btn add-cust-btn">
+                Add Customer
+              </button>
+            </form>
+          </div>
+        </div>
+
+        <!-- Store Counter Standee & Cashier Terminal (CONSOLIDATED 1 UNIVERSAL QR) -->
+        <div class="store-counter-grid single-standee-layout">
+          <!-- The Unified All-in-One Store Counter Standee Card -->
+          <div class="store-qr-card unified-standee-card">
+            <span class="store-qr-badge">✦ OFFICIAL STORE COUNTER STANDEE (ALL-IN-ONE) ✦</span>
+            <h3 style="font-size: 1.25rem; font-weight: 800; color: var(--text-pure); margin: 4px 0;">All-in-One Store
+              QR Code</h3>
+            <p style="font-size: 0.82rem; color: var(--text-muted); max-width: 400px;">
+              Single QR code for every customer! Works with phone cameras and the in-app scanner.
+            </p>
+
+            <!-- The ONE Single Universal QR Box -->
+            <div id="unifiedStoreQrContainer" class="store-qr-display-box prominent-qr-box">
+              <img src="assets/store_qr_live.png" alt="Store Counter QR Code"
+                style="width:220px; height:220px; object-fit:contain; border-radius:12px; display:block; margin:0 auto; background:#fff; padding:6px; box-sizing:border-box;">
+            </div>
+
+            <!-- Destination URL Indicator -->
+            <div
+              style="font-size: 0.72rem; color: #94a3b8; margin: 6px auto 0; word-break: break-all; max-width: 320px; text-align: center;">
+              🔗 <span id="standeeQrTargetDisplay"
+                style="color: var(--gold-light);">download.html?store_scan=LOYALTY-REWARD-STORE-TOKEN-2026</span>
+            </div>
+
+            <!-- Standee Action Explainer Badges for Customers -->
+            <div class="standee-features-list">
+              <div class="standee-feature-item">
+                <span class="standee-feat-icon">📱</span>
+                <div class="standee-feat-text">
+                  <strong>Already Installed App / Member?</strong>
+                  <span>Scan to instantly collect +1 purchase loyalty tick</span>
+                </div>
+              </div>
+              <div class="standee-feature-item">
+                <span class="standee-feat-icon">🎁</span>
+                <div class="standee-feat-text">
+                  <strong>Need to Redeem Loyalty?</strong>
+                  <span>Shows 6/6 completed Gift Voucher for cashier</span>
+                </div>
+              </div>
+              <div class="standee-feature-item">
+                <span class="standee-feat-icon">✨</span>
+                <div class="standee-feat-text">
+                  <strong>New First-Time Customer?</strong>
+                  <span>Opens app, saves digital pass & gives 1st tick</span>
+                </div>
+              </div>
+            </div>
+
+            <div style="font-size: 0.74rem; color: var(--gold-primary); font-weight: 700;">
+              ✓ Active Store Token: <code
+                style="color:var(--text-pure); font-family: monospace;">LOYALTY-REWARD-STORE-TOKEN-2026</code>
+            </div>
+
+            <div class="standee-action-btn-row">
+              <button id="printStandeeBtn" class="scanner-opt-btn" type="button">
+                🖨️ Print Counter Standee
+              </button>
+              <a id="testScanFlowLink"
+                href="download.html"
+                class="scanner-opt-btn test-btn" target="_blank">
+                ⚡ Test Customer Scan Flow ↗
+              </a>
+              <a id="ownerTerminalApkDownloadLink"
+                href="apks/StoreTerminal-Owner.apk"
+                download="StoreTerminal-Owner.apk"
+                class="scanner-opt-btn" style="background: rgba(184, 119, 55, 0.12); border-color: rgba(184, 119, 55, 0.35); color: var(--gold-light);">
+                📲 Download Cashier APK
+              </a>
+            </div>
+          </div>
+
+          <!-- Cashier Fast Actions & URL Linker -->
+          <div class="store-cashier-actions">
+            <!-- Cashier Manual Code Redeemer -->
+            <div class="cashier-tool-box">
+              <h4>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="8" width="18" height="12" rx="2"></rect>
+                  <path d="M12 22V8"></path>
+                </svg>
+                Verify & Redeem Customer Gift Voucher
+              </h4>
+              <p style="font-size: 0.75rem; color: var(--text-muted);">Enter customer's 6-digit gift voucher code to
+                approve free reward:</p>
+              <div style="display: flex; gap: 8px;">
+                <input type="text" id="cashierVoucherCode" class="custom-input"
+                  placeholder="Voucher Code (e.g. GIFT-3210-99)" style="padding-left: 14px; text-transform: uppercase;">
+                <button id="cashierRedeemBtn" class="primary-btn"
+                  style="white-space: nowrap; padding: 10px 16px; margin: 0;">Redeem Gift</button>
+              </div>
+            </div>
+
+            <!-- Standee Live Link Info Card -->
+            <div class="cashier-tool-box standee-info-tool">
+              <h4>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="12" y1="16" x2="12" y2="12"></line>
+                  <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                </svg>
+                Standee QR Code Destination & Link
+              </h4>
+              <p style="font-size: 0.76rem; color: var(--text-secondary); line-height: 1.5; margin: 0;">
+                • <strong>Phone Camera / Google Lens:</strong> Opens the live download page where customers can install
+                the Android APK in 1 tap or use the browser pass.<br>
+                • <strong>In-App Scanner:</strong> Customer opens their <strong>Loyalty Pass App</strong> & taps "Scan
+                Store QR" (works 100% offline).
+              </p>
+              <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 8px;">Active QR Code Target
+                (Editable):</div>
+              <div style="display: flex; gap: 6px;">
+                <input type="text" id="standeeDirectUrl" class="custom-input"
+                  style="font-size: 0.74rem; color: var(--gold-light); font-family: monospace; background: var(--bg-surface-elevated);"
+                  placeholder="https://your-domain.com/download.html or Cloudflare URL">
+                <button id="saveStandeeUrlBtn" type="button" class="scanner-opt-btn"
+                  style="white-space: nowrap; padding: 8px 12px; margin: 0; background: var(--gold-primary); color: #000; font-weight: 700;">Update
+                  QR</button>
+                <button id="copyStandeeUrlBtn" type="button" class="scanner-opt-btn"
+                  style="white-space: nowrap; padding: 8px 10px; margin: 0;">Copy</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </main>
+
+  <!-- =========================================================================
+       STORE OWNER PASSWORD RECOVERY MODAL
+       ========================================================================= -->
+  <div id="forgotPasswordModal" class="modal-backdrop">
+    <div class="modal-dialog forgot-dialog">
+      <button class="modal-close-btn modal-close-trigger">&times;</button>
+
+      <div id="ownerForgotView">
+        <div class="modal-header" style="text-align: center;">
+          <div class="store-scan-badge">✦ STORE OWNER RECOVERY</div>
+          <h3 style="font-size: 1.3rem; color: #fff; margin-top: 8px;">Reset Store Admin Password</h3>
+          <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 4px;">
+            Verify your master security key or cashier PIN to create a new admin password.
+          </p>
+        </div>
+
+        <form id="ownerForgotForm" class="auth-form"
+          style="display: flex; flex-direction: column; gap: 14px; margin-top: 10px;">
+          <div class="input-group">
+            <label for="ownerRecoveryKey">Admin Master Key or Cashier PIN</label>
+            <div class="input-field-wrapper">
+              <span class="input-field-icon">🛡️</span>
+              <input type="password" id="ownerRecoveryKey" class="custom-input has-toggle"
+                placeholder="Enter Master Key (e.g. 9999) or PIN (1234)" required>
+              <button type="button" class="password-toggle-btn" aria-label="Show password" title="Show password" tabindex="-1">
+                <svg class="eye-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                  <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+                <svg class="eye-off-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: none;">
+                  <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                  <line x1="1" y1="1" x2="23" y2="23"></line>
+                </svg>
+              </button>
+            </div>
+            <span style="font-size: 0.72rem; color: var(--text-muted); margin-top: 4px; display: block;">
+              💡 Default Master Key is <strong style="color: var(--gold-light);">9999</strong> or Cashier PIN <strong
+                style="color: var(--gold-light);">1234</strong>
+            </span>
+          </div>
+
+          <div class="input-group">
+            <label for="ownerNewPassword">New Admin Password / PIN</label>
+            <div class="input-field-wrapper">
+              <span class="input-field-icon">🔒</span>
+              <input type="password" id="ownerNewPassword" class="custom-input has-toggle" placeholder="Create new admin password"
+                required>
+              <button type="button" class="password-toggle-btn" aria-label="Show password" title="Show password" tabindex="-1">
+                <svg class="eye-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                  <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+                <svg class="eye-off-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: none;">
+                  <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                  <line x1="1" y1="1" x2="23" y2="23"></line>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="input-group">
+            <label for="ownerConfirmNewPassword">Confirm New Password</label>
+            <div class="input-field-wrapper">
+              <span class="input-field-icon">🔒</span>
+              <input type="password" id="ownerConfirmNewPassword" class="custom-input has-toggle"
+                placeholder="Confirm new password" required>
+              <button type="button" class="password-toggle-btn" aria-label="Show password" title="Show password" tabindex="-1">
+                <svg class="eye-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                  <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+                <svg class="eye-off-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: none;">
+                  <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                  <line x1="1" y1="1" x2="23" y2="23"></line>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <button type="submit" class="primary-btn" style="width: 100%; margin: 6px 0 0 0;">
+            <span>Update Admin Password & Sign In</span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+  <!-- =========================================================================
+       MODAL 2: STORE OWNER LIVE STAMP APPROVAL POPUP MODAL
+       ========================================================================= -->
+  <div id="ownerApprovalModal" class="modal-backdrop">
+    <div class="modal-dialog owner-approval-dialog">
+      <button class="modal-close-btn modal-close-trigger" type="button" aria-label="Close dialog">&times;</button>
+
+      <div class="owner-modal-header">
+        <div class="owner-modal-bell-icon">🔔</div>
+        <div class="owner-modal-badge">✦ 2ND VISIT STAMP REQUEST ✦</div>
+      </div>
+
+      <div class="owner-modal-cust-card">
+        <div class="owner-modal-avatar" id="ownerModalCustAvatar">C</div>
+        <h3 id="ownerModalCustName" class="owner-modal-name">Customer Name</h3>
+        <p id="ownerModalCustPhone" class="owner-modal-phone">+91 0000000000</p>
+        <div id="ownerModalCustDevice"
+          style="font-size: 0.72rem; color: #38bdf8; font-weight: 600; margin-top: 4px; display: none;"></div>
+      </div>
+
+      <div class="owner-modal-info-panel">
+        <div class="owner-modal-stats-row">
+          <div class="owner-stat-box">
+            <span class="stat-lbl">Card Progress</span>
+            <span id="ownerModalCustStampsBadge" class="stat-val emerald">1 of 6 Stamps</span>
+          </div>
+          <div class="owner-stat-box">
+            <span class="stat-lbl">Requested Time</span>
+            <span id="ownerModalCustTime" class="stat-val white">Just now</span>
+          </div>
+        </div>
+        <div class="owner-modal-hint">
+          <span class="hint-icon">🧾</span>
+          <span>Customer scanned store wall QR a 2nd time today. Please verify purchase bill receipt before
+            approving.</span>
+        </div>
+      </div>
+
+      <!-- Action Buttons: Symmetrically Balanced 50% / 50% -->
+      <div class="owner-modal-actions">
+        <button id="ownerModalApproveBtn" type="button" class="owner-modal-btn btn-approve">
+          ✓ Approve Stamp
+        </button>
+        <button id="ownerModalDeclineBtn" type="button" class="owner-modal-btn btn-decline">
+          ✕ Decline
+        </button>
+      </div>
+    </div>
+  </div>
+  <div id="toastContainer" class="toast-container"></div>
+
+  <!-- Cloud Database Scripts -->
+  <script src="js/vendor/supabase.min.js"></script>
+  <script src="js/supabase-client.js"></script>
+
+  <!-- Scripts -->
+  <script src="js/audio.js"></script>
+  <script src="js/owner.js"></script>
+</body>
+
+</html>

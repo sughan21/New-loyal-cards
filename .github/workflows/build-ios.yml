@@ -1,0 +1,48 @@
+name: Build iOS App
+
+on:
+  push:
+    branches: [ main, master ]
+    paths:
+      - 'ios/**'
+      - '.github/workflows/build-ios.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build Native iOS App
+    runs-on: macos-14
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Verify Xcode Environment
+        run: |
+          xcodebuild -version
+          xcrun simctl list devicetypes
+
+      - name: Build and Archive iOS App (Unsigned)
+        run: |
+          xcodebuild archive \
+            -project ios/LoyaltyReward.xcodeproj \
+            -scheme LoyaltyReward \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath build/LoyaltyReward.xcarchive \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO
+
+      - name: Package Payload to .ipa
+        run: |
+          mkdir -p Payload
+          cp -R build/LoyaltyReward.xcarchive/Products/Applications/LoyaltyReward.app Payload/
+          zip -qr LoyaltyPass-iOS-unsigned.ipa Payload
+          ls -lh LoyaltyPass-iOS-unsigned.ipa
+
+      - name: Upload iOS App Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: LoyaltyPass-iOS-unsigned.ipa
+          path: LoyaltyPass-iOS-unsigned.ipa
+          retention-days: 14

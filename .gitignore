@@ -1,0 +1,23 @@
+# Archives & Temporary Deployment Bundles
+deploy_to_netlify.zip
+deploy_to_netlify/
+
+# Binaries & Executables
+bin/cloudflared.exe
+bin/git/
+*.exe
+
+# Android & Gradle Build Output
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+.gradle/
+build/
+
+# Editor & System Files
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store
+*.log
