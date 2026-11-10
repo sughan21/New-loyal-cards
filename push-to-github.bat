@@ -11,8 +11,11 @@ echo Uploading css, js, assets, and all project folders...
 echo (If prompted, sign in via your browser)
 echo.
 
-bin\git\cmd\git.exe remote set-url origin https://github.com/sughan21/New-loyal-cards.git 2>nul
-bin\git\cmd\git.exe push -u origin main --force
+set GIT_CMD=git
+if exist "bin\git\cmd\git.exe" set GIT_CMD="bin\git\cmd\git.exe"
+
+%GIT_CMD% remote set-url origin https://github.com/sughan21/New-loyal-cards.git 2>nul
+%GIT_CMD% push -u origin main --force
 
 echo.
 echo ========================================================
