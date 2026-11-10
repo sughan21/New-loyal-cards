@@ -1563,24 +1563,6 @@ class StoreOwnerApp {
       `;
     }).join('');
   }
-          <div id="historyDrawer-${customer.phone}" class="customer-history-drawer" style="display: ${isExpanded ? 'block' : 'none'};">
-            <div class="card-stamp-history-box">
-              <div class="card-history-header">
-                <div class="card-history-title">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-                  <span>Card Stamp History</span>
-                </div>
-                <span class="history-badge-count">${history.length} Event${history.length === 1 ? '' : 's'}</span>
-              </div>
-              <div class="card-history-list">
-                ${historyItemsHtml}
-              </div>
-            </div>
-          </div>
-        </div>
-      `;
-    }).join('');
-  }
 
   // --- Main Render ---
   render() {
