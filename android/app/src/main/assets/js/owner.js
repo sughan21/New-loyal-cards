@@ -1419,15 +1419,15 @@ class StoreOwnerApp {
 
       let badgeHtml = '';
       if (stamps >= MAX_STAMPS) {
-        badgeHtml = `<span class="remaining-badge ready">🎉 READY FOR FREE GIFT!</span>`;
+        badgeHtml = `<span class="remaining-badge ready" title="Ready to claim Free Gift">🎉 READY FOR GIFT!</span>`;
       } else if (stamps >= MILESTONE_50_OFF) {
-        badgeHtml = `<span class="remaining-badge" style="background:#581c87; color:#f3e8ff; border:1px solid #c084fc;">⚡ 50% OFF UNLOCKED (${remaining} to Gift)</span>`;
+        badgeHtml = `<span class="remaining-badge badge-offer-50" title="50% OFF Unlocked (${remaining} more to Free Gift)">⚡ 50% OFF (${remaining} Left)</span>`;
       } else if (stamps >= MILESTONE_20_OFF) {
-        badgeHtml = `<span class="remaining-badge" style="background:#78350f; color:#fef3c7; border:1px solid #fbbf24;">🏷️ 20% OFF UNLOCKED (${MILESTONE_50_OFF - stamps} to 50%)</span>`;
+        badgeHtml = `<span class="remaining-badge badge-offer-20" title="20% OFF Unlocked (${MILESTONE_50_OFF - stamps} more to 50% OFF)">🏷️ 20% OFF (${MILESTONE_50_OFF - stamps} to 50%)</span>`;
       } else if (stamps === 0) {
-        badgeHtml = `<span class="remaining-badge new">★ 11 TICKS REMAINING (New)</span>`;
+        badgeHtml = `<span class="remaining-badge new" title="New customer with 0 stamps">★ 11 TICKS LEFT</span>`;
       } else {
-        badgeHtml = `<span class="remaining-badge in-progress">● ${remaining} TICKS REMAINING</span>`;
+        badgeHtml = `<span class="remaining-badge in-progress" title="${remaining} more ticks to Free Gift">● ${remaining} TICKS LEFT</span>`;
       }
 
       // 11 mini dots with milestone highlights
@@ -1526,18 +1526,18 @@ class StoreOwnerApp {
               </button>
             `}
             ${stamps >= MILESTONE_50_OFF && stamps < MAX_STAMPS ? `
-              <button type="button" style="background:#581c87; color:#f3e8ff; border:1px solid #a855f7; border-radius:8px; padding:4px 8px; font-size:0.7rem; font-weight:700; cursor:pointer;" onclick="window.ownerApp.ownerRedeemCustomerOffer('${customer.phone}', 50)" title="Apply 50% OFF to customer bill">
+              <button type="button" class="btn-offer-redeem" style="background:#581c87; color:#f3e8ff; border:1px solid #c084fc;" onclick="window.ownerApp.ownerRedeemCustomerOffer('${customer.phone}', 50)" title="Apply 50% OFF to customer bill">
                 ⚡ 50% OFF
               </button>
             ` : (stamps >= MILESTONE_20_OFF && stamps < MILESTONE_50_OFF ? `
-              <button type="button" style="background:#78350f; color:#fef3c7; border:1px solid #f59e0b; border-radius:8px; padding:4px 8px; font-size:0.7rem; font-weight:700; cursor:pointer;" onclick="window.ownerApp.ownerRedeemCustomerOffer('${customer.phone}', 20)" title="Apply 20% OFF to customer bill">
+              <button type="button" class="btn-offer-redeem" style="background:#78350f; color:#fef3c7; border:1px solid #fbbf24;" onclick="window.ownerApp.ownerRedeemCustomerOffer('${customer.phone}', 20)" title="Apply 20% OFF to customer bill">
                 🏷️ 20% OFF
               </button>
             ` : '')}
             <button type="button" id="historyBtn-${customer.phone}" class="btn-toggle-history ${isExpanded ? 'active' : ''}" onclick="window.ownerApp.toggleCustomerHistory('${customer.phone}')" title="Click to view stamp history">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
               <span>History (${history.length})</span>
-              <svg class="history-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+              <svg class="history-chevron" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
             </button>
             <button type="button" class="btn-delete-customer" onclick="window.ownerApp.ownerDeleteCustomer('${customer.phone}')" title="Delete customer card">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>

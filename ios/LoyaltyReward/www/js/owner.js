@@ -1,9 +1,15 @@
 /* ==========================================================================
    STORE OWNER & MERCHANT PORTAL LOGIC (owner.js)
-   Shared Database: Reads/Writes to the same localStorage as Customer Pass
+   11-Stamp Milestone Reward Terminal:
+   - Stamp #5:  20% OFF Offer
+   - Stamp #8:  50% OFF Offer
+   - Stamp #11: Grand FREE GIFT (Resets card for next cycle)
    ========================================================================== */
 
-const MAX_STAMPS = 6;
+const MAX_STAMPS = 11;
+const MILESTONE_20_OFF = 5;
+const MILESTONE_50_OFF = 8;
+const MILESTONE_FREE_GIFT = 11;
 const APP_STORAGE_KEY_USERS = 'golden_loyalty_users_v3_6ticks';
 const APP_STORAGE_KEY_OWNER = 'golden_loyalty_owner_session_v3';
 const APP_STORAGE_KEY_STORE = 'golden_loyalty_store_config_v3';
@@ -41,6 +47,9 @@ class StoreOwnerApp {
     this.syncTimer = null;
     this.knownPendingRequestIds = new Set();
     this.expandedCustomerPhones = new Set();
+    this.appVersion = "1.5.0";
+    this.versionCode = 6;
+    this.latestUpdateInfo = null;
 
     this.init();
   }
@@ -53,6 +62,7 @@ class StoreOwnerApp {
     this.fetchRemoteCustomers();
     this.startLiveSync();
     this.setupOfflineSync();
+    this.checkForAppUpdates(false);
   }
 
   setupOfflineSync() {
@@ -432,7 +442,13 @@ class StoreOwnerApp {
 
     // Logout Buttons
     const logoutBtn = document.getElementById('ownerLogoutBtn');
-    if (logoutBtn) logoutBtn.addEventListener('click', () => this.handleLogout());
+    if (logoutBtn) {
+      logoutBtn.addEventListener('click', () => this.handleLogout());
+      logoutBtn.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        this.handleLogout();
+      });
+    }
 
     const logoutHeaderBtn = document.getElementById('ownerLogoutHeaderBtn');
     if (logoutHeaderBtn) logoutHeaderBtn.addEventListener('click', () => this.handleLogout());
@@ -521,10 +537,71 @@ class StoreOwnerApp {
     const forgotForm = document.getElementById('ownerForgotForm');
     if (forgotForm) forgotForm.addEventListener('submit', (e) => this.handlePasswordReset(e));
 
-    // Modal Close
+    // Modal Close (Click, Touch & Backdrop Tap)
+    const handleCloseOwnerModal = (e) => {
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      this.closeModals();
+    };
+
     document.querySelectorAll('.modal-close-trigger').forEach(b => {
-      b.addEventListener('click', () => this.closeModals());
+      b.addEventListener('click', handleCloseOwnerModal);
+      b.addEventListener('touchend', handleCloseOwnerModal);
     });
+
+    // Close when tapping outside dialog on backdrop
+    document.querySelectorAll('.modal-backdrop').forEach(backdrop => {
+      backdrop.addEventListener('click', (e) => {
+        if (e.target === backdrop) this.closeModals();
+      });
+      backdrop.addEventListener('touchend', (e) => {
+        if (e.target === backdrop) {
+          e.preventDefault();
+          this.closeModals();
+        }
+      });
+    });
+
+    // Owner Settings & Version Manager Triggers
+    ['ownerOpenSettingsBtn', 'ownerDashboardSettingsBtn'].forEach(btnId => {
+      const btn = document.getElementById(btnId);
+      if (btn) btn.addEventListener('click', () => this.openSettingsModal());
+    });
+
+    const ownerManualCheckUpdateBtn = document.getElementById('ownerManualCheckUpdateBtn');
+    if (ownerManualCheckUpdateBtn) {
+      ownerManualCheckUpdateBtn.addEventListener('click', () => this.checkForAppUpdates(true));
+    }
+
+    const ownerApplyUpdateBtn = document.getElementById('ownerApplyUpdateBtn');
+    if (ownerApplyUpdateBtn) {
+      ownerApplyUpdateBtn.addEventListener('click', () => this.handleApplyUpdate());
+    }
+
+    const ownerClearCacheReloadBtn = document.getElementById('ownerClearCacheReloadBtn');
+    if (ownerClearCacheReloadBtn) {
+      ownerClearCacheReloadBtn.addEventListener('click', () => this.handleClearCache());
+    }
+
+    const broadcastVersionBtn = document.getElementById('broadcastVersionBtn');
+    if (broadcastVersionBtn) {
+      broadcastVersionBtn.addEventListener('click', () => this.handleBroadcastVersion());
+    }
+
+    const ownerSoundToggle = document.getElementById('ownerSoundToggle');
+    if (ownerSoundToggle) {
+      const soundPref = localStorage.getItem('owner_sound_enabled');
+      if (soundPref !== null) {
+        ownerSoundToggle.checked = (soundPref === 'true');
+        if (window.soundEngine) window.soundEngine.enabled = (soundPref === 'true');
+      }
+      ownerSoundToggle.addEventListener('change', (e) => {
+        localStorage.setItem('owner_sound_enabled', e.target.checked);
+        if (window.soundEngine) window.soundEngine.enabled = e.target.checked;
+      });
+    }
   }
 
   // --- Auth Handlers ---
@@ -557,6 +634,7 @@ class StoreOwnerApp {
   }
 
   handleLogout() {
+    this.closeModals();
     this.isLoggedIn = false;
     localStorage.removeItem(APP_STORAGE_KEY_OWNER);
     if (window.soundEngine) window.soundEngine.playClick();
@@ -580,6 +658,196 @@ class StoreOwnerApp {
 
   closeModals() {
     document.querySelectorAll('.modal-backdrop').forEach(m => m.classList.remove('active'));
+  }
+
+  // --- Owner In-App Version & Update System ---
+  openSettingsModal() {
+    this.closeModals();
+    const modal = document.getElementById('ownerSettingsModal');
+    if (!modal) return;
+
+    const sessionSection = document.getElementById('ownerSettingsSessionSection');
+    if (sessionSection) {
+      sessionSection.style.display = this.isLoggedIn ? 'block' : 'none';
+    }
+
+    const input = document.getElementById('broadcastVersionInput');
+    if (input && this.latestUpdateInfo) {
+      input.value = this.latestUpdateInfo.version || this.appVersion;
+    }
+
+    modal.classList.add('active');
+    this.checkForAppUpdates(false);
+  }
+
+  isNewerVersion(remoteVer, currentVer) {
+    if (!remoteVer || !currentVer) return false;
+    const parse = (v) => String(v).replace(/^[^\d]*/, '').split('.').map(n => parseInt(n, 10) || 0);
+    const r = parse(remoteVer);
+    const c = parse(currentVer);
+    const len = Math.max(r.length, c.length);
+    for (let i = 0; i < len; i++) {
+      const rNum = r[i] || 0;
+      const cNum = c[i] || 0;
+      if (rNum > cNum) return true;
+      if (rNum < cNum) return false;
+    }
+    return false;
+  }
+
+  async checkForAppUpdates(isManual = false) {
+    const checkBtn = document.getElementById('ownerManualCheckUpdateBtn');
+    const checkBtnText = document.getElementById('ownerCheckUpdateBtnText');
+    if (isManual && checkBtn) {
+      checkBtn.classList.add('spinning');
+      if (checkBtnText) checkBtnText.textContent = "Checking...";
+    }
+
+    let updateData = null;
+
+    try {
+      const resp = await fetch(`${API_BASE_URL}/api/version?_t=${Date.now()}`, { cache: 'no-cache' });
+      if (resp.ok) updateData = await resp.json();
+    } catch (e) {}
+
+    if (!updateData) {
+      try {
+        const resp2 = await fetch(`./data/version.json?_t=${Date.now()}`, { cache: 'no-cache' });
+        if (resp2.ok) updateData = await resp2.json();
+      } catch (e) {}
+    }
+
+    if (isManual && checkBtn) {
+      checkBtn.classList.remove('spinning');
+      if (checkBtnText) checkBtnText.textContent = "Check for Updates";
+    }
+
+    if (!updateData || !updateData.version) {
+      if (isManual) this.showToast("Could not reach update server.", "info");
+      return;
+    }
+
+    this.latestUpdateInfo = updateData;
+
+    const input = document.getElementById('broadcastVersionInput');
+    if (input && !input.value) {
+      input.value = updateData.version;
+    }
+
+    const hasNewVersion = this.isNewerVersion(updateData.version, this.appVersion) ||
+                          (updateData.versionCode && updateData.versionCode > this.versionCode);
+
+    const ownerBadgeIds = ['ownerSettingsUpdateBadge', 'ownerDashboardSettingsBadge'];
+    const updateIconPulse = document.getElementById('ownerUpdateIconPulse');
+    const updateIconSymbol = document.getElementById('ownerUpdateIconSymbol');
+    const updateStatusTitle = document.getElementById('ownerUpdateStatusTitle');
+    const updateStatusSubtitle = document.getElementById('ownerUpdateStatusSubtitle');
+    const newUpdateBanner = document.getElementById('ownerNewUpdateBanner');
+    const newUpdateVerText = document.getElementById('ownerNewUpdateVerText');
+    const newUpdateNotesText = document.getElementById('ownerNewUpdateNotesText');
+
+    if (hasNewVersion) {
+      ownerBadgeIds.forEach(id => {
+        const b = document.getElementById(id);
+        if (b) b.style.display = 'block';
+      });
+      if (updateIconPulse) updateIconPulse.classList.add('has-update');
+      if (updateIconSymbol) updateIconSymbol.textContent = '⚡';
+      if (updateStatusTitle) updateStatusTitle.textContent = 'Terminal Update Available!';
+      if (updateStatusSubtitle) updateStatusSubtitle.textContent = `Version ${updateData.version} is ready`;
+      if (newUpdateBanner) newUpdateBanner.style.display = 'flex';
+      if (newUpdateVerText) newUpdateVerText.textContent = `Version ${updateData.version} Available`;
+      if (newUpdateNotesText) newUpdateNotesText.textContent = updateData.notes || 'Terminal improvements available.';
+      if (isManual) this.showToast(`⚡ New version ${updateData.version} is available!`, "gold");
+    } else {
+      ownerBadgeIds.forEach(id => {
+        const b = document.getElementById(id);
+        if (b) b.style.display = 'none';
+      });
+      if (updateIconPulse) updateIconPulse.classList.remove('has-update');
+      if (updateIconSymbol) updateIconSymbol.textContent = '✅';
+      if (updateStatusTitle) updateStatusTitle.textContent = 'Terminal is up to date';
+      if (updateStatusSubtitle) updateStatusSubtitle.textContent = `Installed version: v${this.appVersion}`;
+      if (newUpdateBanner) newUpdateBanner.style.display = 'none';
+      if (isManual) this.showToast(`✅ Terminal is on latest version (v${this.appVersion})`, "success");
+    }
+  }
+
+  handleApplyUpdate() {
+    const isAndroid = !!window.AndroidBridge || /android/i.test(navigator.userAgent);
+    const info = this.latestUpdateInfo || { ownerApk: 'apks/StoreTerminal-Owner.apk', downloadUrl: 'download.html' };
+
+    if (isAndroid) {
+      this.showToast("⚡ Downloading Store Terminal APK...", "gold");
+      const link = document.createElement('a');
+      link.href = (info.ownerApk || 'apks/StoreTerminal-Owner.apk') + '?v=' + Date.now();
+      link.download = 'StoreTerminal-Owner.apk';
+      link.target = '_blank';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      setTimeout(() => {
+        window.location.href = info.downloadUrl || 'download.html';
+      }, 1500);
+    } else {
+      this.handleClearCache();
+    }
+  }
+
+  async handleClearCache() {
+    this.showToast("⚡ Refreshing application cache...", "info");
+    try {
+      if ('caches' in window) {
+        const keys = await caches.keys();
+        await Promise.all(keys.map(k => caches.delete(k)));
+      }
+      if ('serviceWorker' in navigator) {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        for (const reg of regs) await reg.unregister();
+      }
+      this.showToast("✅ Cache cleared! Reloading...", "success");
+      setTimeout(() => window.location.reload(true), 600);
+    } catch (e) {
+      window.location.reload(true);
+    }
+  }
+
+  async handleBroadcastVersion() {
+    const input = document.getElementById('broadcastVersionInput');
+    const newVer = input ? input.value.trim() : '';
+    if (!newVer) {
+      this.showToast("Please enter a version number (e.g. 1.6.0)", "error");
+      return;
+    }
+
+    const payload = {
+      version: newVer,
+      versionCode: (this.versionCode || 6) + 1,
+      releaseDate: new Date().toISOString().slice(0, 10),
+      title: "Loyalty Pass Update",
+      notes: "Latest features and improvements released by store owner.",
+      customerApk: "apks/LoyaltyPass-Customer.apk",
+      ownerApk: "apks/StoreTerminal-Owner.apk",
+      downloadUrl: "download.html"
+    };
+
+    try {
+      const resp = await fetch(`${API_BASE_URL}/api/version`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (resp.ok) {
+        this.latestUpdateInfo = payload;
+        this.showToast(`📢 Version ${newVer} broadcasted to all customer apps!`, "gold");
+        this.checkForAppUpdates(false);
+      } else {
+        this.showToast("Failed to update backend version file.", "error");
+      }
+    } catch (e) {
+      this.showToast("Network error publishing version.", "error");
+    }
   }
 
   handlePasswordReset(e) {
@@ -671,31 +939,62 @@ class StoreOwnerApp {
     if (!customer) return;
 
     if (customer.stamps >= MAX_STAMPS) {
-      this.showToast(`🎁 ${customer.name} already has 6/6 ticks! Redeem their gift!`, "gold");
+      this.showToast(`🎁 ${customer.name} already has ${MAX_STAMPS}/${MAX_STAMPS} ticks! Redeem their Free Gift!`, "gold");
       return;
     }
 
     customer.stamps += 1;
+    let milestoneTag = '';
+    if (customer.stamps === MILESTONE_20_OFF) milestoneTag = ' [🏷️ 20% OFF UNLOCKED]';
+    else if (customer.stamps === MILESTONE_50_OFF) milestoneTag = ' [⚡ 50% OFF UNLOCKED]';
+    else if (customer.stamps >= MAX_STAMPS) milestoneTag = ' [🎁 FREE GIFT UNLOCKED]';
+
     const time = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
     const date = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
     customer.history.unshift({
       date: `${date}, ${time}`,
       type: "stamp",
-      note: `Store Purchase (Owner Added) - Tick #${customer.stamps}`
+      note: `Store Purchase (Owner Added) - Tick #${customer.stamps} of ${MAX_STAMPS}${milestoneTag}`
     });
 
     this.saveUsers();
 
-    if (customer.stamps === MAX_STAMPS) {
+    if (customer.stamps >= MAX_STAMPS) {
       if (window.soundEngine) window.soundEngine.playGiftFanfare();
       if (typeof confetti !== 'undefined') confetti({ particleCount: 50, spread: 60 });
-      this.showToast(`🎉 ${customer.name} reached 6/6 ticks! GIFT IS READY!`, "gold");
+      this.showToast(`🎉 ${customer.name} reached 11/11 ticks! GRAND FREE GIFT IS READY!`, "gold");
+    } else if (customer.stamps === MILESTONE_50_OFF) {
+      if (window.soundEngine) window.soundEngine.playSuccessTone();
+      if (typeof confetti !== 'undefined') confetti({ particleCount: 30, spread: 50 });
+      this.showToast(`⚡ ${customer.name} reached 8 ticks! 50% OFF Mega Offer Unlocked!`, "gold");
+    } else if (customer.stamps === MILESTONE_20_OFF) {
+      if (window.soundEngine) window.soundEngine.playSuccessTone();
+      if (typeof confetti !== 'undefined') confetti({ particleCount: 25, spread: 45 });
+      this.showToast(`🏷️ ${customer.name} reached 5 ticks! 20% OFF Offer Unlocked!`, "gold");
     } else {
       if (window.soundEngine) window.soundEngine.playStampSound();
       const remaining = MAX_STAMPS - customer.stamps;
-      this.showToast(`✅ Added tick for ${customer.name} (${customer.stamps}/6) • ${remaining} tick${remaining > 1 ? 's' : ''} remaining`, "success");
+      this.showToast(`✅ Added tick for ${customer.name} (${customer.stamps}/${MAX_STAMPS}) • ${remaining} tick${remaining > 1 ? 's' : ''} remaining`, "success");
     }
 
+    this.render();
+  }
+
+  ownerRedeemCustomerOffer(phone, percent) {
+    const customer = this.users.find(u => u.phone === phone);
+    if (!customer) return;
+
+    const time = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+    const date = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+    customer.history.unshift({
+      date: `${date}, ${time}`,
+      type: "reward",
+      note: `🏷️ ${percent}% OFF OFFER APPLIED AT CASHIER DESK`
+    });
+
+    this.saveUsers();
+    if (window.soundEngine) window.soundEngine.playSuccessTone();
+    this.showToast(`🏷️ ${percent}% OFF discount applied for ${customer.name}! Stamps continue towards 11 for Free Gift.`, "gold");
     this.render();
   }
 
@@ -711,12 +1010,12 @@ class StoreOwnerApp {
     customer.history.unshift({
       date: `${date}, ${time}`,
       type: "reward",
-      note: `🎁 GIFT HANDED OUT BY STORE OWNER: ${this.storeConfig.rewardTitle}`
+      note: `🎁 GRAND FREE GIFT HANDED OUT BY STORE OWNER: ${this.storeConfig.rewardTitle}`
     });
 
     this.saveUsers();
     if (window.soundEngine) window.soundEngine.playSuccessTone();
-    this.showToast(`🎁 Gift handed over to ${customer.name}! Card reset to 0/6 for next reward.`, "gold");
+    this.showToast(`🎁 Free Gift handed over to ${customer.name}! Card reset to 0/11 for next reward cycle.`, "gold");
     this.render();
   }
 
@@ -745,23 +1044,63 @@ class StoreOwnerApp {
 
   handleManualVoucherRedeem() {
     const codeInput = document.getElementById('cashierVoucherCode');
-    const code = codeInput ? codeInput.value.trim() : '';
+    const code = codeInput ? codeInput.value.trim().toUpperCase() : '';
 
     if (!code) {
       this.showToast("Please enter customer's voucher code.", "error");
       return;
     }
 
+    const time = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+    const date = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+
+    if (code.startsWith('OFFER20')) {
+      let customer = this.users.find(u => u.stamps >= MILESTONE_20_OFF);
+      if (!customer) {
+        this.showToast("No active 20% OFF voucher found for this code (requires 5+ stamps).", "error");
+        return;
+      }
+      customer.history.unshift({
+        date: `${date}, ${time}`,
+        type: "reward",
+        note: `🏷️ 20% OFF DISCOUNT REDEEMED AT COUNTER`
+      });
+      this.saveUsers();
+      if (window.soundEngine) window.soundEngine.playSuccessTone();
+      this.showToast(`🏷️ 20% OFF verified & applied for ${customer.name}! Card continues towards 11 stamps!`, "gold");
+      if (codeInput) codeInput.value = '';
+      this.render();
+      return;
+    }
+
+    if (code.startsWith('OFFER50')) {
+      let customer = this.users.find(u => u.stamps >= MILESTONE_50_OFF);
+      if (!customer) {
+        this.showToast("No active 50% OFF voucher found for this code (requires 8+ stamps).", "error");
+        return;
+      }
+      customer.history.unshift({
+        date: `${date}, ${time}`,
+        type: "reward",
+        note: `⚡ 50% OFF DISCOUNT REDEEMED AT COUNTER`
+      });
+      this.saveUsers();
+      if (window.soundEngine) window.soundEngine.playSuccessTone();
+      this.showToast(`⚡ 50% OFF verified & applied for ${customer.name}! Only 3 more stamps for Free Gift!`, "gold");
+      if (codeInput) codeInput.value = '';
+      this.render();
+      return;
+    }
+
+    // Default: Free Gift (GIFT-XXXX)
     let customer = this.users.find(u => u.stamps >= MAX_STAMPS);
     if (!customer) {
-      this.showToast("No active reward voucher found for this code.", "error");
+      this.showToast("No active reward voucher found for this code (requires 11 stamps).", "error");
       return;
     }
 
     customer.stamps = 0;
     customer.giftsEarned = (customer.giftsEarned || 0) + 1;
-    const time = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-    const date = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
     customer.history.unshift({
       date: `${date}, ${time}`,
       type: "reward",
@@ -770,7 +1109,7 @@ class StoreOwnerApp {
 
     this.saveUsers();
     if (window.soundEngine) window.soundEngine.playSuccessTone();
-    this.showToast(`🎁 Gift verified & redeemed for ${customer.name}!`, "gold");
+    this.showToast(`🎁 Gift verified & redeemed for ${customer.name}! Card reset to 0/11 for next cycle.`, "gold");
     if (codeInput) codeInput.value = '';
     this.render();
   }
@@ -805,8 +1144,11 @@ class StoreOwnerApp {
       smartUrl = `${this.activeTunnelUrl}/download.html?store_scan=${encodeURIComponent(this.storeConfig.storeCode)}`;
     } else if (window.location.origin.includes('trycloudflare.com')) {
       smartUrl = `${window.location.origin}/download.html?store_scan=${encodeURIComponent(this.storeConfig.storeCode)}`;
+    } else if (this.lanUrl && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+      // Local development: Prefer Wi-Fi LAN IP so phones on the same Wi-Fi network can scan directly!
+      smartUrl = `${this.lanUrl}/download.html?store_scan=${encodeURIComponent(this.storeConfig.storeCode)}`;
     } else if (window.location.protocol === 'file:' || !window.location.origin || window.location.origin.startsWith('file:') || window.location.origin === 'null') {
-      smartUrl = `http://localhost:8085/download.html?store_scan=${encodeURIComponent(this.storeConfig.storeCode)}`;
+      smartUrl = this.lanUrl ? `${this.lanUrl}/download.html?store_scan=${encodeURIComponent(this.storeConfig.storeCode)}` : `http://localhost:8085/download.html?store_scan=${encodeURIComponent(this.storeConfig.storeCode)}`;
     } else {
       smartUrl = `${window.location.origin}/download.html?store_scan=${encodeURIComponent(this.storeConfig.storeCode)}`;
     }
@@ -845,7 +1187,54 @@ class StoreOwnerApp {
       targetUrlDisplay.title = smartUrl;
     }
 
-    // Auto-check live Cloudflare tunnel in background if not checked yet
+    // Localhost scan warning for mobile devices
+    const warningEl = document.getElementById('standeeLocalhostWarning');
+    const isLocalhost = smartUrl.includes('localhost') || smartUrl.includes('127.0.0.1');
+    if (warningEl) {
+      warningEl.style.display = isLocalhost ? 'block' : 'none';
+    }
+
+    // Dynamic preset buttons
+    const ghBtn = document.getElementById('useGithubCloudPresetBtn');
+    const githubCloudUrl = `https://sughan21.github.io/New-loyal-cards/download.html?store_scan=${encodeURIComponent(this.storeConfig.storeCode)}`;
+    if (ghBtn) {
+      ghBtn.onclick = () => {
+        localStorage.setItem('standee_target_url', githubCloudUrl);
+        this.generateStoreQRCodes();
+        this.showToast("☁️ QR updated to Permanent GitHub Cloud Link (24/7)!", "gold");
+      };
+    }
+
+    const cfBtn = document.getElementById('useCloudflarePresetBtn');
+    if (cfBtn) {
+      if (this.activeTunnelUrl) {
+        cfBtn.style.display = 'inline-block';
+        cfBtn.onclick = () => {
+          localStorage.removeItem('standee_target_url');
+          this.generateStoreQRCodes();
+          this.showToast("🌐 QR switched to Live Cloudflare Public Link!", "success");
+        };
+      } else {
+        cfBtn.style.display = 'none';
+      }
+    }
+
+    const lanBtn = document.getElementById('useLanPresetBtn');
+    if (lanBtn) {
+      if (this.lanUrl && !smartUrl.includes(this.lanUrl)) {
+        lanBtn.style.display = 'inline-block';
+        lanBtn.onclick = () => {
+          const lanTarget = `${this.lanUrl}/download.html?store_scan=${encodeURIComponent(this.storeConfig.storeCode)}`;
+          localStorage.setItem('standee_target_url', lanTarget);
+          this.generateStoreQRCodes();
+          this.showToast("📶 QR switched to Local Wi-Fi IP!", "gold");
+        };
+      } else {
+        lanBtn.style.display = 'none';
+      }
+    }
+
+    // Auto-check live Cloudflare tunnel in background
     this.checkLiveTunnel();
   }
 
@@ -856,18 +1245,42 @@ class StoreOwnerApp {
       const resp = await fetch(`${API_BASE_URL}/api/tunnel`, { cache: 'no-cache' });
       if (resp.ok) {
         const data = await resp.json();
-        if (data && data.active && data.url && data.url !== this.activeTunnelUrl) {
-          this.activeTunnelUrl = data.url;
-          if (!localStorage.getItem('standee_target_url')) {
-            // Re-render QR code with live Cloudflare tunnel URL
-            this.generateStoreQRCodes();
+        let shouldRefresh = false;
+
+        if (data && data.lanUrl && data.lanUrl !== this.lanUrl) {
+          this.lanUrl = data.lanUrl;
+          if (!this.activeTunnelUrl && !localStorage.getItem('standee_target_url')) {
+            shouldRefresh = true;
           }
+        }
+
+        if (data && data.active && data.url) {
+          if (data.url !== this.activeTunnelUrl) {
+            this.activeTunnelUrl = data.url;
+            if (!localStorage.getItem('standee_target_url')) {
+              shouldRefresh = true;
+            }
+          }
+        } else if (this.activeTunnelUrl) {
+          this.activeTunnelUrl = null;
+          if (!localStorage.getItem('standee_target_url')) {
+            shouldRefresh = true;
+          }
+        }
+
+        if (shouldRefresh) {
+          this.generateStoreQRCodes();
         }
       }
     } catch (e) {
       // Ignore background check errors
     } finally {
       this._checkingTunnel = false;
+    }
+
+    // Setup periodic polling every 12 seconds if not already set
+    if (!this._tunnelPollTimer) {
+      this._tunnelPollTimer = setInterval(() => this.checkLiveTunnel(), 12000);
     }
   }
 
@@ -897,7 +1310,7 @@ class StoreOwnerApp {
   renderMetrics() {
     const totalCust = this.users.length;
     const readyForGift = this.users.filter(u => Number(u.stamps || 0) >= MAX_STAMPS).length;
-    const oneTickLeft = this.users.filter(u => Number(u.stamps || 0) === MAX_STAMPS - 1).length;
+    const activeOffers = this.users.filter(u => Number(u.stamps || 0) >= MILESTONE_20_OFF && Number(u.stamps || 0) < MAX_STAMPS).length;
     const inProgress = this.users.filter(u => Number(u.stamps || 0) >= 1 && Number(u.stamps || 0) < MAX_STAMPS).length;
     const newCust = this.users.filter(u => Number(u.stamps || 0) === 0).length;
     const totalGiftsRedeemed = this.users.reduce((acc, u) => acc + (Number(u.giftsEarned) || 0), 0);
@@ -908,8 +1321,8 @@ class StoreOwnerApp {
     const elReady = document.getElementById('ownerReadyForGiftCount');
     if (elReady) elReady.innerText = readyForGift;
 
-    const elOne = document.getElementById('ownerOneTickLeftCount');
-    if (elOne) elOne.innerText = oneTickLeft;
+    const elOffers = document.getElementById('ownerOffersActiveCount') || document.getElementById('ownerOneTickLeftCount');
+    if (elOffers) elOffers.innerText = activeOffers;
 
     const elGifts = document.getElementById('ownerTotalGiftsGiven');
     if (elGifts) elGifts.innerText = totalGiftsRedeemed;
@@ -919,8 +1332,8 @@ class StoreOwnerApp {
     if (pillAll) pillAll.innerText = totalCust;
     const pillReady = document.getElementById('pillCountReady');
     if (pillReady) pillReady.innerText = readyForGift;
-    const pillUrgent = document.getElementById('pillCountUrgent');
-    if (pillUrgent) pillUrgent.innerText = oneTickLeft;
+    const pillOffers = document.getElementById('pillCountOffers') || document.getElementById('pillCountUrgent');
+    if (pillOffers) pillOffers.innerText = activeOffers;
     const pillProg = document.getElementById('pillCountProgress');
     if (pillProg) pillProg.innerText = inProgress;
     const pillNew = document.getElementById('pillCountNew');
@@ -944,8 +1357,8 @@ class StoreOwnerApp {
 
     if (this.ownerFilter === 'ready') {
       filtered = filtered.filter(u => Number(u.stamps || 0) >= MAX_STAMPS);
-    } else if (this.ownerFilter === 'urgent') {
-      filtered = filtered.filter(u => Number(u.stamps || 0) === MAX_STAMPS - 1);
+    } else if (this.ownerFilter === 'offers' || this.ownerFilter === 'urgent') {
+      filtered = filtered.filter(u => Number(u.stamps || 0) >= MILESTONE_20_OFF && Number(u.stamps || 0) < MAX_STAMPS);
     } else if (this.ownerFilter === 'progress') {
       filtered = filtered.filter(u => Number(u.stamps || 0) >= 1 && Number(u.stamps || 0) < MAX_STAMPS);
     } else if (this.ownerFilter === 'new') {
@@ -973,9 +1386,10 @@ class StoreOwnerApp {
         `;
       } else {
         const filterNames = {
-          'ready': 'Ready for Gift (6/6 Ticks)',
-          'urgent': '1 Tick Left (5/6 Ticks)',
-          'progress': 'In Progress (1-5 Ticks)',
+          'ready': 'Ready for Gift (11/11 Ticks)',
+          'offers': 'Active Offers (5 or 8 Ticks)',
+          'urgent': 'Active Offers (5 or 8 Ticks)',
+          'progress': 'In Progress (1-10 Ticks)',
           'new': 'New Customers (0 Ticks)'
         };
         const currentName = filterNames[this.ownerFilter] || 'Selected Filter';
@@ -1005,20 +1419,30 @@ class StoreOwnerApp {
 
       let badgeHtml = '';
       if (stamps >= MAX_STAMPS) {
-        badgeHtml = `<span class="remaining-badge ready">🎉 READY FOR GIFT! (0 Left)</span>`;
-      } else if (stamps === MAX_STAMPS - 1) {
-        badgeHtml = `<span class="remaining-badge one-left">⚡ 1 TICK REMAINING</span>`;
+        badgeHtml = `<span class="remaining-badge ready" title="Ready to claim Free Gift">🎉 READY FOR GIFT!</span>`;
+      } else if (stamps >= MILESTONE_50_OFF) {
+        badgeHtml = `<span class="remaining-badge badge-offer-50" title="50% OFF Unlocked (${remaining} more to Free Gift)">⚡ 50% OFF (${remaining} Left)</span>`;
+      } else if (stamps >= MILESTONE_20_OFF) {
+        badgeHtml = `<span class="remaining-badge badge-offer-20" title="20% OFF Unlocked (${MILESTONE_50_OFF - stamps} more to 50% OFF)">🏷️ 20% OFF (${MILESTONE_50_OFF - stamps} to 50%)</span>`;
       } else if (stamps === 0) {
-        badgeHtml = `<span class="remaining-badge new">★ 6 TICKS REMAINING (New)</span>`;
+        badgeHtml = `<span class="remaining-badge new" title="New customer with 0 stamps">★ 11 TICKS LEFT</span>`;
       } else {
-        badgeHtml = `<span class="remaining-badge in-progress">● ${remaining} TICKS REMAINING</span>`;
+        badgeHtml = `<span class="remaining-badge in-progress" title="${remaining} more ticks to Free Gift">● ${remaining} TICKS LEFT</span>`;
       }
 
+      // 11 mini dots with milestone highlights
       let dotsHtml = '';
-      for (let i = 1; i <= 5; i++) {
-        dotsHtml += `<div class="mini-stamp-dot ${i <= stamps ? 'active' : ''}">${i <= stamps ? '✓' : ''}</div>`;
+      for (let i = 1; i <= 10; i++) {
+        const isFilled = i <= stamps;
+        if (i === MILESTONE_20_OFF) {
+          dotsHtml += `<div class="mini-stamp-dot ${isFilled ? 'active' : ''}" style="${isFilled ? 'background:#f59e0b; border-color:#fbbf24; color:#000;' : 'border-color:#f59e0b; color:#fbbf24;'}" title="Slot 5: 20% OFF">${isFilled ? '🏷️' : '5'}</div>`;
+        } else if (i === MILESTONE_50_OFF) {
+          dotsHtml += `<div class="mini-stamp-dot ${isFilled ? 'active' : ''}" style="${isFilled ? 'background:#a855f7; border-color:#c084fc; color:#fff;' : 'border-color:#a855f7; color:#c084fc;'}" title="Slot 8: 50% OFF">${isFilled ? '⚡' : '8'}</div>`;
+        } else {
+          dotsHtml += `<div class="mini-stamp-dot ${isFilled ? 'active' : ''}">${isFilled ? '✓' : ''}</div>`;
+        }
       }
-      dotsHtml += `<div class="mini-stamp-dot gift-dot ${stamps >= MAX_STAMPS ? 'unlocked' : ''}" title="Gift Slot 6">${stamps >= MAX_STAMPS ? '🎁' : '★'}</div>`;
+      dotsHtml += `<div class="mini-stamp-dot gift-dot ${stamps >= MAX_STAMPS ? 'unlocked' : ''}" title="Slot 11: Free Gift">${stamps >= MAX_STAMPS ? '🎁' : '★'}</div>`;
 
       let historyItemsHtml = '';
       const displayHistory = history.filter(item => item.type !== 'login');
@@ -1031,7 +1455,7 @@ class StoreOwnerApp {
           let tagText = '✓ STAMP';
           let tagClass = 'tag-stamp';
           if (isReward) {
-            tagText = '★ GIFT';
+            tagText = '★ REWARD';
             tagClass = 'tag-gift';
           } else if (isJoined) {
             tagText = '★ JOINED';
@@ -1076,15 +1500,15 @@ class StoreOwnerApp {
             </div>
           </div>
 
-          <!-- Column 2: Stamp Progress & Mini Dots -->
+          <!-- Column 2: Stamp Progress & Mini Dots (11 Ticks) -->
           <div class="customer-progress-col">
-            <div class="tick-count-text">${stamps} of 6 Ticks</div>
+            <div class="tick-count-text">${stamps} of ${MAX_STAMPS} Ticks</div>
             <div class="mini-stamps-bar">
               ${dotsHtml}
             </div>
           </div>
 
-          <!-- Column 3: Remaining Ticks Badge (High Contrast) -->
+          <!-- Column 3: Remaining Ticks / Milestone Badge -->
           <div class="customer-status-col">
             ${badgeHtml}
           </div>
@@ -1101,10 +1525,19 @@ class StoreOwnerApp {
                 +1 Stamp
               </button>
             `}
-            <button type="button" id="historyBtn-${customer.phone}" class="btn-toggle-history ${isExpanded ? 'active' : ''}" onclick="window.ownerApp.toggleCustomerHistory('${customer.phone}')" title="Click to view how each tick was ticked">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+            ${stamps >= MILESTONE_50_OFF && stamps < MAX_STAMPS ? `
+              <button type="button" class="btn-offer-redeem" style="background:#581c87; color:#f3e8ff; border:1px solid #c084fc;" onclick="window.ownerApp.ownerRedeemCustomerOffer('${customer.phone}', 50)" title="Apply 50% OFF to customer bill">
+                ⚡ 50% OFF
+              </button>
+            ` : (stamps >= MILESTONE_20_OFF && stamps < MILESTONE_50_OFF ? `
+              <button type="button" class="btn-offer-redeem" style="background:#78350f; color:#fef3c7; border:1px solid #fbbf24;" onclick="window.ownerApp.ownerRedeemCustomerOffer('${customer.phone}', 20)" title="Apply 20% OFF to customer bill">
+                🏷️ 20% OFF
+              </button>
+            ` : '')}
+            <button type="button" id="historyBtn-${customer.phone}" class="btn-toggle-history ${isExpanded ? 'active' : ''}" onclick="window.ownerApp.toggleCustomerHistory('${customer.phone}')" title="Click to view stamp history">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
               <span>History (${history.length})</span>
-              <svg class="history-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+              <svg class="history-chevron" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
             </button>
             <button type="button" class="btn-delete-customer" onclick="window.ownerApp.ownerDeleteCustomer('${customer.phone}')" title="Delete customer card">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>

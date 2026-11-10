@@ -221,7 +221,7 @@ body::before {
 }
 
 body.store-mode-active .app-container {
-  max-width: 880px;
+  max-width: 1040px;
 }
 
 /* PWA Banner */
@@ -1734,7 +1734,7 @@ body.store-mode-active .app-container {
 /* Perfectly Aligned Customer Table Header & Row Cards */
 .customer-table-header {
   display: grid;
-  grid-template-columns: minmax(180px, 1.2fr) 140px 170px 280px;
+  grid-template-columns: minmax(200px, 1.1fr) 215px 170px 320px;
   align-items: center;
   gap: 16px;
   padding: 10px 18px;
@@ -1784,7 +1784,7 @@ body.store-mode-active .app-container {
   border-radius: var(--radius-lg, 16px);
   padding: 14px 18px;
   display: grid;
-  grid-template-columns: minmax(180px, 1.2fr) 140px 170px 280px;
+  grid-template-columns: minmax(200px, 1.1fr) 215px 170px 320px;
   align-items: center;
   gap: 16px;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -1877,13 +1877,16 @@ body.store-mode-active .app-container {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 6px;
-  width: 150px;
-  min-width: 150px;
+  gap: 5px;
+  width: 215px;
+  min-width: 215px;
+  max-width: 215px;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .tick-count-text {
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   font-weight: 700;
   color: var(--text-secondary);
   white-space: nowrap;
@@ -1892,24 +1895,27 @@ body.store-mode-active .app-container {
 .mini-stamps-bar {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 3px;
+  width: 100%;
 }
 
 .mini-stamp-dot {
-  width: 20px;
-  height: 20px;
+  width: 16px;
+  height: 16px;
+  min-width: 16px;
   border-radius: var(--radius-full, 9999px);
   background: #f7f4ee;
   border: 1.5px solid #dcd4cb;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.62rem;
+  font-size: 0.52rem;
   font-weight: 800;
   color: #948072;
   flex-shrink: 0;
   box-sizing: border-box;
   transition: all 0.2s ease;
+  line-height: 1;
 }
 
 .mini-stamp-dot.active {
@@ -1920,11 +1926,15 @@ body.store-mode-active .app-container {
 }
 
 .mini-stamp-dot.gift-dot {
-  border-radius: 6px;
+  width: 18px;
+  height: 16px;
+  min-width: 18px;
+  border-radius: 4px;
   border: 1.5px dashed #f59e0b;
   background: #fffbeb;
   color: #d97706;
-  font-size: 0.72rem;
+  font-size: 0.58rem;
+  line-height: 1;
 }
 
 .mini-stamp-dot.gift-dot.unlocked {
@@ -1940,22 +1950,29 @@ body.store-mode-active .app-container {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 100%;
-  min-width: 0;
+  width: 170px;
+  min-width: 170px;
+  max-width: 170px;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .remaining-badge {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  font-size: 0.74rem;
+  gap: 4px;
+  font-size: 0.70rem;
   font-weight: 700;
-  padding: 6px 14px;
+  padding: 5px 9px;
   border-radius: var(--radius-full, 9999px);
   white-space: nowrap;
   letter-spacing: 0.02em;
   text-align: center;
+  max-width: 100%;
+  box-sizing: border-box;
+  text-overflow: ellipsis;
+  overflow: hidden;
   transition: all 0.2s ease;
 }
 
@@ -1964,6 +1981,20 @@ body.store-mode-active .app-container {
   color: #047857;
   border: 1.5px solid #a7f3d0;
   box-shadow: 0 1px 3px rgba(4, 120, 87, 0.08);
+}
+
+.remaining-badge.badge-offer-50 {
+  background: #581c87;
+  color: #f3e8ff;
+  border: 1.5px solid #c084fc;
+  box-shadow: 0 1px 3px rgba(88, 28, 135, 0.15);
+}
+
+.remaining-badge.badge-offer-20 {
+  background: #78350f;
+  color: #fef3c7;
+  border: 1.5px solid #fbbf24;
+  box-shadow: 0 1px 3px rgba(120, 53, 15, 0.15);
 }
 
 .remaining-badge.one-left {
@@ -1991,26 +2022,30 @@ body.store-mode-active .app-container {
   display: flex;
   justify-content: flex-end;
   align-items: center;
-  gap: 8px;
-  width: 100%;
-  min-width: 0;
+  gap: 6px;
+  width: 320px;
+  min-width: 320px;
+  max-width: 320px;
+  flex-wrap: nowrap;
+  box-sizing: border-box;
 }
 
 .btn-tick-add,
 .btn-gift-redeem {
-  height: 38px;
-  padding: 0 14px;
+  height: 34px;
+  padding: 0 10px;
   border-radius: var(--radius-md, 8px);
-  font-size: 0.8rem;
+  font-size: 0.76rem;
   font-weight: 700;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 5px;
   transition: all 0.2s ease;
   white-space: nowrap;
   box-sizing: border-box;
+  flex-shrink: 0;
 }
 
 .btn-tick-add {
@@ -2039,18 +2074,40 @@ body.store-mode-active .app-container {
   transform: translateY(-1px);
 }
 
+.btn-offer-redeem {
+  height: 34px;
+  padding: 0 8px;
+  border-radius: var(--radius-md, 8px);
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+
+.btn-offer-redeem:hover {
+  filter: brightness(1.15);
+  transform: translateY(-1px);
+}
+
 /* Card Stamp History Toggle Button */
 .btn-toggle-history {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 5px;
-  height: 38px;
-  padding: 0 12px;
+  gap: 4px;
+  height: 34px;
+  padding: 0 8px;
   background: #f7f4ee;
   border: 1.5px solid #dcd4cb;
   color: #5a4537;
-  font-size: 0.74rem;
+  font-size: 0.72rem;
   font-weight: 600;
   border-radius: var(--radius-md, 8px);
   cursor: pointer;
@@ -2058,6 +2115,7 @@ body.store-mode-active .app-container {
   white-space: nowrap;
   box-sizing: border-box;
   user-select: none;
+  flex-shrink: 0;
 }
 
 .btn-toggle-history:hover {
@@ -2084,8 +2142,9 @@ body.store-mode-active .app-container {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  height: 38px;
-  width: 38px;
+  height: 34px;
+  width: 34px;
+  min-width: 34px;
   padding: 0;
   background: #fdf2f2;
   border: 1.5px solid #f8d7da;
@@ -2095,6 +2154,7 @@ body.store-mode-active .app-container {
   transition: all 0.2s ease;
   user-select: none;
   flex-shrink: 0;
+  box-sizing: border-box;
 }
 
 .btn-delete-customer:hover {
@@ -2297,7 +2357,7 @@ body.store-mode-active .app-container {
 }
 
 /* Responsive Table Adjustments */
-@media (max-width: 960px) {
+@media (max-width: 980px) {
   .customer-table-header {
     display: none;
   }
@@ -2314,6 +2374,7 @@ body.store-mode-active .app-container {
   .customer-progress-col {
     width: 100%;
     min-width: 0;
+    max-width: 100%;
     display: flex;
     flex-direction: row;
     align-items: center;
@@ -2328,6 +2389,7 @@ body.store-mode-active .app-container {
   .customer-status-col {
     width: 100%;
     min-width: 0;
+    max-width: 100%;
     display: flex;
     justify-content: stretch;
   }
@@ -2340,27 +2402,36 @@ body.store-mode-active .app-container {
   .customer-row-actions {
     width: 100%;
     min-width: 0;
+    max-width: 100%;
     display: flex;
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
     align-items: center;
     gap: 8px;
   }
   .customer-row-actions .btn-tick-add,
   .customer-row-actions .btn-gift-redeem {
-    flex: 1.3;
-    height: 40px;
-    font-size: 0.82rem;
+    flex: 1.2;
+    min-width: 100px;
+    height: 38px;
+    font-size: 0.80rem;
+  }
+  .customer-row-actions .btn-offer-redeem {
+    flex: 1;
+    min-width: 85px;
+    height: 38px;
+    font-size: 0.74rem;
   }
   .customer-row-actions .btn-toggle-history {
     flex: 1;
-    height: 40px;
+    min-width: 85px;
+    height: 38px;
     font-size: 0.74rem;
     padding: 0 8px;
   }
   .customer-row-actions .btn-delete-customer {
-    flex: 0 0 40px;
-    height: 40px;
-    width: 40px;
+    flex: 0 0 38px;
+    height: 38px;
+    width: 38px;
   }
   .add-customer-form {
     grid-template-columns: 1fr;
