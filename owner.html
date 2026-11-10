@@ -164,7 +164,7 @@
             </div>
             <div class="owner-title-text">
               <h3 id="ownerStoreTitleDisplay">Loyalty Reward • Store Owner Portal</h3>
-              <p>Customer Loyalty Tracker & 6-Tick Management Terminal</p>
+              <p>Customer Loyalty Tracker & 11-Tick Management Terminal</p>
             </div>
           </div>
 
@@ -222,15 +222,15 @@
             <div class="metric-icon emerald">🎁</div>
             <div class="metric-info">
               <h4 id="ownerReadyForGiftCount">0</h4>
-              <p>Ready For Gift (6/6 Ticks)</p>
+              <p>Ready For Gift (11/11 Ticks)</p>
             </div>
           </div>
 
           <div class="metric-card">
             <div class="metric-icon purple">⚡</div>
             <div class="metric-info">
-              <h4 id="ownerOneTickLeftCount">0</h4>
-              <p>1 Tick Remaining</p>
+              <h4 id="ownerOffersActiveCount">0</h4>
+              <p>Active Offers (5+ or 8+ Ticks)</p>
             </div>
           </div>
 
@@ -238,7 +238,7 @@
             <div class="metric-icon gold">★</div>
             <div class="metric-info">
               <h4 id="ownerTotalGiftsGiven">0</h4>
-              <p>Gifts Redeemed</p>
+              <p>Gifts &amp; Offers Redeemed</p>
             </div>
           </div>
         </div>
@@ -262,7 +262,7 @@
                 </button>
               </div>
               <p style="font-size: 0.78rem; color: var(--text-muted); margin-top: 2px;">
-                Shows exact stamps collected, remaining tick boxes, and fast cashier stamp/gift buttons.
+                Shows exact stamps collected, 11-tick milestone progress, and fast cashier stamp/gift/offer buttons.
               </p>
             </div>
 
@@ -290,10 +290,10 @@
                 <span class="pill-label">Ready for Gift</span>
                 <span class="pill-count" id="pillCountReady">0</span>
               </button>
-              <button type="button" class="filter-pill" data-filter="urgent" role="tab" aria-selected="false">
-                <span class="pill-icon">⚡</span>
-                <span class="pill-label">1 Tick Left</span>
-                <span class="pill-count" id="pillCountUrgent">0</span>
+              <button type="button" class="filter-pill" data-filter="offers" role="tab" aria-selected="false">
+                <span class="pill-icon">🏷️</span>
+                <span class="pill-label">Active Offers (5 or 8)</span>
+                <span class="pill-count" id="pillCountOffers">0</span>
               </button>
               <button type="button" class="filter-pill" data-filter="progress" role="tab" aria-selected="false">
                 <span class="pill-icon">⏳</span>
@@ -311,9 +311,9 @@
           <!-- Table Header for Precision Column Alignment -->
           <div class="customer-table-header">
             <div class="th-col th-customer">Customer</div>
-            <div class="th-col th-progress">Stamps (6 Ticks)</div>
-            <div class="th-col th-status">Remaining Status</div>
-            <div class="th-col th-action">Action & History</div>
+            <div class="th-col th-progress">Stamps (11 Ticks)</div>
+            <div class="th-col th-status">Milestones &amp; Status</div>
+            <div class="th-col th-action">Cashier Actions</div>
           </div>
 
           <!-- Customer Directory Table List -->

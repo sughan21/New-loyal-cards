@@ -1,8 +1,15 @@
 /* ==========================================================================
-   GOLDEN PERKS - LOYALTY CARD APPLICATION LOGIC (6-TICK REWARD SYSTEM)
+   GOLDEN PERKS - LOYALTY CARD APPLICATION LOGIC (11-TICK MILESTONE REWARD SYSTEM)
+   Milestones:
+   - Stamp #5:  20% OFF Offer
+   - Stamp #8:  50% OFF Offer
+   - Stamp #11: Grand FREE GIFT (Resets card for next cycle)
    ========================================================================== */
 
-const MAX_STAMPS = 6; // Updated to 6 loyalty tick boxes!
+const MAX_STAMPS = 11; // 11 loyalty tick boxes!
+const MILESTONE_20_OFF = 5;
+const MILESTONE_50_OFF = 8;
+const MILESTONE_FREE_GIFT = 11;
 
 // --- Storage Keys ---
 const APP_STORAGE_KEY_USERS = 'golden_loyalty_users_v3_6ticks';
@@ -391,22 +398,110 @@ class LoyaltyApp {
 
     // Claim / Redeem Reward Buttons
     const claimRewardBannerBtn = document.getElementById('claimRewardBannerBtn');
-    if (claimRewardBannerBtn) claimRewardBannerBtn.addEventListener('click', () => this.openRewardModal());
+    if (claimRewardBannerBtn) {
+      claimRewardBannerBtn.addEventListener('click', () => {
+        const stamps = this.currentUser ? this.currentUser.stamps : 0;
+        if (stamps >= MAX_STAMPS) {
+          this.openRewardModal('gift');
+        } else if (stamps >= MILESTONE_50_OFF) {
+          this.openRewardModal('offer50');
+        } else if (stamps >= MILESTONE_20_OFF) {
+          this.openRewardModal('offer20');
+        }
+      });
+    }
 
-    const slot6Gift = document.getElementById('slot6Gift');
-    if (slot6Gift) {
-      slot6Gift.addEventListener('click', () => {
-        if (this.currentUser && this.currentUser.stamps >= MAX_STAMPS) {
-          this.openRewardModal();
+    // Milestone Slot 5: 20% OFF Click Handler
+    const slot5El = document.getElementById('slot5');
+    if (slot5El) {
+      slot5El.addEventListener('click', () => {
+        const stamps = this.currentUser ? this.currentUser.stamps : 0;
+        if (stamps >= MILESTONE_20_OFF) {
+          this.openRewardModal('offer20');
         } else {
-          const remaining = MAX_STAMPS - (this.currentUser ? this.currentUser.stamps : 0);
-          this.showToast(`🎁 Gift Box: Collect 6 stamps to unlock your reward! (${remaining} remaining)`, "gold");
+          const rem = MILESTONE_20_OFF - stamps;
+          this.showToast(`🏷️ 20% OFF Offer: Collect 5 stamps to unlock! (${rem} remaining)`, "gold");
+        }
+      });
+    }
+
+    // Milestone Slot 8: 50% OFF Click Handler
+    const slot8El = document.getElementById('slot8');
+    if (slot8El) {
+      slot8El.addEventListener('click', () => {
+        const stamps = this.currentUser ? this.currentUser.stamps : 0;
+        if (stamps >= MILESTONE_50_OFF) {
+          this.openRewardModal('offer50');
+        } else {
+          const rem = MILESTONE_50_OFF - stamps;
+          this.showToast(`⚡ 50% OFF Mega Offer: Collect 8 stamps to unlock! (${rem} remaining)`, "gold");
+        }
+      });
+    }
+
+    // Milestone Slot 11: Free Gift Click Handler
+    const slot11Gift = document.getElementById('slot11Gift') || document.getElementById('slot6Gift');
+    if (slot11Gift) {
+      slot11Gift.addEventListener('click', () => {
+        const stamps = this.currentUser ? this.currentUser.stamps : 0;
+        if (stamps >= MAX_STAMPS) {
+          this.openRewardModal('gift');
+        } else {
+          const remaining = MAX_STAMPS - stamps;
+          this.showToast(`🎁 Free Gift Box: Collect 11 stamps to unlock your reward! (${remaining} remaining)`, "gold");
+        }
+      });
+    }
+
+    // Tier summary strip clicks
+    const tier5 = document.getElementById('tierStrip5');
+    if (tier5) {
+      tier5.addEventListener('click', () => {
+        const stamps = this.currentUser ? this.currentUser.stamps : 0;
+        if (stamps >= MILESTONE_20_OFF) {
+          this.openRewardModal('offer20');
+        } else {
+          this.showToast(`🏷️ Tier 1: 5 Stamps unlocks 20% OFF! (${MILESTONE_20_OFF - stamps} more needed)`, "gold");
+        }
+      });
+    }
+
+    const tier8 = document.getElementById('tierStrip8');
+    if (tier8) {
+      tier8.addEventListener('click', () => {
+        const stamps = this.currentUser ? this.currentUser.stamps : 0;
+        if (stamps >= MILESTONE_50_OFF) {
+          this.openRewardModal('offer50');
+        } else {
+          this.showToast(`⚡ Tier 2: 8 Stamps unlocks 50% OFF! (${MILESTONE_50_OFF - stamps} more needed)`, "gold");
+        }
+      });
+    }
+
+    const tier11 = document.getElementById('tierStrip11');
+    if (tier11) {
+      tier11.addEventListener('click', () => {
+        const stamps = this.currentUser ? this.currentUser.stamps : 0;
+        if (stamps >= MAX_STAMPS) {
+          this.openRewardModal('gift');
+        } else {
+          this.showToast(`🎁 Tier 3: 11 Stamps unlocks Free Gift! (${MAX_STAMPS - stamps} more needed)`, "gold");
         }
       });
     }
 
     const redeemRewardActionBtn = document.getElementById('redeemRewardActionBtn');
-    if (redeemRewardActionBtn) redeemRewardActionBtn.addEventListener('click', () => this.handleRedeemGift());
+    if (redeemRewardActionBtn) {
+      redeemRewardActionBtn.addEventListener('click', () => {
+        if (this.activeRewardModalType === 'offer20') {
+          this.handleRedeemOffer(20);
+        } else if (this.activeRewardModalType === 'offer50') {
+          this.handleRedeemOffer(50);
+        } else {
+          this.handleRedeemGift();
+        }
+      });
+    }
 
     // Modal 3 (One-QR Universal Flow) Button Listeners
     const scanAddStampBtn = document.getElementById('scanAddStampBtn');
@@ -421,10 +516,15 @@ class LoyaltyApp {
     if (scanRedeemGiftBtn) {
       scanRedeemGiftBtn.addEventListener('click', () => {
         this.closeAllModals();
-        if (this.currentUser && this.currentUser.stamps >= MAX_STAMPS) {
-          this.openRewardModal();
+        const stamps = this.currentUser ? this.currentUser.stamps : 0;
+        if (stamps >= MAX_STAMPS) {
+          this.openRewardModal('gift');
+        } else if (stamps >= MILESTONE_50_OFF) {
+          this.openRewardModal('offer50');
+        } else if (stamps >= MILESTONE_20_OFF) {
+          this.openRewardModal('offer20');
         } else {
-          const remaining = MAX_STAMPS - (this.currentUser ? this.currentUser.stamps : 0);
+          const remaining = MAX_STAMPS - stamps;
           this.showToast(`🎁 You need ${remaining} more tick${remaining > 1 ? 's' : ''} to unlock your Free Gift!`, "gold");
         }
       });
@@ -593,13 +693,13 @@ class LoyaltyApp {
       user.history.unshift({
         date: `${dateStr}, ${timeStr}`,
         type: 'stamp',
-        note: 'Welcome Reward Claimed: 1st Loyalty Tick Unlocked! (Tick #1 of 6)'
+        note: `Welcome Reward Claimed: 1st Loyalty Tick Unlocked! (Tick #1 of ${MAX_STAMPS})`
       });
       user.lastStampDate = new Date().toISOString().slice(0, 10);
       this.saveCurrentUser();
       if (window.soundEngine) window.soundEngine.playStampSound();
       this.triggerConfetti(false);
-      this.showToast(`🎁 Welcome Reward Claimed! 1st Stamp added to your card! (1/6)`, "success");
+      this.showToast(`🎁 Welcome Reward Claimed! 1st Stamp added to your card! (1/${MAX_STAMPS})`, "success");
     } else {
       if (window.soundEngine) window.soundEngine.playSuccessTone();
       this.showToast(`✨ Welcome back, ${user.name}!`, "success");
@@ -662,7 +762,7 @@ class LoyaltyApp {
       { 
         date: `${dateStr}, ${timeStr}`, 
         type: 'stamp', 
-        note: `Welcome Reward Claimed: 1st Loyalty Tick Unlocked! (Tick #1 of 6)`,
+        note: `Welcome Reward Claimed: 1st Loyalty Tick Unlocked! (Tick #1 of ${MAX_STAMPS})`,
         device: deviceName,
         deviceId: deviceId
       },
@@ -702,7 +802,7 @@ class LoyaltyApp {
 
     if (window.soundEngine) window.soundEngine.playStampSound();
     this.triggerConfetti(false);
-    this.showToast(`🎉 Welcome to ${this.storeConfig.name}, ${name}! Your 1st Welcome Stamp has been claimed! (1/6)`, "success");
+    this.showToast(`🎉 Welcome to ${this.storeConfig.name}, ${name}! Your 1st Welcome Stamp has been claimed! (1/${MAX_STAMPS})`, "success");
     this.render();
   }
 
@@ -1000,12 +1100,12 @@ class LoyaltyApp {
       return;
     }
 
-    // Check if card is already complete at 6/6
+    // Check if card is already complete at 11/11
     if (this.currentUser.stamps >= MAX_STAMPS) {
       if (window.soundEngine) window.soundEngine.playSuccessTone();
       this.closeAllModals();
-      this.showToast("🎁 You already have 6/6 stamps! Showing your FREE GIFT voucher!", "gold");
-      this.openRewardModal();
+      this.showToast("🎁 You already have 11/11 stamps! Showing your FREE GIFT voucher!", "gold");
+      this.openRewardModal('gift');
       return;
     }
 
@@ -1048,11 +1148,16 @@ class LoyaltyApp {
     this.currentUser.stamps += 1;
     const stampNum = this.currentUser.stamps;
 
+    let milestoneTag = '';
+    if (stampNum === MILESTONE_20_OFF) milestoneTag = ' [🏷️ 20% OFF UNLOCKED]';
+    else if (stampNum === MILESTONE_50_OFF) milestoneTag = ' [⚡ 50% OFF UNLOCKED]';
+    else if (stampNum >= MAX_STAMPS) milestoneTag = ' [🎁 FREE GIFT UNLOCKED]';
+
     const stampTime = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
     const stampDate = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
     const note = noteSuffix 
-      ? `Store Purchase (${noteSuffix}) - Tick #${stampNum} of ${MAX_STAMPS} Collected`
-      : `Store Purchase - Tick #${stampNum} of ${MAX_STAMPS} Collected`;
+      ? `Store Purchase (${noteSuffix}) - Tick #${stampNum} of ${MAX_STAMPS} Collected${milestoneTag}`
+      : `Store Purchase - Tick #${stampNum} of ${MAX_STAMPS} Collected${milestoneTag}`;
 
     this.currentUser.history.unshift({
       date: `${stampDate}, ${stampTime}`,
@@ -1063,19 +1168,43 @@ class LoyaltyApp {
     this.saveCurrentUser();
     this.closeAllModals();
 
-    if (this.currentUser.stamps === MAX_STAMPS) {
-      // 6th STAMP ACHIEVED! UNLOCK GIFT BOX!
+    if (this.currentUser.stamps >= MAX_STAMPS) {
+      // 11th STAMP ACHIEVED! UNLOCK GRAND FREE GIFT!
       if (window.soundEngine) window.soundEngine.playGiftFanfare();
       this.triggerConfetti(true);
-      this.showToast(`🎉 STAMP 6/6 COMPLETE! Your Loyalty Gift is UNLOCKED!`, "gold");
+      this.showToast(`🎉 STAMP 11/11 COMPLETE! Grand Free Gift is UNLOCKED!`, "gold");
       this.render();
-      setTimeout(() => this.openRewardModal(), 800);
+      setTimeout(() => this.openRewardModal('gift'), 800);
+    } else if (this.currentUser.stamps === MILESTONE_50_OFF) {
+      // 8th STAMP ACHIEVED! UNLOCK 50% OFF!
+      if (window.soundEngine) window.soundEngine.playSuccessTone();
+      this.triggerConfetti(false);
+      this.showToast(`⚡ STAMP 8/11 COMPLETE! 50% OFF Mega Offer is UNLOCKED!`, "gold");
+      this.render();
+      setTimeout(() => this.openRewardModal('offer50'), 750);
+    } else if (this.currentUser.stamps === MILESTONE_20_OFF) {
+      // 5th STAMP ACHIEVED! UNLOCK 20% OFF!
+      if (window.soundEngine) window.soundEngine.playSuccessTone();
+      this.triggerConfetti(false);
+      this.showToast(`🏷️ STAMP 5/11 COMPLETE! 20% OFF Offer is UNLOCKED!`, "gold");
+      this.render();
+      setTimeout(() => this.openRewardModal('offer20'), 750);
     } else {
-      // Standard stamp 1 to 5
+      // Standard stamps
       if (window.soundEngine) window.soundEngine.playStampSound();
       this.triggerConfetti(false);
-      const remaining = MAX_STAMPS - this.currentUser.stamps;
-      this.showToast(`✨ Stamp ${stampNum}/6 Collected! ${remaining} more tick${remaining > 1 ? 's' : ''} to unlock your Free Gift!`, "success");
+      let nextTarget = '';
+      if (stampNum < MILESTONE_20_OFF) {
+        const rem = MILESTONE_20_OFF - stampNum;
+        nextTarget = `${rem} more to 20% OFF!`;
+      } else if (stampNum < MILESTONE_50_OFF) {
+        const rem = MILESTONE_50_OFF - stampNum;
+        nextTarget = `${rem} more to 50% OFF!`;
+      } else {
+        const rem = MAX_STAMPS - stampNum;
+        nextTarget = `${rem} more to Free Gift!`;
+      }
+      this.showToast(`✨ Stamp ${stampNum}/${MAX_STAMPS} Collected! (${nextTarget})`, "success");
       this.render();
     }
   }
@@ -1253,27 +1382,97 @@ class LoyaltyApp {
     }
   }
 
-  // --- Reward Unlocking & Redemption ---
-  openRewardModal() {
+  // --- Reward Unlocking & Redemption (20% OFF, 50% OFF, FREE GIFT) ---
+  openRewardModal(rewardType = 'gift') {
     if (!this.currentUser) return;
     const modal = document.getElementById('rewardModal');
     if (!modal) return;
 
-    const claimCode = "GIFT-" + (this.currentUser.phone.slice(-4)) + "-" + Math.floor(10 + Math.random() * 90);
+    this.activeRewardModalType = rewardType;
+    const last4 = (this.currentUser.phone ? this.currentUser.phone.slice(-4) : '0000');
+    const rand2 = Math.floor(10 + Math.random() * 90);
+
+    const iconEl = document.getElementById('rewardModalIcon');
+    const titleEl = document.getElementById('rewardModalTitle');
+    const subEl = document.getElementById('rewardModalSubtitle');
+    const vTitle = document.getElementById('rewardVoucherTitle');
+    const vDesc = document.getElementById('rewardVoucherDesc');
     const codeEl = document.getElementById('rewardVoucherCode');
+    const btnTextEl = document.getElementById('redeemRewardBtnText');
+    const footerNotice = document.getElementById('rewardModalFooterNotice');
+
+    let claimCode = '';
+    let qrPayload = {};
+
+    if (rewardType === 'offer20') {
+      claimCode = `OFFER20-${last4}-${rand2}`;
+      if (iconEl) iconEl.innerText = '🏷️';
+      if (titleEl) {
+        titleEl.innerText = '20% OFF Unlocked!';
+        titleEl.style.color = '#fbbf24';
+      }
+      if (subEl) subEl.innerText = "You've earned 5 stamps! Enjoy 20% OFF on your bill.";
+      if (vTitle) vTitle.innerText = '20% Discount Voucher';
+      if (vDesc) vDesc.innerText = 'Show this voucher to cashier for 20% discount on today’s bill!';
+      if (btnTextEl) btnTextEl.innerText = '✓ Confirm 20% OFF with Cashier';
+      if (footerNotice) footerNotice.innerText = 'Redeeming 20% OFF does not reset your card. Keep collecting for 50% OFF & Free Gift!';
+      qrPayload = {
+        type: 'REWARD_OFFER_20_PERCENT',
+        member: this.currentUser.name,
+        phone: this.currentUser.phone,
+        voucher: claimCode,
+        discount: '20%'
+      };
+    } else if (rewardType === 'offer50') {
+      claimCode = `OFFER50-${last4}-${rand2}`;
+      if (iconEl) iconEl.innerText = '⚡';
+      if (titleEl) {
+        titleEl.innerText = '50% OFF Mega Offer Unlocked!';
+        titleEl.style.color = '#c084fc';
+      }
+      if (subEl) subEl.innerText = "You've earned 8 stamps! Enjoy 50% OFF on your bill.";
+      if (vTitle) vTitle.innerText = '50% Mega Discount Voucher';
+      if (vDesc) vDesc.innerText = 'Show this voucher to cashier for 50% discount on today’s bill!';
+      if (btnTextEl) btnTextEl.innerText = '✓ Confirm 50% OFF with Cashier';
+      if (footerNotice) footerNotice.innerText = 'Only 3 more stamps until your Grand Free Gift! Stamps continue towards Stamp 11.';
+      qrPayload = {
+        type: 'REWARD_OFFER_50_PERCENT',
+        member: this.currentUser.name,
+        phone: this.currentUser.phone,
+        voucher: claimCode,
+        discount: '50%'
+      };
+    } else {
+      // Grand Free Gift (Stamp 11)
+      rewardType = 'gift';
+      this.activeRewardModalType = 'gift';
+      claimCode = `GIFT-${last4}-${rand2}`;
+      if (iconEl) iconEl.innerText = '🎁';
+      if (titleEl) {
+        titleEl.innerText = 'Grand Free Gift Unlocked!';
+        titleEl.style.color = 'var(--gold-light)';
+      }
+      if (subEl) subEl.innerText = `You have collected all ${MAX_STAMPS} loyalty stamps!`;
+      if (vTitle) vTitle.innerText = 'Free Gift Reward';
+      if (vDesc) vDesc.innerText = this.storeConfig.rewardTitle || 'Free Signature Beverage or Gourmet Pastry of your choice!';
+      if (btnTextEl) btnTextEl.innerText = 'Approve & Redeem Free Gift with Cashier';
+      if (footerNotice) footerNotice.innerText = `Once approved, your card will reset back to 0 so you can collect ${MAX_STAMPS} more stamps for your next reward!`;
+      qrPayload = {
+        type: 'REWARD_REDEMPTION_11_TICKS',
+        member: this.currentUser.name,
+        phone: this.currentUser.phone,
+        voucher: claimCode,
+        store: this.storeConfig.name
+      };
+    }
+
     if (codeEl) codeEl.innerText = claimCode;
 
     const voucherQrBox = document.getElementById('rewardVoucherQr');
     if (voucherQrBox && typeof QRCode !== 'undefined') {
       voucherQrBox.innerHTML = '';
       new QRCode(voucherQrBox, {
-        text: JSON.stringify({
-          type: "REWARD_REDEMPTION_6_TICKS",
-          member: this.currentUser.name,
-          phone: this.currentUser.phone,
-          voucher: claimCode,
-          store: this.storeConfig.name
-        }),
+        text: JSON.stringify(qrPayload),
         width: 140,
         height: 140,
         colorDark: "#000000",
@@ -1283,6 +1482,26 @@ class LoyaltyApp {
     }
 
     modal.classList.add('active');
+  }
+
+  handleRedeemOffer(percent) {
+    if (!this.currentUser) return;
+    const time = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+    const date = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+
+    this.currentUser.history.unshift({
+      date: `${date}, ${time}`,
+      type: "reward",
+      note: `🏷️ ${percent}% OFF OFFER REDEEMED AT COUNTER`
+    });
+
+    this.saveCurrentUser();
+    this.closeAllModals();
+
+    if (window.soundEngine) window.soundEngine.playSuccessTone();
+    this.triggerConfetti(false);
+    this.showToast(`✅ ${percent}% OFF Discount verified & applied! Your card continues towards ${percent === 20 ? '50% OFF and Free Gift' : 'your Grand Free Gift'}!`, "gold");
+    this.render();
   }
 
   handleRedeemGift() {
@@ -1296,7 +1515,7 @@ class LoyaltyApp {
     this.currentUser.history.unshift({
       date: `${date}, ${time}`,
       type: "reward",
-      note: `🎁 GIFT REDEEMED: ${this.storeConfig.rewardTitle}`
+      note: `🎁 FREE GIFT REDEEMED: ${this.storeConfig.rewardTitle}`
     });
 
     this.saveCurrentUser();
@@ -1304,7 +1523,7 @@ class LoyaltyApp {
 
     if (window.soundEngine) window.soundEngine.playSuccessTone();
     this.triggerConfetti(true);
-    this.showToast("🎁 Reward redeemed! A fresh 6-tick card is ready for your next purchases!", "gold");
+    this.showToast(`🎁 Free Gift redeemed! A fresh 11-tick card is ready for your next purchases!`, "gold");
     this.render();
   }
 
@@ -1484,13 +1703,63 @@ class LoyaltyApp {
 
   handleCashierManualRedeem() {
     const codeInput = document.getElementById('cashierVoucherCode');
-    const code = codeInput ? codeInput.value.trim() : '';
+    const code = codeInput ? codeInput.value.trim().toUpperCase() : '';
 
     if (!code) {
       this.showToast("Please enter customer's voucher code.", "error");
       return;
     }
 
+    const time = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+    const date = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+
+    if (code.startsWith('OFFER20')) {
+      let customer = this.users.find(u => u.stamps >= MILESTONE_20_OFF);
+      if (!customer && this.currentUser && this.currentUser.stamps >= MILESTONE_20_OFF) {
+        customer = this.currentUser;
+      }
+      if (!customer) {
+        this.showToast("No active 20% OFF voucher found for this code (requires 5+ stamps).", "error");
+        return;
+      }
+      customer.history.unshift({
+        date: `${date}, ${time}`,
+        type: "reward",
+        note: `🏷️ 20% OFF DISCOUNT REDEEMED AT COUNTER`
+      });
+      this.saveUsers();
+      if (this.currentUser && this.currentUser.phone === customer.phone) this.currentUser = customer;
+      if (window.soundEngine) window.soundEngine.playSuccessTone();
+      this.showToast(`🏷️ 20% OFF verified & applied for ${customer.name}! Card continues towards 11 stamps!`, "gold");
+      if (codeInput) codeInput.value = '';
+      this.render();
+      return;
+    }
+
+    if (code.startsWith('OFFER50')) {
+      let customer = this.users.find(u => u.stamps >= MILESTONE_50_OFF);
+      if (!customer && this.currentUser && this.currentUser.stamps >= MILESTONE_50_OFF) {
+        customer = this.currentUser;
+      }
+      if (!customer) {
+        this.showToast("No active 50% OFF voucher found for this code (requires 8+ stamps).", "error");
+        return;
+      }
+      customer.history.unshift({
+        date: `${date}, ${time}`,
+        type: "reward",
+        note: `⚡ 50% OFF DISCOUNT REDEEMED AT COUNTER`
+      });
+      this.saveUsers();
+      if (this.currentUser && this.currentUser.phone === customer.phone) this.currentUser = customer;
+      if (window.soundEngine) window.soundEngine.playSuccessTone();
+      this.showToast(`⚡ 50% OFF verified & applied for ${customer.name}! Only 3 more stamps for Free Gift!`, "gold");
+      if (codeInput) codeInput.value = '';
+      this.render();
+      return;
+    }
+
+    // Default: Free Gift (GIFT-XXXX)
     let customer = this.users.find(u => u.stamps >= MAX_STAMPS);
     if (!customer && this.currentUser && this.currentUser.stamps >= MAX_STAMPS) {
       customer = this.currentUser;
@@ -1503,8 +1772,6 @@ class LoyaltyApp {
 
     customer.stamps = 0;
     customer.giftsEarned = (customer.giftsEarned || 0) + 1;
-    const time = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-    const date = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
     customer.history.unshift({
       date: `${date}, ${time}`,
       type: "reward",
@@ -1517,7 +1784,7 @@ class LoyaltyApp {
     }
 
     if (window.soundEngine) window.soundEngine.playSuccessTone();
-    this.showToast(`🎁 Gift verified & redeemed for ${customer.name}!`, "gold");
+    this.showToast(`🎁 Gift verified & redeemed for ${customer.name}! Card reset to 0/11 for next cycle.`, "gold");
     if (codeInput) codeInput.value = '';
     this.render();
   }
@@ -1618,10 +1885,11 @@ class LoyaltyApp {
 
     const stamps = this.currentUser.stamps;
 
-    // Render Slots 1 to 5 (Standard Ticks)
-    for (let i = 1; i <= 5; i++) {
+    // Render Regular Slots (1-4, 6-7, 9-10)
+    const regularSlots = [1, 2, 3, 4, 6, 7, 9, 10];
+    regularSlots.forEach(i => {
       const slotEl = document.getElementById(`slot${i}`);
-      if (!slotEl) continue;
+      if (!slotEl) return;
 
       if (i <= stamps) {
         slotEl.className = 'stamp-slot stamped';
@@ -1638,56 +1906,147 @@ class LoyaltyApp {
           <span class="stamp-label">TICK</span>
         `;
       }
-    }
+    });
 
-    // Slot 6: The Special Gift Box!
-    const slot6El = document.getElementById('slot6Gift');
-    const rewardUnlockedBanner = document.getElementById('rewardUnlockedBanner');
-
-    if (slot6El) {
-      if (stamps >= MAX_STAMPS) {
-        slot6El.className = 'stamp-slot slot-gift unlocked';
-        slot6El.innerHTML = `
-          <svg class="gift-icon-svg" viewBox="0 0 24 24">
-            <path d="M20 12v10H4V12"></path>
-            <path d="M2 7h20v5H2z"></path>
-            <path d="M12 22V7"></path>
-            <path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"></path>
-            <path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"></path>
-          </svg>
-          <span class="gift-claim-tag">CLAIM!</span>
+    // Milestone Slot 5: 20% OFF
+    const slot5El = document.getElementById('slot5');
+    if (slot5El) {
+      if (stamps >= MILESTONE_20_OFF) {
+        slot5El.className = 'stamp-slot slot-offer-20 unlocked stamped';
+        slot5El.innerHTML = `
+          <div class="stamp-seal" style="background:#f59e0b;">
+            <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
+          </div>
+          <span class="stamp-date" style="color:#d97706; font-size:0.46rem; font-weight:800;">20% OFF</span>
+          <span class="milestone-badge-pill" style="background:#f59e0b; color:#000;">20% OFF</span>
         `;
-        if (rewardUnlockedBanner) rewardUnlockedBanner.style.display = 'flex';
       } else {
-        slot6El.className = 'stamp-slot slot-gift locked';
-        slot6El.innerHTML = `
-          <svg class="gift-icon-svg" viewBox="0 0 24 24">
-            <path d="M20 12v10H4V12"></path>
-            <path d="M2 7h20v5H2z"></path>
-            <path d="M12 22V7"></path>
-            <path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"></path>
-            <path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"></path>
-          </svg>
-          <span class="stamp-label">GIFT BOX</span>
+        slot5El.className = 'stamp-slot slot-offer-20';
+        slot5El.innerHTML = `
+          <span class="stamp-number" style="color:#f59e0b; font-weight:800;">5</span>
+          <span class="stamp-label" style="color:#d97706; font-weight:700;">20% OFF</span>
         `;
-        if (rewardUnlockedBanner) rewardUnlockedBanner.style.display = 'none';
       }
     }
 
-    // Progress Bar Track (out of 6)
+    // Milestone Slot 8: 50% OFF
+    const slot8El = document.getElementById('slot8');
+    if (slot8El) {
+      if (stamps >= MILESTONE_50_OFF) {
+        slot8El.className = 'stamp-slot slot-offer-50 unlocked stamped';
+        slot8El.innerHTML = `
+          <div class="stamp-seal" style="background:#a855f7;">
+            <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
+          </div>
+          <span class="stamp-date" style="color:#9333ea; font-size:0.46rem; font-weight:800;">50% OFF</span>
+          <span class="milestone-badge-pill" style="background:#a855f7; color:#fff;">50% OFF</span>
+        `;
+      } else {
+        slot8El.className = 'stamp-slot slot-offer-50';
+        slot8El.innerHTML = `
+          <span class="stamp-number" style="color:#c084fc; font-weight:800;">8</span>
+          <span class="stamp-label" style="color:#a855f7; font-weight:700;">50% OFF</span>
+        `;
+      }
+    }
+
+    // Milestone Slot 11: Free Gift Box! (Spans 2 columns)
+    const slot11El = document.getElementById('slot11Gift') || document.getElementById('slot6Gift');
+    if (slot11El) {
+      if (stamps >= MAX_STAMPS) {
+        slot11El.className = 'stamp-slot slot-gift unlocked';
+        slot11El.innerHTML = `
+          <svg class="gift-icon-svg" viewBox="0 0 24 24">
+            <path d="M20 12v10H4V12"></path>
+            <path d="M2 7h20v5H2z"></path>
+            <path d="M12 22V7"></path>
+            <path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"></path>
+            <path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"></path>
+          </svg>
+          <span class="milestone-badge-pill" style="background:#fbbf24; color:#000;">GIFT READY!</span>
+        `;
+      } else {
+        slot11El.className = 'stamp-slot slot-gift locked';
+        slot11El.innerHTML = `
+          <svg class="gift-icon-svg" viewBox="0 0 24 24">
+            <path d="M20 12v10H4V12"></path>
+            <path d="M2 7h20v5H2z"></path>
+            <path d="M12 22V7"></path>
+            <path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"></path>
+            <path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"></path>
+          </svg>
+          <span class="stamp-label">FREE GIFT</span>
+        `;
+      }
+    }
+
+    // Milestone 3-Tier Summary Strip
+    const tier5 = document.getElementById('tierStrip5');
+    if (tier5) {
+      tier5.className = 'milestone-strip-item ' + (stamps >= MILESTONE_20_OFF ? 'achieved' : 'active');
+    }
+
+    const tier8 = document.getElementById('tierStrip8');
+    if (tier8) {
+      tier8.className = 'milestone-strip-item ' + (stamps >= MILESTONE_50_OFF ? 'achieved' : (stamps >= MILESTONE_20_OFF ? 'active' : ''));
+    }
+
+    const tier11 = document.getElementById('tierStrip11');
+    if (tier11) {
+      tier11.className = 'milestone-strip-item ' + (stamps >= MAX_STAMPS ? 'achieved' : (stamps >= MILESTONE_50_OFF ? 'active' : ''));
+    }
+
+    // Reward Unlocked Banner
+    const rewardUnlockedBanner = document.getElementById('rewardUnlockedBanner');
+    const rewardBannerBadge = document.getElementById('rewardBannerBadge');
+    const rewardBannerTitle = document.getElementById('rewardBannerTitle');
+    const rewardBannerDesc = document.getElementById('rewardBannerDesc');
+    const claimRewardBannerBtnText = document.getElementById('claimRewardBannerBtnText');
+
+    if (rewardUnlockedBanner) {
+      if (stamps >= MAX_STAMPS) {
+        rewardUnlockedBanner.style.display = 'flex';
+        if (rewardBannerBadge) rewardBannerBadge.innerText = '🎉 Congratulations!';
+        if (rewardBannerTitle) rewardBannerTitle.innerText = 'Grand Free Gift Unlocked!';
+        if (rewardBannerDesc) rewardBannerDesc.innerText = "You've successfully completed all 11 purchases. Claim your free gift at the store counter!";
+        if (claimRewardBannerBtnText) claimRewardBannerBtnText.innerText = '🎁 View Gift Voucher & Claim';
+      } else if (stamps >= MILESTONE_50_OFF) {
+        rewardUnlockedBanner.style.display = 'flex';
+        if (rewardBannerBadge) rewardBannerBadge.innerText = '⚡ Milestone Achieved!';
+        if (rewardBannerTitle) rewardBannerTitle.innerText = '50% OFF Mega Offer Unlocked!';
+        if (rewardBannerDesc) rewardBannerDesc.innerText = "You've reached 8 stamps! Claim 50% OFF now or continue to Stamp 11 for Free Gift!";
+        if (claimRewardBannerBtnText) claimRewardBannerBtnText.innerText = '⚡ View 50% OFF Voucher';
+      } else if (stamps >= MILESTONE_20_OFF) {
+        rewardUnlockedBanner.style.display = 'flex';
+        if (rewardBannerBadge) rewardBannerBadge.innerText = '🏷️ Milestone Achieved!';
+        if (rewardBannerTitle) rewardBannerTitle.innerText = '20% OFF Offer Unlocked!';
+        if (rewardBannerDesc) rewardBannerDesc.innerText = "You've reached 5 stamps! Claim 20% OFF now or keep collecting for 50% OFF & Free Gift!";
+        if (claimRewardBannerBtnText) claimRewardBannerBtnText.innerText = '🏷️ View 20% OFF Voucher';
+      } else {
+        rewardUnlockedBanner.style.display = 'none';
+      }
+    }
+
+    // Progress Bar Track (out of 11)
     const progressCount = document.getElementById('progressCount');
-    if (progressCount) progressCount.innerText = `${stamps} / 6`;
+    if (progressCount) progressCount.innerText = `${stamps} / ${MAX_STAMPS}`;
 
     const progressFill = document.getElementById('progressFill');
-    if (progressFill) progressFill.style.width = `${(stamps / MAX_STAMPS) * 100}%`;
+    if (progressFill) progressFill.style.width = `${Math.min(100, (stamps / MAX_STAMPS) * 100)}%`;
 
     const progressSubtext = document.getElementById('progressSubtext');
     if (progressSubtext) {
       if (stamps >= MAX_STAMPS) {
-        progressSubtext.innerHTML = `🎉 <strong>6 of 6 Stamps complete!</strong> Your Free Gift is ready to claim at the counter!`;
-      } else {
+        progressSubtext.innerHTML = `🎉 <strong>11 of 11 Stamps complete!</strong> Your Free Gift is ready to claim at the counter!`;
+      } else if (stamps >= MILESTONE_50_OFF) {
         const remaining = MAX_STAMPS - stamps;
-        progressSubtext.innerHTML = `Collect <strong>${remaining} more stamp${remaining > 1 ? 's' : ''}</strong> after purchases to unlock your Free Gift!`;
+        progressSubtext.innerHTML = `⚡ <strong>50% OFF Unlocked!</strong> Collect <strong>${remaining} more stamp${remaining > 1 ? 's' : ''}</strong> to unlock your <strong>Grand Free Gift</strong>!`;
+      } else if (stamps >= MILESTONE_20_OFF) {
+        const remaining = MILESTONE_50_OFF - stamps;
+        progressSubtext.innerHTML = `🏷️ <strong>20% OFF Unlocked!</strong> Collect <strong>${remaining} more stamp${remaining > 1 ? 's' : ''}</strong> to unlock your <strong>50% OFF Mega Offer</strong>!`;
+      } else {
+        const remaining = MILESTONE_20_OFF - stamps;
+        progressSubtext.innerHTML = `Collect <strong>${remaining} more stamp${remaining > 1 ? 's' : ''}</strong> after purchases to unlock your <strong>20% OFF Offer</strong>!`;
       }
     }
 

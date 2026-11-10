@@ -2,32 +2,23 @@
 title Push Loyalty Card to GitHub Pages
 cd /d "%~dp0"
 echo ========================================================
-echo   LOYALTY CARD - PUSH TO GITHUB PAGES
+echo   LOYALTY CARD - PUSH ALL FOLDERS TO GITHUB (24/7 CLOUD)
 echo ========================================================
 echo.
-set /p REPO_URL="Enter your GitHub Repository URL (e.g. https://github.com/username/repository.git): "
-
-if "%REPO_URL%"=="" (
-    echo Error: No repository URL entered.
-    pause
-    exit /b
-)
-
+echo Target Repository: https://github.com/sughan21/New-loyal-cards.git
 echo.
-echo Configuring remote repository...
-bin\git\cmd\git.exe remote remove origin 2>nul
-bin\git\cmd\git.exe remote add origin %REPO_URL%
-bin\git\cmd\git.exe branch -M main
-
+echo Uploading css, js, assets, and all project folders...
+echo (If prompted, sign in via your browser)
 echo.
-echo Pushing project to GitHub...
-echo (If prompted, sign in via your browser or personal access token)
-bin\git\cmd\git.exe push -u origin main
+
+bin\git\cmd\git.exe remote set-url origin https://github.com/sughan21/New-loyal-cards.git 2>nul
+bin\git\cmd\git.exe push -u origin main --force
 
 echo.
 echo ========================================================
-echo   PUSH COMPLETE! 
-echo   Your repository is now online on GitHub!
+echo   PUSH COMPLETE!
+echo   All folders (css, js, assets) are now live on GitHub!
+echo   Visit: https://sughan21.github.io/New-loyal-cards/
 echo ========================================================
 pause
 

@@ -1,9 +1,15 @@
 /* ==========================================================================
    STORE OWNER & MERCHANT PORTAL LOGIC (owner.js)
-   Shared Database: Reads/Writes to the same localStorage as Customer Pass
+   11-Stamp Milestone Reward Terminal:
+   - Stamp #5:  20% OFF Offer
+   - Stamp #8:  50% OFF Offer
+   - Stamp #11: Grand FREE GIFT (Resets card for next cycle)
    ========================================================================== */
 
-const MAX_STAMPS = 6;
+const MAX_STAMPS = 11;
+const MILESTONE_20_OFF = 5;
+const MILESTONE_50_OFF = 8;
+const MILESTONE_FREE_GIFT = 11;
 const APP_STORAGE_KEY_USERS = 'golden_loyalty_users_v3_6ticks';
 const APP_STORAGE_KEY_OWNER = 'golden_loyalty_owner_session_v3';
 const APP_STORAGE_KEY_STORE = 'golden_loyalty_store_config_v3';
@@ -933,31 +939,62 @@ class StoreOwnerApp {
     if (!customer) return;
 
     if (customer.stamps >= MAX_STAMPS) {
-      this.showToast(`🎁 ${customer.name} already has 6/6 ticks! Redeem their gift!`, "gold");
+      this.showToast(`🎁 ${customer.name} already has ${MAX_STAMPS}/${MAX_STAMPS} ticks! Redeem their Free Gift!`, "gold");
       return;
     }
 
     customer.stamps += 1;
+    let milestoneTag = '';
+    if (customer.stamps === MILESTONE_20_OFF) milestoneTag = ' [🏷️ 20% OFF UNLOCKED]';
+    else if (customer.stamps === MILESTONE_50_OFF) milestoneTag = ' [⚡ 50% OFF UNLOCKED]';
+    else if (customer.stamps >= MAX_STAMPS) milestoneTag = ' [🎁 FREE GIFT UNLOCKED]';
+
     const time = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
     const date = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
     customer.history.unshift({
       date: `${date}, ${time}`,
       type: "stamp",
-      note: `Store Purchase (Owner Added) - Tick #${customer.stamps}`
+      note: `Store Purchase (Owner Added) - Tick #${customer.stamps} of ${MAX_STAMPS}${milestoneTag}`
     });
 
     this.saveUsers();
 
-    if (customer.stamps === MAX_STAMPS) {
+    if (customer.stamps >= MAX_STAMPS) {
       if (window.soundEngine) window.soundEngine.playGiftFanfare();
       if (typeof confetti !== 'undefined') confetti({ particleCount: 50, spread: 60 });
-      this.showToast(`🎉 ${customer.name} reached 6/6 ticks! GIFT IS READY!`, "gold");
+      this.showToast(`🎉 ${customer.name} reached 11/11 ticks! GRAND FREE GIFT IS READY!`, "gold");
+    } else if (customer.stamps === MILESTONE_50_OFF) {
+      if (window.soundEngine) window.soundEngine.playSuccessTone();
+      if (typeof confetti !== 'undefined') confetti({ particleCount: 30, spread: 50 });
+      this.showToast(`⚡ ${customer.name} reached 8 ticks! 50% OFF Mega Offer Unlocked!`, "gold");
+    } else if (customer.stamps === MILESTONE_20_OFF) {
+      if (window.soundEngine) window.soundEngine.playSuccessTone();
+      if (typeof confetti !== 'undefined') confetti({ particleCount: 25, spread: 45 });
+      this.showToast(`🏷️ ${customer.name} reached 5 ticks! 20% OFF Offer Unlocked!`, "gold");
     } else {
       if (window.soundEngine) window.soundEngine.playStampSound();
       const remaining = MAX_STAMPS - customer.stamps;
-      this.showToast(`✅ Added tick for ${customer.name} (${customer.stamps}/6) • ${remaining} tick${remaining > 1 ? 's' : ''} remaining`, "success");
+      this.showToast(`✅ Added tick for ${customer.name} (${customer.stamps}/${MAX_STAMPS}) • ${remaining} tick${remaining > 1 ? 's' : ''} remaining`, "success");
     }
 
+    this.render();
+  }
+
+  ownerRedeemCustomerOffer(phone, percent) {
+    const customer = this.users.find(u => u.phone === phone);
+    if (!customer) return;
+
+    const time = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+    const date = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+    customer.history.unshift({
+      date: `${date}, ${time}`,
+      type: "reward",
+      note: `🏷️ ${percent}% OFF OFFER APPLIED AT CASHIER DESK`
+    });
+
+    this.saveUsers();
+    if (window.soundEngine) window.soundEngine.playSuccessTone();
+    this.showToast(`🏷️ ${percent}% OFF discount applied for ${customer.name}! Stamps continue towards 11 for Free Gift.`, "gold");
     this.render();
   }
 
@@ -973,12 +1010,12 @@ class StoreOwnerApp {
     customer.history.unshift({
       date: `${date}, ${time}`,
       type: "reward",
-      note: `🎁 GIFT HANDED OUT BY STORE OWNER: ${this.storeConfig.rewardTitle}`
+      note: `🎁 GRAND FREE GIFT HANDED OUT BY STORE OWNER: ${this.storeConfig.rewardTitle}`
     });
 
     this.saveUsers();
     if (window.soundEngine) window.soundEngine.playSuccessTone();
-    this.showToast(`🎁 Gift handed over to ${customer.name}! Card reset to 0/6 for next reward.`, "gold");
+    this.showToast(`🎁 Free Gift handed over to ${customer.name}! Card reset to 0/11 for next reward cycle.`, "gold");
     this.render();
   }
 
@@ -1007,23 +1044,63 @@ class StoreOwnerApp {
 
   handleManualVoucherRedeem() {
     const codeInput = document.getElementById('cashierVoucherCode');
-    const code = codeInput ? codeInput.value.trim() : '';
+    const code = codeInput ? codeInput.value.trim().toUpperCase() : '';
 
     if (!code) {
       this.showToast("Please enter customer's voucher code.", "error");
       return;
     }
 
+    const time = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+    const date = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+
+    if (code.startsWith('OFFER20')) {
+      let customer = this.users.find(u => u.stamps >= MILESTONE_20_OFF);
+      if (!customer) {
+        this.showToast("No active 20% OFF voucher found for this code (requires 5+ stamps).", "error");
+        return;
+      }
+      customer.history.unshift({
+        date: `${date}, ${time}`,
+        type: "reward",
+        note: `🏷️ 20% OFF DISCOUNT REDEEMED AT COUNTER`
+      });
+      this.saveUsers();
+      if (window.soundEngine) window.soundEngine.playSuccessTone();
+      this.showToast(`🏷️ 20% OFF verified & applied for ${customer.name}! Card continues towards 11 stamps!`, "gold");
+      if (codeInput) codeInput.value = '';
+      this.render();
+      return;
+    }
+
+    if (code.startsWith('OFFER50')) {
+      let customer = this.users.find(u => u.stamps >= MILESTONE_50_OFF);
+      if (!customer) {
+        this.showToast("No active 50% OFF voucher found for this code (requires 8+ stamps).", "error");
+        return;
+      }
+      customer.history.unshift({
+        date: `${date}, ${time}`,
+        type: "reward",
+        note: `⚡ 50% OFF DISCOUNT REDEEMED AT COUNTER`
+      });
+      this.saveUsers();
+      if (window.soundEngine) window.soundEngine.playSuccessTone();
+      this.showToast(`⚡ 50% OFF verified & applied for ${customer.name}! Only 3 more stamps for Free Gift!`, "gold");
+      if (codeInput) codeInput.value = '';
+      this.render();
+      return;
+    }
+
+    // Default: Free Gift (GIFT-XXXX)
     let customer = this.users.find(u => u.stamps >= MAX_STAMPS);
     if (!customer) {
-      this.showToast("No active reward voucher found for this code.", "error");
+      this.showToast("No active reward voucher found for this code (requires 11 stamps).", "error");
       return;
     }
 
     customer.stamps = 0;
     customer.giftsEarned = (customer.giftsEarned || 0) + 1;
-    const time = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-    const date = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
     customer.history.unshift({
       date: `${date}, ${time}`,
       type: "reward",
@@ -1032,7 +1109,7 @@ class StoreOwnerApp {
 
     this.saveUsers();
     if (window.soundEngine) window.soundEngine.playSuccessTone();
-    this.showToast(`🎁 Gift verified & redeemed for ${customer.name}!`, "gold");
+    this.showToast(`🎁 Gift verified & redeemed for ${customer.name}! Card reset to 0/11 for next cycle.`, "gold");
     if (codeInput) codeInput.value = '';
     this.render();
   }
@@ -1233,7 +1310,7 @@ class StoreOwnerApp {
   renderMetrics() {
     const totalCust = this.users.length;
     const readyForGift = this.users.filter(u => Number(u.stamps || 0) >= MAX_STAMPS).length;
-    const oneTickLeft = this.users.filter(u => Number(u.stamps || 0) === MAX_STAMPS - 1).length;
+    const activeOffers = this.users.filter(u => Number(u.stamps || 0) >= MILESTONE_20_OFF && Number(u.stamps || 0) < MAX_STAMPS).length;
     const inProgress = this.users.filter(u => Number(u.stamps || 0) >= 1 && Number(u.stamps || 0) < MAX_STAMPS).length;
     const newCust = this.users.filter(u => Number(u.stamps || 0) === 0).length;
     const totalGiftsRedeemed = this.users.reduce((acc, u) => acc + (Number(u.giftsEarned) || 0), 0);
@@ -1244,8 +1321,8 @@ class StoreOwnerApp {
     const elReady = document.getElementById('ownerReadyForGiftCount');
     if (elReady) elReady.innerText = readyForGift;
 
-    const elOne = document.getElementById('ownerOneTickLeftCount');
-    if (elOne) elOne.innerText = oneTickLeft;
+    const elOffers = document.getElementById('ownerOffersActiveCount') || document.getElementById('ownerOneTickLeftCount');
+    if (elOffers) elOffers.innerText = activeOffers;
 
     const elGifts = document.getElementById('ownerTotalGiftsGiven');
     if (elGifts) elGifts.innerText = totalGiftsRedeemed;
@@ -1255,8 +1332,8 @@ class StoreOwnerApp {
     if (pillAll) pillAll.innerText = totalCust;
     const pillReady = document.getElementById('pillCountReady');
     if (pillReady) pillReady.innerText = readyForGift;
-    const pillUrgent = document.getElementById('pillCountUrgent');
-    if (pillUrgent) pillUrgent.innerText = oneTickLeft;
+    const pillOffers = document.getElementById('pillCountOffers') || document.getElementById('pillCountUrgent');
+    if (pillOffers) pillOffers.innerText = activeOffers;
     const pillProg = document.getElementById('pillCountProgress');
     if (pillProg) pillProg.innerText = inProgress;
     const pillNew = document.getElementById('pillCountNew');
@@ -1280,8 +1357,8 @@ class StoreOwnerApp {
 
     if (this.ownerFilter === 'ready') {
       filtered = filtered.filter(u => Number(u.stamps || 0) >= MAX_STAMPS);
-    } else if (this.ownerFilter === 'urgent') {
-      filtered = filtered.filter(u => Number(u.stamps || 0) === MAX_STAMPS - 1);
+    } else if (this.ownerFilter === 'offers' || this.ownerFilter === 'urgent') {
+      filtered = filtered.filter(u => Number(u.stamps || 0) >= MILESTONE_20_OFF && Number(u.stamps || 0) < MAX_STAMPS);
     } else if (this.ownerFilter === 'progress') {
       filtered = filtered.filter(u => Number(u.stamps || 0) >= 1 && Number(u.stamps || 0) < MAX_STAMPS);
     } else if (this.ownerFilter === 'new') {
@@ -1309,9 +1386,10 @@ class StoreOwnerApp {
         `;
       } else {
         const filterNames = {
-          'ready': 'Ready for Gift (6/6 Ticks)',
-          'urgent': '1 Tick Left (5/6 Ticks)',
-          'progress': 'In Progress (1-5 Ticks)',
+          'ready': 'Ready for Gift (11/11 Ticks)',
+          'offers': 'Active Offers (5 or 8 Ticks)',
+          'urgent': 'Active Offers (5 or 8 Ticks)',
+          'progress': 'In Progress (1-10 Ticks)',
           'new': 'New Customers (0 Ticks)'
         };
         const currentName = filterNames[this.ownerFilter] || 'Selected Filter';
@@ -1341,20 +1419,30 @@ class StoreOwnerApp {
 
       let badgeHtml = '';
       if (stamps >= MAX_STAMPS) {
-        badgeHtml = `<span class="remaining-badge ready">🎉 READY FOR GIFT! (0 Left)</span>`;
-      } else if (stamps === MAX_STAMPS - 1) {
-        badgeHtml = `<span class="remaining-badge one-left">⚡ 1 TICK REMAINING</span>`;
+        badgeHtml = `<span class="remaining-badge ready">🎉 READY FOR FREE GIFT!</span>`;
+      } else if (stamps >= MILESTONE_50_OFF) {
+        badgeHtml = `<span class="remaining-badge" style="background:#581c87; color:#f3e8ff; border:1px solid #c084fc;">⚡ 50% OFF UNLOCKED (${remaining} to Gift)</span>`;
+      } else if (stamps >= MILESTONE_20_OFF) {
+        badgeHtml = `<span class="remaining-badge" style="background:#78350f; color:#fef3c7; border:1px solid #fbbf24;">🏷️ 20% OFF UNLOCKED (${MILESTONE_50_OFF - stamps} to 50%)</span>`;
       } else if (stamps === 0) {
-        badgeHtml = `<span class="remaining-badge new">★ 6 TICKS REMAINING (New)</span>`;
+        badgeHtml = `<span class="remaining-badge new">★ 11 TICKS REMAINING (New)</span>`;
       } else {
         badgeHtml = `<span class="remaining-badge in-progress">● ${remaining} TICKS REMAINING</span>`;
       }
 
+      // 11 mini dots with milestone highlights
       let dotsHtml = '';
-      for (let i = 1; i <= 5; i++) {
-        dotsHtml += `<div class="mini-stamp-dot ${i <= stamps ? 'active' : ''}">${i <= stamps ? '✓' : ''}</div>`;
+      for (let i = 1; i <= 10; i++) {
+        const isFilled = i <= stamps;
+        if (i === MILESTONE_20_OFF) {
+          dotsHtml += `<div class="mini-stamp-dot ${isFilled ? 'active' : ''}" style="${isFilled ? 'background:#f59e0b; border-color:#fbbf24; color:#000;' : 'border-color:#f59e0b; color:#fbbf24;'}" title="Slot 5: 20% OFF">${isFilled ? '🏷️' : '5'}</div>`;
+        } else if (i === MILESTONE_50_OFF) {
+          dotsHtml += `<div class="mini-stamp-dot ${isFilled ? 'active' : ''}" style="${isFilled ? 'background:#a855f7; border-color:#c084fc; color:#fff;' : 'border-color:#a855f7; color:#c084fc;'}" title="Slot 8: 50% OFF">${isFilled ? '⚡' : '8'}</div>`;
+        } else {
+          dotsHtml += `<div class="mini-stamp-dot ${isFilled ? 'active' : ''}">${isFilled ? '✓' : ''}</div>`;
+        }
       }
-      dotsHtml += `<div class="mini-stamp-dot gift-dot ${stamps >= MAX_STAMPS ? 'unlocked' : ''}" title="Gift Slot 6">${stamps >= MAX_STAMPS ? '🎁' : '★'}</div>`;
+      dotsHtml += `<div class="mini-stamp-dot gift-dot ${stamps >= MAX_STAMPS ? 'unlocked' : ''}" title="Slot 11: Free Gift">${stamps >= MAX_STAMPS ? '🎁' : '★'}</div>`;
 
       let historyItemsHtml = '';
       const displayHistory = history.filter(item => item.type !== 'login');
@@ -1367,7 +1455,7 @@ class StoreOwnerApp {
           let tagText = '✓ STAMP';
           let tagClass = 'tag-stamp';
           if (isReward) {
-            tagText = '★ GIFT';
+            tagText = '★ REWARD';
             tagClass = 'tag-gift';
           } else if (isJoined) {
             tagText = '★ JOINED';
@@ -1412,15 +1500,15 @@ class StoreOwnerApp {
             </div>
           </div>
 
-          <!-- Column 2: Stamp Progress & Mini Dots -->
+          <!-- Column 2: Stamp Progress & Mini Dots (11 Ticks) -->
           <div class="customer-progress-col">
-            <div class="tick-count-text">${stamps} of 6 Ticks</div>
+            <div class="tick-count-text">${stamps} of ${MAX_STAMPS} Ticks</div>
             <div class="mini-stamps-bar">
               ${dotsHtml}
             </div>
           </div>
 
-          <!-- Column 3: Remaining Ticks Badge (High Contrast) -->
+          <!-- Column 3: Remaining Ticks / Milestone Badge -->
           <div class="customer-status-col">
             ${badgeHtml}
           </div>
@@ -1437,7 +1525,16 @@ class StoreOwnerApp {
                 +1 Stamp
               </button>
             `}
-            <button type="button" id="historyBtn-${customer.phone}" class="btn-toggle-history ${isExpanded ? 'active' : ''}" onclick="window.ownerApp.toggleCustomerHistory('${customer.phone}')" title="Click to view how each tick was ticked">
+            ${stamps >= MILESTONE_50_OFF && stamps < MAX_STAMPS ? `
+              <button type="button" style="background:#581c87; color:#f3e8ff; border:1px solid #a855f7; border-radius:8px; padding:4px 8px; font-size:0.7rem; font-weight:700; cursor:pointer;" onclick="window.ownerApp.ownerRedeemCustomerOffer('${customer.phone}', 50)" title="Apply 50% OFF to customer bill">
+                ⚡ 50% OFF
+              </button>
+            ` : (stamps >= MILESTONE_20_OFF && stamps < MILESTONE_50_OFF ? `
+              <button type="button" style="background:#78350f; color:#fef3c7; border:1px solid #f59e0b; border-radius:8px; padding:4px 8px; font-size:0.7rem; font-weight:700; cursor:pointer;" onclick="window.ownerApp.ownerRedeemCustomerOffer('${customer.phone}', 20)" title="Apply 20% OFF to customer bill">
+                🏷️ 20% OFF
+              </button>
+            ` : '')}
+            <button type="button" id="historyBtn-${customer.phone}" class="btn-toggle-history ${isExpanded ? 'active' : ''}" onclick="window.ownerApp.toggleCustomerHistory('${customer.phone}')" title="Click to view stamp history">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
               <span>History (${history.length})</span>
               <svg class="history-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
@@ -1448,6 +1545,24 @@ class StoreOwnerApp {
           </div>
 
           <!-- Expandable Card Stamp History Drawer Matching Reference Image -->
+          <div id="historyDrawer-${customer.phone}" class="customer-history-drawer" style="display: ${isExpanded ? 'block' : 'none'};">
+            <div class="card-stamp-history-box">
+              <div class="card-history-header">
+                <div class="card-history-title">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                  <span>Card Stamp History</span>
+                </div>
+                <span class="history-badge-count">${history.length} Event${history.length === 1 ? '' : 's'}</span>
+              </div>
+              <div class="card-history-list">
+                ${historyItemsHtml}
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
           <div id="historyDrawer-${customer.phone}" class="customer-history-drawer" style="display: ${isExpanded ? 'block' : 'none'};">
             <div class="card-stamp-history-box">
               <div class="card-history-header">
