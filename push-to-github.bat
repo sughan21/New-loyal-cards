@@ -18,6 +18,8 @@ echo Uploading all folders, APKs, and cloud sync to GitHub...
 echo (If a browser window appears, click "Sign in with your browser")
 echo.
 
+%GIT_CMD% add -A
+%GIT_CMD% commit -m "Update app build and project files" 2>nul
 %GIT_CMD% push -u origin main --force
 if %ERRORLEVEL% EQU 0 goto success
 
