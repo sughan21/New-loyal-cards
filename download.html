@@ -375,9 +375,42 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 10px;
+      margin-bottom: 8px;
       padding-bottom: 6px;
       border-bottom: 1px solid rgba(184, 119, 55, 0.15);
+    }
+
+    .stepper-tabs {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 12px;
+      background: rgba(0, 0, 0, 0.05);
+      padding: 3px;
+      border-radius: 12px;
+    }
+
+    .stepper-tab {
+      flex: 1;
+      padding: 6px 10px;
+      border: none;
+      background: transparent;
+      border-radius: 9px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: #6d5849;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      transition: all 0.2s ease;
+    }
+
+    .stepper-tab.active {
+      background: #ffffff;
+      color: #241711;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+      font-weight: 800;
     }
 
     .stepper-badge {
@@ -601,13 +634,25 @@
         <span>📱 Already installed? <strong>Open Pass ↗</strong></span>
       </a>
 
-      <!-- STEPPER: Quick 3-Step Setup Instructions -->
+      <!-- STEPPER: Quick Setup Instructions (Android & iPhone) -->
       <div class="stepper-card">
         <div class="stepper-header">
-          <span class="stepper-badge">ℹ️ Quick Install Guide</span>
+          <span class="stepper-badge">ℹ️ Quick Setup Guide</span>
           <span class="stepper-sub">30-sec setup</span>
         </div>
-        <div class="steps-flow">
+
+        <!-- Segmented Device Switcher: Android & iPhone -->
+        <div class="stepper-tabs">
+          <button type="button" class="stepper-tab active" id="tabAndroid">
+            <span>🤖 Android</span>
+          </button>
+          <button type="button" class="stepper-tab" id="tabIos">
+            <span>🍏 Apple iPhone</span>
+          </button>
+        </div>
+
+        <!-- Android Steps Flow -->
+        <div class="steps-flow" id="flowAndroid">
           <div class="step-item">
             <div class="step-num">1</div>
             <div class="step-info">
@@ -627,6 +672,31 @@
             <div class="step-info">
               <div class="step-main">Collect Free Stamps</div>
               <div class="step-desc">Scan store counter QR to unlock 20%, 50% OFF &amp; Gifts!</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- iPhone / Safari Steps Flow -->
+        <div class="steps-flow" id="flowIos" style="display: none;">
+          <div class="step-item">
+            <div class="step-num">1</div>
+            <div class="step-info">
+              <div class="step-main">Open Instant Web Pass</div>
+              <div class="step-desc">Tap "Instant Web Pass" above in Safari.</div>
+            </div>
+          </div>
+          <div class="step-item">
+            <div class="step-num">2</div>
+            <div class="step-info">
+              <div class="step-main">Tap Share Button [↑]</div>
+              <div class="step-desc">Tap the Safari Share icon (square with arrow up).</div>
+            </div>
+          </div>
+          <div class="step-item">
+            <div class="step-num">3</div>
+            <div class="step-info">
+              <div class="step-main">Add to Home Screen</div>
+              <div class="step-desc">Select "Add to Home Screen" to install pass!</div>
             </div>
           </div>
         </div>
@@ -763,9 +833,33 @@
       }
     }
 
+    // Wire up Stepper Tabs (Android vs iPhone)
+    const tabAndroid = document.getElementById('tabAndroid');
+    const tabIos = document.getElementById('tabIos');
+    const flowAndroid = document.getElementById('flowAndroid');
+    const flowIos = document.getElementById('flowIos');
+
+    function selectPlatformTab(platform) {
+      if (platform === 'ios') {
+        if (tabIos) tabIos.classList.add('active');
+        if (tabAndroid) tabAndroid.classList.remove('active');
+        if (flowIos) flowIos.style.display = 'flex';
+        if (flowAndroid) flowAndroid.style.display = 'none';
+      } else {
+        if (tabAndroid) tabAndroid.classList.add('active');
+        if (tabIos) tabIos.classList.remove('active');
+        if (flowAndroid) flowAndroid.style.display = 'flex';
+        if (flowIos) flowIos.style.display = 'none';
+      }
+    }
+
+    if (tabAndroid) tabAndroid.addEventListener('click', () => selectPlatformTab('android'));
+    if (tabIos) tabIos.addEventListener('click', () => selectPlatformTab('ios'));
+
     // Auto-Detect iOS (iPhone / iPad)
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
     if (isIOS) {
+      selectPlatformTab('ios');
       const apkCard = document.querySelector('#customerAppPanel .download-card-highlight');
       if (apkCard) apkCard.style.display = 'none';
 
@@ -780,39 +874,8 @@
 
       const nativeBtn = document.getElementById('nativeAppLink');
       if (nativeBtn) nativeBtn.style.display = 'none';
-
-      const stepsBox = document.querySelector('#customerAppPanel .stepper-card');
-      if (stepsBox) {
-        stepsBox.innerHTML = `
-          <div class="stepper-header">
-            <span class="stepper-badge">🍏 iPhone Safari Setup</span>
-            <span class="stepper-sub">10-sec</span>
-          </div>
-          <div class="steps-flow">
-            <div class="step-item">
-              <div class="step-num">1</div>
-              <div class="step-info">
-                <div class="step-main">Open Apple Pass</div>
-                <div class="step-desc">Tap "Open Apple Loyalty Pass" above in Safari.</div>
-              </div>
-            </div>
-            <div class="step-item">
-              <div class="step-num">2</div>
-              <div class="step-info">
-                <div class="step-main">Add to Home Screen</div>
-                <div class="step-desc">Tap the Safari Share icon [↑] and choose "Add to Home Screen".</div>
-              </div>
-            </div>
-            <div class="step-item">
-              <div class="step-num">3</div>
-              <div class="step-info">
-                <div class="step-main">Collect Free Stamps</div>
-                <div class="step-desc">Scan store counter QR to unlock 20%, 50% OFF &amp; Gifts!</div>
-              </div>
-            </div>
-          </div>
-        `;
-      }
+    } else {
+      selectPlatformTab('android');
     }
   </script>
 </body>
