@@ -2381,34 +2381,35 @@ body.store-mode-active .app-container {
     width: 100%;
   }
   .customer-progress-col {
-    width: 100%;
-    min-width: 0;
-    max-width: 100%;
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    flex-wrap: nowrap !important;
-    background: #faf7f2;
-    border: 1px solid var(--border-subtle, #eae3da);
-    border-radius: var(--radius-md, 8px);
-    padding: 7px 12px;
-    box-sizing: border-box;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    justify-content: center !important;
+    gap: 8px !important;
+    background: #faf7f2 !important;
+    border: 1px solid var(--border-subtle, #eae3da) !important;
+    border-radius: 12px !important;
+    padding: 10px 14px !important;
+    box-sizing: border-box !important;
   }
   .customer-progress-col .tick-count-text {
-    flex-shrink: 0;
-    white-space: nowrap;
-    font-size: 0.76rem;
+    width: 100% !important;
+    font-size: 0.82rem !important;
+    font-weight: 800 !important;
+    color: #3b281c !important;
+    white-space: nowrap !important;
+    text-align: left !important;
   }
   .customer-progress-col .mini-stamps-bar {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0;
-    min-width: 0;
-    width: auto;
+    width: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 2px !important;
+    box-sizing: border-box !important;
   }
   .customer-status-col {
     width: 100%;
@@ -3894,51 +3895,52 @@ body.store-mode-active .app-container {
   }
 
   .customer-progress-col {
-    width: 100%;
-    min-width: 0;
-    max-width: 100%;
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    flex-wrap: nowrap !important;
-    background: #faf7f2;
-    border: 1px solid var(--border-subtle, #eae3da);
-    border-radius: var(--radius-md, 8px);
-    padding: 7px 10px;
-    box-sizing: border-box;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    justify-content: center !important;
+    gap: 8px !important;
+    background: #faf7f2 !important;
+    border: 1px solid var(--border-subtle, #eae3da) !important;
+    border-radius: 12px !important;
+    padding: 9px 12px !important;
+    box-sizing: border-box !important;
   }
 
   .customer-progress-col .tick-count-text {
-    flex-shrink: 0;
-    white-space: nowrap;
-    font-size: 0.74rem;
+    width: 100% !important;
+    text-align: left !important;
+    font-size: 0.80rem !important;
+    font-weight: 800 !important;
+    color: #3b281c !important;
+    white-space: nowrap !important;
   }
 
   .customer-progress-col .mini-stamps-bar {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0;
-    min-width: 0;
-    width: auto;
+    width: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 2px !important;
+    box-sizing: border-box !important;
   }
 
   .mini-stamp-dot {
-    width: 15px;
-    height: 15px;
-    min-width: 15px;
-    font-size: 0.48rem;
+    width: clamp(18px, 5.2vw, 22px);
+    height: clamp(18px, 5.2vw, 22px);
+    min-width: clamp(18px, 5.2vw, 22px);
+    font-size: 0.60rem;
     flex-shrink: 0;
   }
 
   .mini-stamp-dot.gift-dot {
-    width: 17px;
-    height: 15px;
-    min-width: 17px;
-    font-size: 0.52rem;
+    width: clamp(20px, 5.8vw, 24px);
+    height: clamp(18px, 5.2vw, 22px);
+    min-width: clamp(20px, 5.8vw, 24px);
+    font-size: 0.70rem;
     flex-shrink: 0;
   }
 
@@ -4183,40 +4185,39 @@ body.store-mode-active .app-container {
   }
 
   .customer-progress-col {
-    padding: 6px 8px;
-    gap: 6px;
-    flex-wrap: nowrap !important;
+    padding: 8px 10px !important;
+    gap: 6px !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
   }
 
   .customer-progress-col .tick-count-text {
-    font-size: 0.70rem;
-    white-space: nowrap;
-    flex-shrink: 0;
+    font-size: 0.76rem !important;
+    white-space: nowrap !important;
+    text-align: left !important;
   }
 
   .customer-progress-col .mini-stamps-bar {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0;
-    min-width: 0;
-    width: auto;
+    width: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 1px !important;
   }
 
   .mini-stamp-dot {
-    width: 13px;
-    height: 13px;
-    min-width: 13px;
-    font-size: 0.42rem;
+    width: clamp(16px, 4.8vw, 20px);
+    height: clamp(16px, 4.8vw, 20px);
+    min-width: clamp(16px, 4.8vw, 20px);
+    font-size: 0.54rem;
     flex-shrink: 0;
   }
 
   .mini-stamp-dot.gift-dot {
-    width: 15px;
-    height: 13px;
-    min-width: 15px;
-    font-size: 0.46rem;
+    width: clamp(18px, 5.4vw, 22px);
+    height: clamp(16px, 4.8vw, 20px);
+    min-width: clamp(18px, 5.4vw, 22px);
+    font-size: 0.64rem;
     flex-shrink: 0;
   }
 

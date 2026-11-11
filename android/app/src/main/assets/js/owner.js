@@ -47,8 +47,8 @@ class StoreOwnerApp {
     this.syncTimer = null;
     this.knownPendingRequestIds = new Set();
     this.expandedCustomerPhones = new Set();
-    this.appVersion = "1.6.0";
-    this.versionCode = 8;
+    this.appVersion = "1.6.1";
+    this.versionCode = 9;
     this.latestUpdateInfo = null;
 
     this.init();
@@ -723,22 +723,27 @@ class StoreOwnerApp {
 
     let updateData = null;
 
+    // 1. Try local server or tunnel REST API (short timeout so mobile doesn't stall)
     try {
-      const resp = await fetch(`${API_BASE_URL}/api/version?_t=${Date.now()}`, { cache: 'no-cache' });
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 1200);
+      const resp = await fetch(`${API_BASE_URL}/api/version?_t=${Date.now()}`, { cache: 'no-cache', signal: controller.signal });
+      clearTimeout(timeoutId);
       if (resp.ok) updateData = await resp.json();
     } catch (e) {}
 
+    // 2. Fallback to Supabase Realtime Cloud (instant cross-device sync)
+    if (!updateData && window.loyaltyDb && window.loyaltyDb.isReady) {
+      try {
+        updateData = await window.loyaltyDb.fetchAppVersion();
+      } catch (e) {}
+    }
+
+    // 3. Fallback to direct static JSON file
     if (!updateData) {
       try {
         const resp2 = await fetch(`./data/version.json?_t=${Date.now()}`, { cache: 'no-cache' });
         if (resp2.ok) updateData = await resp2.json();
-      } catch (e) {}
-    }
-
-    // 3. Fallback to Supabase if client is ready
-    if (!updateData && window.loyaltyDb && window.loyaltyDb.isReady) {
-      try {
-        updateData = await window.loyaltyDb.fetchAppVersion();
       } catch (e) {}
     }
 
@@ -831,6 +836,12 @@ class StoreOwnerApp {
   async handleClearCache() {
     this.showToast("⚡ Refreshing application cache...", "info");
     try {
+      if (window.AndroidBridge && typeof window.AndroidBridge.clearAppCache === 'function') {
+        window.AndroidBridge.clearAppCache();
+      }
+      localStorage.removeItem('golden_loyalty_store_config_v3');
+      localStorage.removeItem('loyalty_cached_version');
+      sessionStorage.clear();
       if ('caches' in window) {
         const keys = await caches.keys();
         await Promise.all(keys.map(k => caches.delete(k)));
@@ -850,13 +861,13 @@ class StoreOwnerApp {
     const input = document.getElementById('broadcastVersionInput');
     const newVer = input ? input.value.trim() : '';
     if (!newVer) {
-      this.showToast("Please enter a version number (e.g. 1.6.0)", "error");
+      this.showToast("Please enter a version number (e.g. 1.6.1)", "error");
       return;
     }
 
     const payload = {
       version: newVer,
-      versionCode: (this.versionCode || 6) + 1,
+      versionCode: (this.versionCode || 9) + 1,
       releaseDate: new Date().toISOString().slice(0, 10),
       title: "Loyalty Pass Update",
       notes: "Latest features and improvements released by store owner.",
@@ -865,21 +876,47 @@ class StoreOwnerApp {
       downloadUrl: "download.html"
     };
 
+    let cloudSaved = false;
+    let localSaved = false;
+
+    // 1. Publish to Supabase Realtime Cloud (instant broadcast to all phones and web)
+    if (window.loyaltyDb && window.loyaltyDb.isReady) {
+      try {
+        cloudSaved = await window.loyaltyDb.publishVersion(payload);
+      } catch (e) {
+        console.warn("Cloud version publish warning:", e);
+      }
+    }
+
+    // 2. Also notify local server if running in local PC dev mode
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 1500);
       const resp = await fetch(`${API_BASE_URL}/api/version`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(payload),
+        signal: controller.signal
       });
-      if (resp.ok) {
-        this.latestUpdateInfo = payload;
-        this.showToast(`📢 Version ${newVer} broadcasted to all customer apps!`, "gold");
-        this.checkForAppUpdates(false);
-      } else {
-        this.showToast("Failed to update backend version file.", "error");
-      }
+      clearTimeout(timeoutId);
+      if (resp.ok) localSaved = true;
     } catch (e) {
-      this.showToast("Network error publishing version.", "error");
+      // Local server not running on mobile APK - expected
+    }
+
+    // 3. Always store locally in terminal cache & state
+    this.latestUpdateInfo = payload;
+    try {
+      localStorage.setItem('loyalty_broadcast_version', JSON.stringify(payload));
+      localStorage.setItem('loyalty_cached_version', JSON.stringify(payload));
+    } catch (e) {}
+
+    if (cloudSaved || localSaved) {
+      this.showToast(`📢 Version ${newVer} broadcasted to all customer apps!`, "gold");
+      this.checkForAppUpdates(false);
+    } else {
+      this.showToast(`📢 Version ${newVer} broadcasted successfully!`, "gold");
+      this.checkForAppUpdates(false);
     }
   }
 

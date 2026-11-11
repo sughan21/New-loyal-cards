@@ -131,7 +131,9 @@ class LoyaltySupabaseRepository {
         console.warn("Supabase fetchAllCustomers error:", error);
         return null;
       }
-      return Array.isArray(data) ? data.map(d => this.toLocalCustomer(d)) : [];
+      return Array.isArray(data) 
+        ? data.filter(d => d.phone && !d.phone.startsWith('__')).map(d => this.toLocalCustomer(d)) 
+        : [];
     } catch (e) {
       console.warn("Supabase network error:", e);
       return null;
@@ -292,7 +294,7 @@ class LoyaltySupabaseRepository {
         const currentCust = customerObj || await this.fetchCustomer(phone);
         if (currentCust) {
           const currentStamps = parseInt(currentCust.stamps, 10) || 0;
-          if (currentStamps < 6) {
+          if (currentStamps < 11) {
             const nextStamps = currentStamps + 1;
             const now = new Date();
             const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -418,6 +420,58 @@ class LoyaltySupabaseRepository {
 
     this.activeChannels.set(channelName, channel);
     return channel;
+  }
+
+  // --- App Version Cloud Broadcast & Fetch ---
+  async publishVersion(versionData) {
+    if (!this.isReady || !versionData) return false;
+    try {
+      const row = {
+        phone: '__APP_CONFIG_VERSION__',
+        name: versionData.version || '1.6.1',
+        password: '',
+        stamps: versionData.versionCode || 9,
+        gifts_earned: 0,
+        member_id: 'APP-CONFIG',
+        history: [versionData],
+        last_stamp_date: null,
+        last_updated: Date.now()
+      };
+      const { error } = await this.client.from('customers').upsert(row, { onConflict: 'phone' });
+      if (error) {
+        console.warn("Supabase publishVersion error:", error);
+        return false;
+      }
+      return true;
+    } catch (e) {
+      console.warn("Supabase publishVersion exception:", e);
+      return false;
+    }
+  }
+
+  async fetchAppVersion() {
+    if (!this.isReady) return null;
+    try {
+      const { data, error } = await this.client
+        .from('customers')
+        .select('*')
+        .eq('phone', '__APP_CONFIG_VERSION__')
+        .maybeSingle();
+
+      if (error || !data) return null;
+      if (Array.isArray(data.history) && data.history.length > 0) {
+        return data.history[0];
+      }
+      return {
+        version: data.name,
+        versionCode: data.stamps,
+        releaseDate: new Date().toISOString().slice(0, 10),
+        title: "Loyalty Pass Update",
+        notes: "Latest update from store owner."
+      };
+    } catch (e) {
+      return null;
+    }
   }
 
   unsubscribe(channelName) {

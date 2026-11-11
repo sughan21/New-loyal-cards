@@ -104,6 +104,7 @@ class MainActivity : AppCompatActivity() {
             .addPathHandler("/assets/", WebViewAssetLoader.AssetsPathHandler(this))
             .build()
 
+        webView.clearCache(true)
         webView.settings.apply {
             javaScriptEnabled = true
             domStorageEnabled = true
@@ -114,7 +115,7 @@ class MainActivity : AppCompatActivity() {
             loadsImagesAutomatically = true
             useWideViewPort = true
             loadWithOverviewMode = true
-            cacheMode = WebSettings.LOAD_DEFAULT
+            cacheMode = WebSettings.LOAD_NO_CACHE
             mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
         }
 
@@ -195,7 +196,23 @@ class MainActivity : AppCompatActivity() {
         super.onDestroy()
     }
 
+    fun clearAllCaches() {
+        runOnUiThread {
+            try {
+                webView.clearCache(true)
+                android.webkit.WebStorage.getInstance().deleteAllData()
+            } catch (e: Exception) {
+                // Ignore
+            }
+        }
+    }
+
     class WebAppInterface(private val context: android.content.Context) {
+        @JavascriptInterface
+        fun clearAppCache() {
+            (context as? MainActivity)?.clearAllCaches()
+        }
+
         @JavascriptInterface
         fun getUserDeviceName(): String {
             try {

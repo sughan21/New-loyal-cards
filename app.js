@@ -53,8 +53,8 @@ class LoyaltyApp {
     this.customerResetOtp = '';
     this.customerResetPhone = '';
     this.repeatApprovalPollTimer = null;
-    this.appVersion = "1.6.0";
-    this.versionCode = 8;
+    this.appVersion = "1.6.1";
+    this.versionCode = 9;
     this.latestUpdateInfo = null;
 
     this.init();
@@ -1574,28 +1574,31 @@ class LoyaltyApp {
 
     let updateData = null;
 
-    // 1. Try local server or tunnel REST API
+    // 1. Try local server or tunnel REST API (with short timeout so mobile doesn't stall)
     try {
-      const resp = await fetch(`${API_BASE_URL}/api/version?_t=${Date.now()}`, { cache: 'no-cache' });
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 1200);
+      const resp = await fetch(`${API_BASE_URL}/api/version?_t=${Date.now()}`, { cache: 'no-cache', signal: controller.signal });
+      clearTimeout(timeoutId);
       if (resp.ok) {
         updateData = await resp.json();
       }
     } catch (e) {}
 
-    // 2. Fallback to direct static JSON file
+    // 2. Fallback to Supabase Realtime Cloud (instant cross-device sync)
+    if (!updateData && window.loyaltyDb && window.loyaltyDb.isReady) {
+      try {
+        updateData = await window.loyaltyDb.fetchAppVersion();
+      } catch (e) {}
+    }
+
+    // 3. Fallback to direct static JSON file
     if (!updateData) {
       try {
         const resp2 = await fetch(`./data/version.json?_t=${Date.now()}`, { cache: 'no-cache' });
         if (resp2.ok) {
           updateData = await resp2.json();
         }
-      } catch (e) {}
-    }
-
-    // 3. Fallback to Supabase if client is ready
-    if (!updateData && window.loyaltyDb && window.loyaltyDb.isReady) {
-      try {
-        updateData = await window.loyaltyDb.fetchAppVersion();
       } catch (e) {}
     }
 

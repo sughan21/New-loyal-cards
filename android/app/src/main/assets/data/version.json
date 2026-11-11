@@ -1,9 +1,9 @@
 {
-    "version":  "1.6.0",
-    "versionCode":  8,
+    "version":  "1.6.1",
+    "versionCode":  9,
     "releaseDate":  "2026-11-11",
     "title":  "Loyalty Pass 11-Stamp Milestone Update",
-    "notes":  "11-stamp milestone loyalty rewards with 20% OFF, 50% OFF, and Free Gift rewards.",
+    "notes":  "11-stamp full-column layout, cloud version broadcast, and cache synchronization.",
     "customerApk":  "apks/LoyaltyPass-Customer.apk",
     "ownerApk":  "apks/StoreTerminal-Owner.apk",
     "downloadUrl":  "download.html"
