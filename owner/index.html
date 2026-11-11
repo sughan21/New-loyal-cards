@@ -42,12 +42,18 @@
     href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap"
     rel="stylesheet">
 
-  <!-- Stylesheet -->
-  <link rel="stylesheet" href="css/style.css?v=20261103d">
+  <!-- Stylesheet (Supports both nested css/ and root uploads) -->
+  <link rel="stylesheet" href="css/style.css?v=20261111b">
+  <link rel="stylesheet" href="style.css?v=20261111b">
 
-  <!-- External Libraries for QR & Confetti (Local for 100% Offline APK Support) -->
+  <!-- External Libraries with Local + CDN Fallbacks -->
   <script src="js/vendor/qrcode.min.js"></script>
+  <script src="qrcode.min.js"></script>
+  <script>if(!window.QRCode)document.write('<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"><\/script>');</script>
+
   <script src="js/vendor/confetti.browser.min.js"></script>
+  <script src="confetti.browser.min.js"></script>
+  <script>if(!window.confetti)document.write('<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"><\/script>');</script>
 </head>
 
 <body class="store-mode-active">
@@ -93,7 +99,7 @@
            ===================================================================== -->
       <div id="ownerAuthSection" class="glass-panel auth-panel" style="max-width: 440px; margin: 30px auto;">
         <div class="auth-hero">
-          <img src="assets/logo.png?v=2026" alt="Loyalty App Logo" class="auth-hero-img">
+          <img src="assets/logo.png?v=2026" onerror="if(!this.dataset.t){this.dataset.t=1;this.src='logo.png';}" alt="Loyalty App Logo" class="auth-hero-img">
           <h2>Store Owner Login</h2>
           <p>Access customer directory, real-time analytics, and counter standee QR.</p>
         </div>
@@ -160,7 +166,7 @@
         <div class="owner-header-bar">
           <div class="owner-title-wrap">
             <div class="owner-badge-icon">
-              <img src="assets/logo.png?v=2026" alt="Loyalty Reward Brand Logo" class="owner-badge-logo-img">
+              <img src="assets/logo.png?v=2026" onerror="if(!this.dataset.t){this.dataset.t=1;this.src='logo.png';}" alt="Loyalty Reward Brand Logo" class="owner-badge-logo-img">
             </div>
             <div class="owner-title-text">
               <h3 id="ownerStoreTitleDisplay">Loyalty Reward • Store Owner Portal</h3>
@@ -350,7 +356,7 @@
 
             <!-- The ONE Single Universal QR Box -->
             <div id="unifiedStoreQrContainer" class="store-qr-display-box prominent-qr-box">
-              <img src="assets/store_qr_live.png" alt="Store Counter QR Code"
+              <img src="assets/store_qr_live.png" onerror="if(!this.dataset.t){this.dataset.t=1;this.src='store_qr_live.png';}" alt="Store Counter QR Code"
                 style="width:220px; height:220px; object-fit:contain; border-radius:12px; display:block; margin:0 auto; background:#fff; padding:6px; box-sizing:border-box;">
             </div>
 
@@ -748,13 +754,19 @@
 
   <div id="toastContainer" class="toast-container"></div>
 
-  <!-- Cloud Database Scripts -->
+  <!-- Cloud Database Scripts (Supports both nested js/vendor/ and root uploads) -->
   <script src="js/vendor/supabase.min.js"></script>
-  <script src="js/supabase-client.js"></script>
+  <script src="supabase.min.js"></script>
+  <script>if(!window.supabase)document.write('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"><\/script>');</script>
 
-  <!-- Scripts -->
+  <script src="js/supabase-client.js"></script>
+  <script src="supabase-client.js"></script>
+
+  <!-- Application Scripts (Supports both nested js/ and root uploads) -->
   <script src="js/audio.js"></script>
+  <script src="audio.js"></script>
   <script src="js/owner.js"></script>
+  <script src="owner.js"></script>
 </body>
 
 </html>

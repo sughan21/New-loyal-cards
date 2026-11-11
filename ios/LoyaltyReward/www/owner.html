@@ -42,12 +42,18 @@
     href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap"
     rel="stylesheet">
 
-  <!-- Stylesheet -->
-  <link rel="stylesheet" href="css/style.css">
+  <!-- Stylesheet (Supports both nested css/ and root uploads) -->
+  <link rel="stylesheet" href="css/style.css?v=20261111b">
+  <link rel="stylesheet" href="style.css?v=20261111b">
 
-  <!-- External Libraries for QR & Confetti (Local for 100% Offline APK Support) -->
+  <!-- External Libraries with Local + CDN Fallbacks -->
   <script src="js/vendor/qrcode.min.js"></script>
+  <script src="qrcode.min.js"></script>
+  <script>if(!window.QRCode)document.write('<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"><\/script>');</script>
+
   <script src="js/vendor/confetti.browser.min.js"></script>
+  <script src="confetti.browser.min.js"></script>
+  <script>if(!window.confetti)document.write('<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"><\/script>');</script>
 </head>
 
 <body class="store-mode-active">
@@ -55,7 +61,16 @@
   <!-- Top Navigation Header -->
   <header class="app-header" style="justify-content: flex-end;">
     <div class="header-actions">
-    <a href="../customer/" class="mode-toggle-btn" target="_blank" title="Open Customer App">
+      <!-- Settings & Version Trigger -->
+      <button id="ownerOpenSettingsBtn" class="header-icon-btn" title="Settings & Version Manager" aria-label="Settings">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="3"></circle>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+        </svg>
+        <span id="ownerSettingsUpdateBadge" class="settings-update-badge" style="display: none;"></span>
+      </button>
+
+      <a href="../customer/" class="mode-toggle-btn" target="_blank" title="Open Customer App">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
         <polyline points="15 3 21 3 21 9"></polyline>
@@ -77,14 +92,14 @@
 
   <!-- Main Application Wrapper -->
   <main class="main-wrapper">
-    <div class="app-container" style="max-width: 960px;">
+    <div class="app-container" style="max-width: 1040px;">
 
       <!-- =====================================================================
            SECTION 1: STORE OWNER LOGIN SCREEN
            ===================================================================== -->
       <div id="ownerAuthSection" class="glass-panel auth-panel" style="max-width: 440px; margin: 30px auto;">
         <div class="auth-hero">
-          <img src="assets/logo.png?v=2026" alt="Loyalty App Logo" class="auth-hero-img">
+          <img src="assets/logo.png?v=2026" onerror="if(!this.dataset.t){this.dataset.t=1;this.src='logo.png';}" alt="Loyalty App Logo" class="auth-hero-img">
           <h2>Store Owner Login</h2>
           <p>Access customer directory, real-time analytics, and counter standee QR.</p>
         </div>
@@ -151,15 +166,26 @@
         <div class="owner-header-bar">
           <div class="owner-title-wrap">
             <div class="owner-badge-icon">
-              <img src="assets/logo.png?v=2026" alt="Loyalty Reward Brand Logo" class="owner-badge-logo-img">
+              <img src="assets/logo.png?v=2026" onerror="if(!this.dataset.t){this.dataset.t=1;this.src='logo.png';}" alt="Loyalty Reward Brand Logo" class="owner-badge-logo-img">
             </div>
             <div class="owner-title-text">
               <h3 id="ownerStoreTitleDisplay">Loyalty Reward • Store Owner Portal</h3>
-              <p>Customer Loyalty Tracker & 6-Tick Management Terminal</p>
+              <p>Customer Loyalty Tracker & 11-Tick Management Terminal</p>
             </div>
           </div>
 
           <div class="owner-header-actions">
+            <!-- Mobile & Desktop Owner Settings Button -->
+            <button id="ownerDashboardSettingsBtn" class="mode-toggle-btn" title="Settings & Version Manager"
+              style="position: relative; display: inline-flex; align-items: center; gap: 6px;">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="3"></circle>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+              </svg>
+              <span>Settings</span>
+              <span id="ownerDashboardSettingsBadge" class="settings-update-badge" style="display: none; top: 2px; right: 2px;"></span>
+            </button>
+
             <a href="index.html" class="mode-toggle-btn" target="_blank" title="Open Customer App">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
@@ -168,15 +194,6 @@
               </svg>
               Customer Pass ↗
             </a>
-            <button id="ownerLogoutBtn" class="mode-toggle-btn"
-              style="background: rgba(239, 68, 68, 0.15); border-color: rgba(239, 68, 68, 0.4); color: #fca5a5;">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-                <polyline points="16 17 21 12 16 7"></polyline>
-                <line x1="21" y1="12" x2="9" y2="12"></line>
-              </svg>
-              Sign Out Owner
-            </button>
           </div>
         </div>
 
@@ -211,15 +228,15 @@
             <div class="metric-icon emerald">🎁</div>
             <div class="metric-info">
               <h4 id="ownerReadyForGiftCount">0</h4>
-              <p>Ready For Gift (6/6 Ticks)</p>
+              <p>Ready For Gift (11/11 Ticks)</p>
             </div>
           </div>
 
           <div class="metric-card">
             <div class="metric-icon purple">⚡</div>
             <div class="metric-info">
-              <h4 id="ownerOneTickLeftCount">0</h4>
-              <p>1 Tick Remaining</p>
+              <h4 id="ownerOffersActiveCount">0</h4>
+              <p>Active Offers (5+ or 8+ Ticks)</p>
             </div>
           </div>
 
@@ -227,7 +244,7 @@
             <div class="metric-icon gold">★</div>
             <div class="metric-info">
               <h4 id="ownerTotalGiftsGiven">0</h4>
-              <p>Gifts Redeemed</p>
+              <p>Gifts &amp; Offers Redeemed</p>
             </div>
           </div>
         </div>
@@ -251,7 +268,7 @@
                 </button>
               </div>
               <p style="font-size: 0.78rem; color: var(--text-muted); margin-top: 2px;">
-                Shows exact stamps collected, remaining tick boxes, and fast cashier stamp/gift buttons.
+                Shows exact stamps collected, 11-tick milestone progress, and fast cashier stamp/gift/offer buttons.
               </p>
             </div>
 
@@ -279,10 +296,10 @@
                 <span class="pill-label">Ready for Gift</span>
                 <span class="pill-count" id="pillCountReady">0</span>
               </button>
-              <button type="button" class="filter-pill" data-filter="urgent" role="tab" aria-selected="false">
-                <span class="pill-icon">⚡</span>
-                <span class="pill-label">1 Tick Left</span>
-                <span class="pill-count" id="pillCountUrgent">0</span>
+              <button type="button" class="filter-pill" data-filter="offers" role="tab" aria-selected="false">
+                <span class="pill-icon">🏷️</span>
+                <span class="pill-label">Active Offers (5 or 8)</span>
+                <span class="pill-count" id="pillCountOffers">0</span>
               </button>
               <button type="button" class="filter-pill" data-filter="progress" role="tab" aria-selected="false">
                 <span class="pill-icon">⏳</span>
@@ -300,9 +317,9 @@
           <!-- Table Header for Precision Column Alignment -->
           <div class="customer-table-header">
             <div class="th-col th-customer">Customer</div>
-            <div class="th-col th-progress">Stamps (6 Ticks)</div>
-            <div class="th-col th-status">Remaining Status</div>
-            <div class="th-col th-action">Action & History</div>
+            <div class="th-col th-progress">Stamps (11 Ticks)</div>
+            <div class="th-col th-status">Milestones &amp; Status</div>
+            <div class="th-col th-action">Cashier Actions</div>
           </div>
 
           <!-- Customer Directory Table List -->
@@ -339,7 +356,7 @@
 
             <!-- The ONE Single Universal QR Box -->
             <div id="unifiedStoreQrContainer" class="store-qr-display-box prominent-qr-box">
-              <img src="assets/store_qr_live.png" alt="Store Counter QR Code"
+              <img src="assets/store_qr_live.png" onerror="if(!this.dataset.t){this.dataset.t=1;this.src='store_qr_live.png';}" alt="Store Counter QR Code"
                 style="width:220px; height:220px; object-fit:contain; border-radius:12px; display:block; margin:0 auto; background:#fff; padding:6px; box-sizing:border-box;">
             </div>
 
@@ -348,6 +365,30 @@
               style="font-size: 0.72rem; color: #94a3b8; margin: 6px auto 0; word-break: break-all; max-width: 320px; text-align: center;">
               🔗 <span id="standeeQrTargetDisplay"
                 style="color: var(--gold-light);">download.html?store_scan=LOYALTY-REWARD-STORE-TOKEN-2026</span>
+            </div>
+
+            <!-- Warning if QR uses localhost (mobile phones cannot scan localhost) -->
+            <div id="standeeLocalhostWarning"
+              style="display: none; background: #fff5f5; border: 1.5px solid #f87171; color: #991b1b; border-radius: 12px; padding: 10px 12px; margin: 10px auto 0; max-width: 330px; font-size: 0.76rem; text-align: left; line-height: 1.45; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.1);">
+              <strong>⚠️ Mobile Scan Warning:</strong><br>
+              This QR code currently contains <code>localhost</code>. Mobile phones cannot reach your computer via <code>localhost</code>.<br>
+              <span style="color: #b91c1c; font-weight: 600;">Please tap one of the live link buttons below or run <code>start-cloudflare.bat</code>.</span>
+            </div>
+
+            <!-- Quick Preset Switching Buttons -->
+            <div id="standeeTargetPresets" style="display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; margin-top: 8px;">
+              <button type="button" id="useGithubCloudPresetBtn" class="scanner-opt-btn"
+                style="font-size: 0.74rem; padding: 6px 14px; background: #fdf4ff; border: 1.5px solid #c084fc; color: #7e22ce; font-weight: 800; border-radius: 8px; cursor: pointer; box-shadow: 0 2px 8px rgba(192, 132, 252, 0.2);">
+                ☁️ Use Permanent GitHub Cloud Link (24/7)
+              </button>
+              <button type="button" id="useCloudflarePresetBtn" class="scanner-opt-btn"
+                style="display: none; font-size: 0.72rem; padding: 5px 12px; background: #ecfdf5; border: 1px solid #34d399; color: #065f46; font-weight: 700; border-radius: 8px; cursor: pointer;">
+                🌐 Use Live Cloudflare URL
+              </button>
+              <button type="button" id="useLanPresetBtn" class="scanner-opt-btn"
+                style="display: none; font-size: 0.72rem; padding: 5px 12px; background: #eff6ff; border: 1px solid #60a5fa; color: #1e40af; font-weight: 700; border-radius: 8px; cursor: pointer;">
+                📶 Use Wi-Fi Network IP
+              </button>
             </div>
 
             <!-- Standee Action Explainer Badges for Customers -->
@@ -594,15 +635,138 @@
       </div>
     </div>
   </div>
+
+  <!-- =========================================================================
+       MODAL: STORE OWNER SETTINGS & APP VERSION MANAGER
+       ========================================================================= -->
+  <div id="ownerSettingsModal" class="modal-backdrop">
+    <div class="modal-dialog settings-dialog">
+      <button type="button" id="ownerCloseSettingsModalBtn" class="modal-close-btn modal-close-trigger" aria-label="Close Settings">✕</button>
+
+      <div class="modal-header" style="text-align: center;">
+        <div class="settings-modal-icon">⚙️</div>
+        <h3>Store Settings & Versions</h3>
+        <p>Terminal preferences, system updates & version broadcast</p>
+      </div>
+
+      <!-- Update Status Card -->
+      <div class="update-status-card">
+        <div class="update-card-header">
+          <div class="update-icon-pulse" id="ownerUpdateIconPulse">
+            <span id="ownerUpdateIconSymbol">✅</span>
+          </div>
+          <div style="flex: 1; text-align: left;">
+            <div class="update-status-title" id="ownerUpdateStatusTitle">Terminal is up to date</div>
+            <div class="update-status-subtitle" id="ownerUpdateStatusSubtitle">Installed version: v1.5.0</div>
+          </div>
+        </div>
+
+        <!-- Banner shown when a new update is detected -->
+        <div id="ownerNewUpdateBanner" class="new-update-banner" style="display: none;">
+          <div class="new-update-tag">⚡ TERMINAL UPDATE AVAILABLE</div>
+          <div class="new-update-ver" id="ownerNewUpdateVerText">Version 1.6.0 Ready</div>
+          <p class="new-update-notes" id="ownerNewUpdateNotesText">Features improvements, faster sync, and latest fixes.</p>
+          <button id="ownerApplyUpdateBtn" class="btn-update-now">
+            <span>🚀 Update Terminal App</span>
+          </button>
+        </div>
+
+        <!-- Manual Check Button -->
+        <button id="ownerManualCheckUpdateBtn" class="check-update-btn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
+          </svg>
+          <span id="ownerCheckUpdateBtnText">Check for Updates</span>
+        </button>
+      </div>
+
+      <!-- Version Broadcast Controller for Owner -->
+      <div class="settings-section">
+        <div class="settings-section-title">Backend Version Release (Broadcast to Customers)</div>
+        <p style="font-size: 0.74rem; color: var(--text-secondary); margin-bottom: 10px;">
+          When you release a new app build or backend update, bump the version here. All customer apps will immediately show the 🔴 Update badge in their Settings!
+        </p>
+        <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+          <input type="text" id="broadcastVersionInput" class="custom-input" placeholder="e.g. 1.6.0"
+            style="flex: 1; font-size: 0.85rem; padding: 8px 10px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); color: #fff; border-radius: 8px;">
+          <button id="broadcastVersionBtn" class="primary-btn" style="white-space: nowrap; padding: 8px 14px; margin: 0; font-size: 0.8rem;">
+            📢 Publish Version
+          </button>
+        </div>
+      </div>
+
+      <!-- Settings Preferences -->
+      <div class="settings-section">
+        <div class="settings-section-title">Preferences</div>
+
+        <div class="setting-item-row">
+          <div class="setting-info">
+            <div class="setting-label">Audio Chimes & Alerts</div>
+            <div class="setting-hint">Sound notification on 2nd visit customer approval requests</div>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="ownerSoundToggle" checked>
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div class="setting-item-row">
+          <div class="setting-info">
+            <div class="setting-label">Terminal Offline Cache</div>
+            <div class="setting-hint">Clear cached data & reload latest backend code</div>
+          </div>
+          <button id="ownerClearCacheReloadBtn" class="setting-action-btn">
+            Clear Cache
+          </button>
+        </div>
+      </div>
+
+      <!-- Store Admin Session & Logout Section -->
+      <div id="ownerSettingsSessionSection" class="settings-section">
+        <div class="settings-section-title">Terminal Session</div>
+        <div class="setting-item-row">
+          <div class="setting-info">
+            <div class="setting-label">Sign Out Owner</div>
+            <div class="setting-hint">Lock store terminal and exit to admin login</div>
+          </div>
+          <button id="ownerLogoutBtn" type="button" class="setting-action-btn"
+            style="background: #fee2e2 !important; border: 1.5px solid #fca5a5 !important; color: #b91c1c !important; font-weight: 800 !important; display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 10px; cursor: pointer;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+              <polyline points="16 17 21 12 16 7"></polyline>
+              <line x1="21" y1="12" x2="9" y2="12"></line>
+            </svg>
+            Sign Out
+          </button>
+        </div>
+      </div>
+
+      <!-- Bottom Done Action Button -->
+      <div style="margin-top: 14px; padding-top: 10px; border-top: 1px solid #ede5da;">
+        <button type="button" id="ownerDoneSettingsModalBtn" class="modal-close-trigger primary-btn"
+          style="width: 100%; margin: 0; padding: 13px; font-weight: 800; font-size: 0.95rem; border-radius: 14px; background: linear-gradient(135deg, #2b1810 0%, #170d08 100%); color: #ffffff; cursor: pointer; box-shadow: 0 4px 14px rgba(35, 20, 10, 0.2);">
+          ✓ Done
+        </button>
+      </div>
+
+    </div>
+  </div>
+
   <div id="toastContainer" class="toast-container"></div>
 
-  <!-- Cloud Database Scripts -->
+  <!-- Cloud Database Scripts (Supports both nested js/vendor/ and root uploads) -->
   <script src="js/vendor/supabase.min.js"></script>
-  <script src="js/supabase-client.js"></script>
+  <script src="supabase.min.js"></script>
+  <script>if(!window.supabase)document.write('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"><\/script>');</script>
 
-  <!-- Scripts -->
+  <script src="js/supabase-client.js"></script>
+  <script src="supabase-client.js"></script>
+
+  <!-- Application Scripts (Supports both nested js/ and root uploads) -->
   <script src="js/audio.js"></script>
+  <script src="audio.js"></script>
   <script src="js/owner.js"></script>
+  <script src="owner.js"></script>
 </body>
 
 </html>
