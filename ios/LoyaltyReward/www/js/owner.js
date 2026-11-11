@@ -48,7 +48,7 @@ class StoreOwnerApp {
     this.knownPendingRequestIds = new Set();
     this.expandedCustomerPhones = new Set();
     this.appVersion = "1.6.3";
-    this.versionCode = 10;
+    this.versionCode = 11;
     this.latestUpdateInfo = null;
 
     this.init();
@@ -914,7 +914,7 @@ class StoreOwnerApp {
     } catch (e) {}
 
     if (cloudSaved || localSaved) {
-      this.showToast(`📢 Version ${newVer} broadcasted to all customer apps!`, "gold");
+      this.showToast(`📢 Version ${newVer} broadcasted to all Terminals and Customer Passes!`, "gold");
       this.checkForAppUpdates(false);
     } else {
       this.showToast(`📢 Version ${newVer} broadcasted successfully!`, "gold");
