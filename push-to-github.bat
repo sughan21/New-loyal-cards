@@ -11,8 +11,9 @@ echo Uploading css, js, assets, and all project folders...
 echo (If prompted, sign in via your browser)
 echo.
 
-set GIT_CMD=git
-if exist "bin\git\cmd\git.exe" set GIT_CMD="bin\git\cmd\git.exe"
+set "PATH=%~dp0bin\git\cmd;%~dp0bin\git\mingw64\bin;%PATH%"
+set GIT_CMD="%~dp0bin\git\cmd\git.exe"
+if not exist %GIT_CMD% set GIT_CMD=git
 
 %GIT_CMD% remote set-url origin https://github.com/sughan21/New-loyal-cards.git 2>nul
 %GIT_CMD% push -u origin main --force

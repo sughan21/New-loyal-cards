@@ -1676,21 +1676,23 @@ class LoyaltyApp {
 
   handleApplyUpdate() {
     const isAndroid = !!window.AndroidBridge || /android/i.test(navigator.userAgent);
-    const info = this.latestUpdateInfo || { customerApk: 'apks/LoyaltyPass-Customer.apk', downloadUrl: 'download.html' };
+    const customerApkUrl = 'https://raw.githubusercontent.com/sughan21/New-loyal-cards/main/apks/LoyaltyPass-Customer.apk';
 
     if (isAndroid) {
       this.showToast("⚡ Downloading updated Loyalty Pass APK...", "gold");
+
+      if (window.AndroidBridge && typeof window.AndroidBridge.downloadApk === 'function') {
+        window.AndroidBridge.downloadApk(customerApkUrl);
+        return;
+      }
+
       const link = document.createElement('a');
-      link.href = (info.customerApk || 'apks/LoyaltyPass-Customer.apk') + '?v=' + Date.now();
+      link.href = customerApkUrl;
       link.download = 'LoyaltyPass-Customer.apk';
       link.target = '_blank';
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-
-      setTimeout(() => {
-        window.location.href = info.downloadUrl || 'download.html';
-      }, 1500);
     } else {
       // iPhone / Desktop Web
       this.handleClearCache();

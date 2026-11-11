@@ -813,21 +813,23 @@ class StoreOwnerApp {
 
   handleApplyUpdate() {
     const isAndroid = !!window.AndroidBridge || /android/i.test(navigator.userAgent);
-    const info = this.latestUpdateInfo || { ownerApk: 'apks/StoreTerminal-Owner.apk', downloadUrl: 'download.html' };
+    const ownerApkUrl = 'https://raw.githubusercontent.com/sughan21/New-loyal-cards/main/apks/StoreTerminal-Owner.apk';
 
     if (isAndroid) {
       this.showToast("⚡ Downloading Store Terminal APK...", "gold");
+
+      if (window.AndroidBridge && typeof window.AndroidBridge.downloadApk === 'function') {
+        window.AndroidBridge.downloadApk(ownerApkUrl);
+        return;
+      }
+
       const link = document.createElement('a');
-      link.href = (info.ownerApk || 'apks/StoreTerminal-Owner.apk') + '?v=' + Date.now();
+      link.href = ownerApkUrl;
       link.download = 'StoreTerminal-Owner.apk';
       link.target = '_blank';
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-
-      setTimeout(() => {
-        window.location.href = info.downloadUrl || 'download.html';
-      }, 1500);
     } else {
       this.handleClearCache();
     }
