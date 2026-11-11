@@ -1676,7 +1676,7 @@ class LoyaltyApp {
 
   handleApplyUpdate() {
     const isAndroid = !!window.AndroidBridge || /android/i.test(navigator.userAgent);
-    const customerApkUrl = 'https://raw.githubusercontent.com/sughan21/New-loyal-cards/main/apks/LoyaltyPass-Customer.apk';
+    const customerApkUrl = 'https://raw.githubusercontent.com/sughan21/New-loyal-cards/main/LoyaltyPass-Customer.apk';
 
     if (isAndroid) {
       this.showToast("⚡ Downloading updated Loyalty Pass APK...", "gold");

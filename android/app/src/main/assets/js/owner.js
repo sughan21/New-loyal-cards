@@ -813,7 +813,7 @@ class StoreOwnerApp {
 
   handleApplyUpdate() {
     const isAndroid = !!window.AndroidBridge || /android/i.test(navigator.userAgent);
-    const ownerApkUrl = 'https://raw.githubusercontent.com/sughan21/New-loyal-cards/main/apks/StoreTerminal-Owner.apk';
+    const ownerApkUrl = 'https://raw.githubusercontent.com/sughan21/New-loyal-cards/main/StoreTerminal-Owner.apk';
 
     if (isAndroid) {
       this.showToast("⚡ Downloading Store Terminal APK...", "gold");
@@ -873,8 +873,8 @@ class StoreOwnerApp {
       releaseDate: new Date().toISOString().slice(0, 10),
       title: "Loyalty Pass Update",
       notes: "Latest features and improvements released by store owner.",
-      customerApk: "apks/LoyaltyPass-Customer.apk",
-      ownerApk: "apks/StoreTerminal-Owner.apk",
+      customerApk: "LoyaltyPass-Customer.apk",
+      ownerApk: "StoreTerminal-Owner.apk",
       downloadUrl: "download.html"
     };
 

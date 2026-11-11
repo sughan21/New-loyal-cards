@@ -548,7 +548,7 @@
 
       <!-- PRIMARY: Customer Download Card -->
       <div class="download-card-highlight">
-        <a id="apkDownloadLink" href="apks/LoyaltyPass-Customer.apk" class="btn-download-apk" download="LoyaltyPass-Customer.apk" target="_blank" rel="noopener">
+        <a id="apkDownloadLink" href="LoyaltyPass-Customer.apk" class="btn-download-apk" download="LoyaltyPass-Customer.apk" target="_blank" rel="noopener">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
             <polyline points="7 10 12 15 17 10"></polyline>
@@ -663,13 +663,13 @@
     // 4. Reliable Customer APK Download URL (Live 24/7 on GitHub)
     let customerApkUrl = '';
     if (isAndroidApp || isGithub) {
-      customerApkUrl = 'https://raw.githubusercontent.com/sughan21/New-loyal-cards/main/apks/LoyaltyPass-Customer.apk';
+      customerApkUrl = 'https://raw.githubusercontent.com/sughan21/New-loyal-cards/main/LoyaltyPass-Customer.apk';
     } else if (isFile) {
-      customerApkUrl = 'apks/LoyaltyPass-Customer.apk';
+      customerApkUrl = 'LoyaltyPass-Customer.apk';
     } else {
       const curPath = window.location.pathname;
       const folder = curPath.substring(0, curPath.lastIndexOf('/') + 1);
-      customerApkUrl = `${folder}apks/LoyaltyPass-Customer.apk`;
+      customerApkUrl = `${folder}LoyaltyPass-Customer.apk`;
     }
 
     // Wire up Web Pass button
@@ -710,7 +710,7 @@
           window.location.href = customerApkUrl;
         } else {
           const a = document.createElement('a');
-          a.href = 'apks/LoyaltyPass-Customer.apk';
+          a.href = 'LoyaltyPass-Customer.apk';
           a.download = 'LoyaltyPass-Customer.apk';
           document.body.appendChild(a);
           a.click();
