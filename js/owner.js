@@ -507,6 +507,22 @@ class StoreOwnerApp {
     const printBtn = document.getElementById('printStandeeBtn');
     if (printBtn) printBtn.addEventListener('click', () => this.printStandeeCard());
 
+    // Cashier Terminal APK Download
+    const cashierApkBtn = document.getElementById('ownerTerminalApkDownloadLink');
+    if (cashierApkBtn) {
+      const ownerApkUrl = 'https://raw.githubusercontent.com/sughan21/New-loyal-cards/main/StoreTerminal-Owner.apk';
+      cashierApkBtn.href = ownerApkUrl;
+      cashierApkBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        this.showToast("⬇️ Starting Cashier Terminal APK download...", "gold");
+        if (window.AndroidBridge && typeof window.AndroidBridge.downloadApk === 'function') {
+          window.AndroidBridge.downloadApk(ownerApkUrl);
+        } else {
+          window.location.href = ownerApkUrl;
+        }
+      });
+    }
+
     // Copy Standee URL
     const copyBtn = document.getElementById('copyStandeeUrlBtn');
     if (copyBtn) {
@@ -1221,8 +1237,11 @@ class StoreOwnerApp {
       smartUrl = `${this.lanUrl}/download.html?store_scan=${encodeURIComponent(this.storeConfig.storeCode)}`;
     } else if (window.location.protocol === 'file:' || !window.location.origin || window.location.origin.startsWith('file:') || window.location.origin === 'null') {
       smartUrl = this.lanUrl ? `${this.lanUrl}/download.html?store_scan=${encodeURIComponent(this.storeConfig.storeCode)}` : `http://localhost:8085/download.html?store_scan=${encodeURIComponent(this.storeConfig.storeCode)}`;
+    } else if (window.location.hostname.includes('androidplatform.net') || window.location.hostname.includes('github.io')) {
+      smartUrl = `https://sughan21.github.io/New-loyal-cards/download.html?store_scan=${encodeURIComponent(this.storeConfig.storeCode)}`;
     } else {
-      smartUrl = `${window.location.origin}/download.html?store_scan=${encodeURIComponent(this.storeConfig.storeCode)}`;
+      const folder = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1);
+      smartUrl = `${window.location.origin}${folder}download.html?store_scan=${encodeURIComponent(this.storeConfig.storeCode)}`;
     }
 
     if (typeof QRCode !== 'undefined') {
@@ -1250,7 +1269,15 @@ class StoreOwnerApp {
 
     const testLink = document.getElementById('testScanFlowLink');
     if (testLink) {
-      testLink.href = smartUrl;
+      const isAndroidApp = window.location.hostname.includes('androidplatform.net');
+      const testUrl = isAndroidApp 
+        ? `https://appassets.androidplatform.net/assets/download.html?store_scan=${encodeURIComponent(this.storeConfig.storeCode)}`
+        : smartUrl;
+      testLink.href = testUrl;
+      testLink.onclick = (e) => {
+        e.preventDefault();
+        window.location.href = testUrl;
+      };
     }
 
     const targetUrlDisplay = document.getElementById('standeeQrTargetDisplay');
