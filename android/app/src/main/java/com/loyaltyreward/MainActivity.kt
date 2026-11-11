@@ -16,7 +16,12 @@ import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
 import androidx.webkit.WebViewAssetLoader
+import java.io.File
+import java.io.FileOutputStream
+import java.net.HttpURLConnection
+import java.net.URL
 
 class MainActivity : AppCompatActivity() {
 
@@ -269,15 +274,57 @@ class MainActivity : AppCompatActivity() {
 
         @JavascriptInterface
         fun downloadApk(url: String) {
-            (context as? MainActivity)?.runOnUiThread {
-                try {
-                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
-                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    context.startActivity(intent)
-                } catch (e: Exception) {
-                    // Ignore
-                }
+            val act = context as? MainActivity ?: return
+            act.runOnUiThread {
+                Toast.makeText(context, "⬇️ Downloading update in-place...", Toast.LENGTH_SHORT).show()
             }
+            Thread {
+                try {
+                    val u = URL(url)
+                    val conn = u.openConnection() as HttpURLConnection
+                    conn.instanceFollowRedirects = true
+                    conn.connectTimeout = 15000
+                    conn.readTimeout = 30000
+                    conn.connect()
+
+                    val apkFile = File(context.cacheDir, "update.apk")
+                    conn.inputStream.use { input ->
+                        FileOutputStream(apkFile).use { output ->
+                            input.copyTo(output)
+                        }
+                    }
+
+                    act.runOnUiThread {
+                        try {
+                            val uri = FileProvider.getUriForFile(
+                                context,
+                                "${context.packageName}.fileprovider",
+                                apkFile
+                            )
+                            val installIntent = Intent(Intent.ACTION_VIEW).apply {
+                                setDataAndType(uri, "application/vnd.android.package-archive")
+                                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            }
+                            context.startActivity(installIntent)
+                        } catch (e: Exception) {
+                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            context.startActivity(intent)
+                        }
+                    }
+                } catch (e: Exception) {
+                    act.runOnUiThread {
+                        try {
+                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            context.startActivity(intent)
+                        } catch (err: Exception) {
+                            Toast.makeText(context, "Failed to download update", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
+            }.start()
         }
 
         @JavascriptInterface
