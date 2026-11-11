@@ -47,8 +47,8 @@ class StoreOwnerApp {
     this.syncTimer = null;
     this.knownPendingRequestIds = new Set();
     this.expandedCustomerPhones = new Set();
-    this.appVersion = "1.5.0";
-    this.versionCode = 6;
+    this.appVersion = "1.6.0";
+    this.versionCode = 8;
     this.latestUpdateInfo = null;
 
     this.init();
@@ -732,6 +732,21 @@ class StoreOwnerApp {
       try {
         const resp2 = await fetch(`./data/version.json?_t=${Date.now()}`, { cache: 'no-cache' });
         if (resp2.ok) updateData = await resp2.json();
+      } catch (e) {}
+    }
+
+    // 3. Fallback to Supabase if client is ready
+    if (!updateData && window.loyaltyDb && window.loyaltyDb.isReady) {
+      try {
+        updateData = await window.loyaltyDb.fetchAppVersion();
+      } catch (e) {}
+    }
+
+    // 4. Fallback to GitHub Pages live cloud version
+    if (!updateData) {
+      try {
+        const resp3 = await fetch(`https://sughan21.github.io/New-loyal-cards/data/version.json?_t=${Date.now()}`, { cache: 'no-cache' });
+        if (resp3.ok) updateData = await resp3.json();
       } catch (e) {}
     }
 

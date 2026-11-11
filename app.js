@@ -53,8 +53,8 @@ class LoyaltyApp {
     this.customerResetOtp = '';
     this.customerResetPhone = '';
     this.repeatApprovalPollTimer = null;
-    this.appVersion = "1.5.0";
-    this.versionCode = 6;
+    this.appVersion = "1.6.0";
+    this.versionCode = 8;
     this.latestUpdateInfo = null;
 
     this.init();
@@ -559,7 +559,7 @@ class LoyaltyApp {
       guestRedeemGiftBtn.addEventListener('click', () => {
         this.closeAllModals();
         this.switchAuthTab('login');
-        this.showPendingScanBanner("Sign in to verify and show your 6/6 completed Gift Voucher to the cashier.");
+        this.showPendingScanBanner("Sign in to verify and show your 11/11 completed Gift Voucher to the cashier.");
       });
     }
 
@@ -1599,6 +1599,14 @@ class LoyaltyApp {
       } catch (e) {}
     }
 
+    // 4. Fallback to GitHub Pages live cloud version
+    if (!updateData) {
+      try {
+        const resp3 = await fetch(`https://sughan21.github.io/New-loyal-cards/data/version.json?_t=${Date.now()}`, { cache: 'no-cache' });
+        if (resp3.ok) updateData = await resp3.json();
+      } catch (e) {}
+    }
+
     if (isManual && checkBtn) {
       checkBtn.classList.remove('spinning');
       if (checkBtnText) checkBtnText.textContent = "Check for Updates";
@@ -1871,7 +1879,7 @@ class LoyaltyApp {
       return;
     }
 
-    // Customer Logged In -> Show 6-Tick Loyalty Pass
+    // Customer Logged In -> Show 11-Tick Loyalty Pass
     if (authView) authView.style.display = 'none';
     if (customerDashboard) customerDashboard.style.display = 'flex';
 

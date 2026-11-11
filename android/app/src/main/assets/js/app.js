@@ -53,8 +53,8 @@ class LoyaltyApp {
     this.customerResetOtp = '';
     this.customerResetPhone = '';
     this.repeatApprovalPollTimer = null;
-    this.appVersion = "1.5.0";
-    this.versionCode = 6;
+    this.appVersion = "1.6.0";
+    this.versionCode = 8;
     this.latestUpdateInfo = null;
 
     this.init();
@@ -1596,6 +1596,14 @@ class LoyaltyApp {
     if (!updateData && window.loyaltyDb && window.loyaltyDb.isReady) {
       try {
         updateData = await window.loyaltyDb.fetchAppVersion();
+      } catch (e) {}
+    }
+
+    // 4. Fallback to GitHub Pages live cloud version
+    if (!updateData) {
+      try {
+        const resp3 = await fetch(`https://sughan21.github.io/New-loyal-cards/data/version.json?_t=${Date.now()}`, { cache: 'no-cache' });
+        if (resp3.ok) updateData = await resp3.json();
       } catch (e) {}
     }
 
