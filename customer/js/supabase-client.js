@@ -302,7 +302,7 @@ class LoyaltySupabaseRepository {
             const newHistItem = {
               date: `${dateStr}, ${timeStr}`,
               type: 'stamp',
-              note: `Store Purchase (2nd Visit Cashier Approved) - Tick #${nextStamps} of 6 Collected`
+              note: `Store Purchase (2nd Visit Cashier Approved) - Tick #${nextStamps} of 11 Collected`
             };
 
             const updatedHistory = [newHistItem, ...(currentCust.history || [])];

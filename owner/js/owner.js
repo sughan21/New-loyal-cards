@@ -88,6 +88,22 @@ class StoreOwnerApp {
     } catch (e) {}
   }
 
+  sanitizeCustomerNotes(userList) {
+    if (!Array.isArray(userList)) return userList;
+    userList.forEach(u => {
+      if (Array.isArray(u.history)) {
+        u.history.forEach(item => {
+          if (item && typeof item.note === 'string' && item.note.includes('of 6')) {
+            item.note = item.note.replace(/of 6 Collected/g, 'of 11 Collected')
+                                 .replace(/\(Tick #1 of 6\)/g, '(Tick #1 of 11)')
+                                 .replace(/of 6/g, 'of 11');
+          }
+        });
+      }
+    });
+    return userList;
+  }
+
   loadState() {
     // 1. Load shared users
     const storedUsers = localStorage.getItem(APP_STORAGE_KEY_USERS);
@@ -102,6 +118,7 @@ class StoreOwnerApp {
     } else {
       this.users = [];
     }
+    this.sanitizeCustomerNotes(this.users);
     this.saveUsers();
 
     // 2. Load store configuration
@@ -148,6 +165,7 @@ class StoreOwnerApp {
       }
 
       if (Array.isArray(remoteUsers) && remoteUsers.length > 0) {
+        this.sanitizeCustomerNotes(remoteUsers);
         let changed = false;
         remoteUsers.forEach(rem => {
           if (!rem.phone || MOCK_DEMO_PHONES.includes(rem.phone)) return;
@@ -295,7 +313,7 @@ class StoreOwnerApp {
     const custName = req.name || 'Customer';
     if (nameEl) nameEl.innerText = custName;
     if (phoneEl) phoneEl.innerText = req.phone || '';
-    if (badgeEl) badgeEl.innerText = `${req.currentStamps || 0} of 6 Stamps`;
+    if (badgeEl) badgeEl.innerText = `${req.currentStamps || 0} of 11 Stamps`;
     if (timeEl) timeEl.innerText = req.timeStr || 'Just now';
     if (avatarEl) avatarEl.innerText = (custName.charAt(0)).toUpperCase();
 
@@ -917,7 +935,7 @@ class StoreOwnerApp {
       giftsEarned: 0,
       memberId: 'GP-' + Math.floor(10000 + Math.random() * 90000),
       history: [
-        { date: `${dateStr}, ${timeStr}`, type: 'stamp', note: 'Welcome Reward Claimed: 1st Loyalty Tick Unlocked! (Tick #1 of 6)' },
+        { date: `${dateStr}, ${timeStr}`, type: 'stamp', note: 'Welcome Reward Claimed: 1st Loyalty Tick Unlocked! (Tick #1 of 11)' },
         { date: fullDateStr, type: 'joined', note: 'Registered at Counter by Store Owner' }
       ],
       lastStampDate: new Date().toISOString().slice(0, 10),
@@ -1352,6 +1370,8 @@ class StoreOwnerApp {
   renderCustomerList() {
     const listEl = document.getElementById('ownerCustomerList');
     if (!listEl) return;
+
+    this.sanitizeCustomerNotes(this.users);
 
     let filtered = [...this.users];
 

@@ -121,10 +121,17 @@ class LoyaltyApp {
         let loaded = JSON.parse(storedUsers);
         // Only keep real registered/login customers, purge default demo mock names
         this.users = Array.isArray(loaded) ? loaded.filter(u => !MOCK_DEMO_PHONES.includes(u.phone)) : [];
-        // Purge any repeated login audit records from stamp history
+        // Purge any repeated login audit records from stamp history & sanitize legacy strings
         this.users.forEach(u => {
           if (Array.isArray(u.history)) {
             u.history = u.history.filter(h => h.type !== 'login');
+            u.history.forEach(item => {
+              if (item && typeof item.note === 'string' && item.note.includes('of 6')) {
+                item.note = item.note.replace(/of 6 Collected/g, 'of 11 Collected')
+                                     .replace(/\(Tick #1 of 6\)/g, '(Tick #1 of 11)')
+                                     .replace(/of 6/g, 'of 11');
+              }
+            });
           }
         });
       } catch (e) {
@@ -752,7 +759,7 @@ class LoyaltyApp {
     const deviceName = devInfo.deviceName;
     const deviceId = devInfo.deviceId;
 
-    // Automatically give 1 Welcome Stamp (Tick #1 of 6) to claim on sign-up
+    // Automatically give 1 Welcome Stamp (Tick #1 of 11) to claim on sign-up
     const initialStamps = 1;
     const timeStr = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
     const dateStr = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
