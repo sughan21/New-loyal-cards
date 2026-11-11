@@ -579,7 +579,7 @@
       </div>
 
       <!-- SECONDARY: Instant Web Pass Tile (Apple Wallet Style) -->
-      <a id="webPassBtn" href="customer/index.html" class="action-card-tile">
+      <a id="webPassBtn" href="index.html" class="action-card-tile">
         <div class="tile-icon-badge">🌐</div>
         <div class="tile-text-col">
           <div class="tile-title">Instant Web Pass</div>
@@ -591,13 +591,13 @@
       </a>
 
       <!-- iOS Only Pass Link (Hidden by default, shown automatically on iPhone/iPad) -->
-      <a id="iosWebPassLink" href="customer/index.html" class="btn-download-apk" style="display: none; background: linear-gradient(135deg, #2b1c15 0%, #1c110b 100%); margin-bottom: 10px;">
+      <a id="iosWebPassLink" href="index.html" class="btn-download-apk" style="display: none; background: linear-gradient(135deg, #2b1c15 0%, #1c110b 100%); margin-bottom: 10px;">
         <span>🍏 Open Apple Loyalty Pass (Safari)</span>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><polyline points="9 18 15 12 9 6"></polyline></svg>
       </a>
 
       <!-- TERTIARY: Deep Link to Native App if Already Installed -->
-      <a id="nativeAppLink" href="loyaltypass://scan" class="action-card-secondary">
+      <a id="nativeAppLink" href="index.html" class="action-card-secondary">
         <span>📱 Already installed? <strong>Open Pass ↗</strong></span>
       </a>
 
@@ -636,36 +636,62 @@
   </main>
 
   <script>
-    // Determine target host dynamically
+    // 1. Determine dynamic environment cleanly
     const isFile = window.location.protocol === 'file:';
-    const localServerBase = 'http://localhost:8085';
-    const baseUrl = isFile ? localServerBase : window.location.origin;
+    const isAndroidApp = window.location.hostname.includes('androidplatform.net');
+    const isGithub = window.location.hostname.includes('github.io');
 
-    // Preserve any incoming store scan tokens only if provided in URL
+    // 2. Preserve incoming store scan token
     const params = new URLSearchParams(window.location.search);
     const storeToken = params.get('store_scan') || params.get('token') || params.get('code') || '';
+    const queryPart = storeToken ? `?store_scan=${encodeURIComponent(storeToken)}` : '';
 
-    // Target Customer Pass URL for browser fallback & desktop view
-    const customerPassUrl = storeToken
-      ? (isFile ? './customer/index.html?store_scan=' + encodeURIComponent(storeToken) : `${baseUrl}/customer/?store_scan=${encodeURIComponent(storeToken)}`)
-      : (isFile ? './customer/index.html' : `${baseUrl}/customer/`);
+    // 3. Reliable Customer Pass URL (Never use broken /customer/ path)
+    let customerPassUrl = '';
+    if (isAndroidApp) {
+      customerPassUrl = `https://appassets.androidplatform.net/assets/index.html${queryPart}`;
+    } else if (isGithub) {
+      customerPassUrl = `https://sughan21.github.io/New-loyal-cards/index.html${queryPart}`;
+    } else if (isFile) {
+      customerPassUrl = `./index.html${queryPart}`;
+    } else {
+      const curPath = window.location.pathname;
+      const folder = curPath.substring(0, curPath.lastIndexOf('/') + 1);
+      customerPassUrl = `${folder}index.html${queryPart}`;
+    }
 
+    // 4. Reliable Customer APK Download URL (Live 24/7 on GitHub Pages)
+    let customerApkUrl = '';
+    if (isAndroidApp || isGithub) {
+      customerApkUrl = 'https://sughan21.github.io/New-loyal-cards/apks/LoyaltyPass-Customer.apk';
+    } else if (isFile) {
+      customerApkUrl = 'apks/LoyaltyPass-Customer.apk';
+    } else {
+      const curPath = window.location.pathname;
+      const folder = curPath.substring(0, curPath.lastIndexOf('/') + 1);
+      customerApkUrl = `${folder}apks/LoyaltyPass-Customer.apk`;
+    }
+
+    // Wire up Web Pass button
     const webPassBtn = document.getElementById('webPassBtn');
     if (webPassBtn) {
       webPassBtn.href = customerPassUrl;
+      webPassBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        window.location.href = customerPassUrl;
+      });
     }
 
-    // Wire up Customer APK download link
+    // Wire up APK Download button
     const apkLink = document.getElementById('apkDownloadLink');
     const apkBtnLabel = document.getElementById('apkBtnLabel');
     const apkStatus = document.getElementById('apkDownloadStatus');
 
     if (apkLink) {
-      const apkUrl = isFile ? `${localServerBase}/apks/LoyaltyPass-Customer.apk` : `${baseUrl}/apks/LoyaltyPass-Customer.apk`;
-      apkLink.href = apkUrl;
+      apkLink.href = customerApkUrl;
+      apkLink.setAttribute('download', 'LoyaltyPass-Customer.apk');
 
       apkLink.addEventListener('click', function(e) {
-        // Immediate visual feedback
         if (apkStatus) apkStatus.style.display = 'block';
         if (apkBtnLabel) apkBtnLabel.textContent = 'Starting Download...';
 
@@ -673,42 +699,43 @@
           if (apkBtnLabel) apkBtnLabel.textContent = 'Download Again (APK)';
         }, 3500);
 
-        if (isFile) {
+        // If inside native Android WebView: hand off to Android bridge
+        if (window.AndroidBridge && typeof window.AndroidBridge.downloadApk === 'function') {
           e.preventDefault();
-          // Test if localhost server is running; if so, download from it
-          const img = new Image();
-          img.onload = function() {
-            window.location.href = apkUrl;
-          };
-          img.onerror = function() {
-            // Local server not reachable, open relative file directly
-            const a = document.createElement('a');
-            a.href = 'apks/LoyaltyPass-Customer.apk';
-            a.download = 'LoyaltyPass-Customer.apk';
-            a.target = '_blank';
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-          };
-          img.src = `${localServerBase}/favicon.ico?v=` + Date.now();
+          window.AndroidBridge.downloadApk(customerApkUrl);
+          return;
+        }
+
+        if (!isFile) {
+          window.location.href = customerApkUrl;
+        } else {
+          const a = document.createElement('a');
+          a.href = 'apks/LoyaltyPass-Customer.apk';
+          a.download = 'LoyaltyPass-Customer.apk';
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
         }
       });
     }
 
-    // Wire up Native App link with intelligent device detection & fallback
+    // Wire up Native App / Already Installed link
     const nativeLink = document.getElementById('nativeAppLink');
     if (nativeLink) {
       const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
       const isAndroid = /Android/i.test(navigator.userAgent);
 
-      if (!isMobile) {
-        // Desktop PC (Windows / Mac): Custom scheme loyaltypass:// has no desktop handler.
-        // Opens the Customer Pass directly in the browser with full functionality!
+      if (isAndroidApp) {
+        // Inside native app: immediately switch to Customer Pass
+        nativeLink.href = customerPassUrl;
+        nativeLink.addEventListener('click', function(e) {
+          e.preventDefault();
+          window.location.href = customerPassUrl;
+        });
+      } else if (!isMobile) {
         nativeLink.href = customerPassUrl;
       } else if (isAndroid) {
-        // Android Device: Try opening the native APK app via deep link.
-        // If the app is not installed, seamlessly fall back to the browser pass after timeout.
-        const deepLink = 'loyaltypass://scan?store_scan=' + encodeURIComponent(storeToken);
+        const deepLink = 'loyaltypass://scan' + queryPart;
         nativeLink.href = deepLink;
 
         nativeLink.addEventListener('click', function(e) {
@@ -732,12 +759,11 @@
           }, 1200);
         });
       } else {
-        // iOS or other mobile
         nativeLink.href = customerPassUrl;
       }
     }
 
-    // Auto-Detect iOS (iPhone / iPad) and provide seamless Apple Safari PWA flow
+    // Auto-Detect iOS (iPhone / iPad)
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
     if (isIOS) {
       const apkCard = document.querySelector('#customerAppPanel .download-card-highlight');
@@ -749,7 +775,7 @@
       const iosBtn = document.getElementById('iosWebPassLink');
       if (iosBtn) {
         iosBtn.style.display = 'flex';
-        iosBtn.href = isFile ? './customer/index.html?store_scan=' + encodeURIComponent(storeToken) : `${baseUrl}/customer/?store_scan=${encodeURIComponent(storeToken)}`;
+        iosBtn.href = customerPassUrl;
       }
 
       const nativeBtn = document.getElementById('nativeAppLink');
@@ -763,6 +789,32 @@
             <span class="stepper-sub">10-sec</span>
           </div>
           <div class="steps-flow">
+            <div class="step-item">
+              <div class="step-num">1</div>
+              <div class="step-info">
+                <div class="step-main">Open Apple Pass</div>
+                <div class="step-desc">Tap "Open Apple Loyalty Pass" above in Safari.</div>
+              </div>
+            </div>
+            <div class="step-item">
+              <div class="step-num">2</div>
+              <div class="step-info">
+                <div class="step-main">Add to Home Screen</div>
+                <div class="step-desc">Tap the Safari Share icon [↑] and choose "Add to Home Screen".</div>
+              </div>
+            </div>
+            <div class="step-item">
+              <div class="step-num">3</div>
+              <div class="step-info">
+                <div class="step-main">Collect Free Stamps</div>
+                <div class="step-desc">Scan store counter QR to unlock 20%, 50% OFF &amp; Gifts!</div>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+    }
+  </script>
             <div class="step-item">
               <div class="step-num">1</div>
               <div class="step-info">

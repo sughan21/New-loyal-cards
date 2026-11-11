@@ -47,8 +47,8 @@ class StoreOwnerApp {
     this.syncTimer = null;
     this.knownPendingRequestIds = new Set();
     this.expandedCustomerPhones = new Set();
-    this.appVersion = "1.6.1";
-    this.versionCode = 9;
+    this.appVersion = "1.6.2";
+    this.versionCode = 10;
     this.latestUpdateInfo = null;
 
     this.init();

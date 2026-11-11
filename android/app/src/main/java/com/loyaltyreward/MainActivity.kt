@@ -121,12 +121,66 @@ class MainActivity : AppCompatActivity() {
 
         webView.addJavascriptInterface(WebAppInterface(this), "AndroidBridge")
 
+        webView.setDownloadListener { url, _, _, _, _ ->
+            try {
+                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                startActivity(intent)
+            } catch (e: Exception) {
+                // Ignore
+            }
+        }
+
         webView.webViewClient = object : WebViewClient() {
             override fun shouldInterceptRequest(
                 view: WebView,
                 request: WebResourceRequest
             ): WebResourceResponse? {
                 return assetLoader.shouldInterceptRequest(request.url)
+            }
+
+            override fun shouldOverrideUrlLoading(
+                view: WebView,
+                request: WebResourceRequest
+            ): Boolean {
+                val uri = request.url
+                val scheme = uri.scheme?.lowercase() ?: ""
+                val urlStr = uri.toString()
+
+                if (scheme == "loyaltypass" || scheme == "storeterminal") {
+                    try {
+                        val intent = Intent(Intent.ACTION_VIEW, uri)
+                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        startActivity(intent)
+                        return true
+                    } catch (e: Exception) {
+                        return false
+                    }
+                }
+
+                if (urlStr.endsWith(".apk", ignoreCase = true) || urlStr.contains(".apk?")) {
+                    try {
+                        val intent = Intent(Intent.ACTION_VIEW, uri)
+                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        startActivity(intent)
+                        return true
+                    } catch (e: Exception) {
+                        return false
+                    }
+                }
+
+                if (scheme == "tel" || scheme == "mailto" || scheme == "whatsapp") {
+                    try {
+                        val intent = Intent(Intent.ACTION_VIEW, uri)
+                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        startActivity(intent)
+                        return true
+                    } catch (e: Exception) {
+                        return true
+                    }
+                }
+
+                return false
             }
 
             override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
@@ -211,6 +265,19 @@ class MainActivity : AppCompatActivity() {
         @JavascriptInterface
         fun clearAppCache() {
             (context as? MainActivity)?.clearAllCaches()
+        }
+
+        @JavascriptInterface
+        fun downloadApk(url: String) {
+            (context as? MainActivity)?.runOnUiThread {
+                try {
+                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    context.startActivity(intent)
+                } catch (e: Exception) {
+                    // Ignore
+                }
+            }
         }
 
         @JavascriptInterface
