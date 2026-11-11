@@ -110,13 +110,13 @@ class MainActivity : AppCompatActivity() {
             domStorageEnabled = true
             databaseEnabled = true
             mediaPlaybackRequiresUserGesture = false
-            allowFileAccess = true
-            allowContentAccess = true
+            allowFileAccess = false
+            allowContentAccess = false
             loadsImagesAutomatically = true
             useWideViewPort = true
             loadWithOverviewMode = true
-            cacheMode = WebSettings.LOAD_NO_CACHE
-            mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+            cacheMode = WebSettings.LOAD_DEFAULT
+            mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
         }
 
         webView.addJavascriptInterface(WebAppInterface(this), "AndroidBridge")
@@ -282,45 +282,6 @@ class MainActivity : AppCompatActivity() {
 
         @JavascriptInterface
         fun getUserDeviceName(): String {
-            try {
-                // 1. Android Settings.Global.DEVICE_NAME (user custom device name in Settings > About Phone, e.g. "Sughan's Phone")
-                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N_MR1) {
-                    val name = android.provider.Settings.Global.getString(context.contentResolver, android.provider.Settings.Global.DEVICE_NAME)
-                    if (!name.isNullOrBlank()) return name
-                }
-                // 2. Bluetooth device name (custom name assigned by user)
-                val btName = android.provider.Settings.Secure.getString(context.contentResolver, "bluetooth_name")
-                if (!btName.isNullOrBlank()) return btName
-
-                // 3. System device_name
-                val sysName = android.provider.Settings.System.getString(context.contentResolver, "device_name")
-                if (!sysName.isNullOrBlank()) return sysName
-            } catch (e: Exception) {
-                // Ignore
-            }
-            return ""
-        }
-
-        @JavascriptInterface
-        fun getDeviceId(): String {
-            try {
-                val androidId = android.provider.Settings.Secure.getString(
-                    context.contentResolver, 
-                    android.provider.Settings.Secure.ANDROID_ID
-                )
-                if (!androidId.isNullOrBlank()) return androidId
-            } catch (e: Exception) {
-                // Ignore
-            }
-            return ""
-        }
-
-        @JavascriptInterface
-        fun getDeviceName(): String {
-            // First check user custom-configured name
-            val userCustomName = getUserDeviceName()
-            if (userCustomName.isNotBlank()) return userCustomName
-
             val manufacturer = android.os.Build.MANUFACTURER.replaceFirstChar {
                 if (it.isLowerCase()) it.titlecase(java.util.Locale.getDefault()) else it.toString()
             }
@@ -330,6 +291,22 @@ class MainActivity : AppCompatActivity() {
             } else {
                 "$manufacturer $model"
             }
+        }
+
+        @JavascriptInterface
+        fun getDeviceId(): String {
+            val prefs = context.getSharedPreferences("loyalty_app_prefs", android.content.Context.MODE_PRIVATE)
+            var id = prefs.getString("unique_install_id", null)
+            if (id == null) {
+                id = java.util.UUID.randomUUID().toString()
+                prefs.edit().putString("unique_install_id", id).apply()
+            }
+            return id
+        }
+
+        @JavascriptInterface
+        fun getDeviceName(): String {
+            return getUserDeviceName()
         }
 
         @JavascriptInterface

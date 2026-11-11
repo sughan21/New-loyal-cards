@@ -14,8 +14,10 @@ Set-Location -Path "$PSScriptRoot\android"
 & ".\gradlew.bat" assembleCustomerRelease assembleOwnerRelease --no-daemon
 if ($LASTEXITCODE -eq 0) {
     Write-Host "Build Succeeded!" -ForegroundColor Green
+    Copy-Item "app\build\outputs\apk\customer\release\app-customer-release.apk" -Destination "$PSScriptRoot\LoyaltyPass-Customer.apk" -Force
     Copy-Item "app\build\outputs\apk\customer\release\app-customer-release.apk" -Destination "$PSScriptRoot\apks\LoyaltyPass-Customer.apk" -Force
     Copy-Item "app\build\outputs\apk\customer\release\app-customer-release.apk" -Destination "$PSScriptRoot\download\apks\LoyaltyPass-Customer.apk" -Force
+    Copy-Item "app\build\outputs\apk\owner\release\app-owner-release.apk" -Destination "$PSScriptRoot\StoreTerminal-Owner.apk" -Force
     Copy-Item "app\build\outputs\apk\owner\release\app-owner-release.apk" -Destination "$PSScriptRoot\apks\StoreTerminal-Owner.apk" -Force
     Copy-Item "app\build\outputs\apk\owner\release\app-owner-release.apk" -Destination "$PSScriptRoot\download\apks\StoreTerminal-Owner.apk" -Force
     Write-Host "APKs copied successfully!" -ForegroundColor Green
