@@ -559,7 +559,7 @@ class LoyaltyApp {
       guestRedeemGiftBtn.addEventListener('click', () => {
         this.closeAllModals();
         this.switchAuthTab('login');
-        this.showPendingScanBanner("Sign in to verify and show your 6/6 completed Gift Voucher to the cashier.");
+        this.showPendingScanBanner("Sign in to verify and show your 11/11 completed Gift Voucher to the cashier.");
       });
     }
 
@@ -1871,7 +1871,7 @@ class LoyaltyApp {
       return;
     }
 
-    // Customer Logged In -> Show 6-Tick Loyalty Pass
+    // Customer Logged In -> Show 11-Tick Loyalty Pass
     if (authView) authView.style.display = 'none';
     if (customerDashboard) customerDashboard.style.display = 'flex';
 

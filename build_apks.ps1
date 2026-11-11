@@ -4,11 +4,11 @@ $env:PATH = "$javaPath\bin;" + $env:PATH
 
 # Automatically sync latest web files to Android assets before compilation
 Write-Host "Syncing web assets to Android build directory..." -ForegroundColor Cyan
-Copy-Item "$PSScriptRoot\index.html", "$PSScriptRoot\owner.html", "$PSScriptRoot\download.html" -Destination "$PSScriptRoot\android\app\src\main\assets\" -Force
+Copy-Item "$PSScriptRoot\index.html", "$PSScriptRoot\owner.html", "$PSScriptRoot\download.html", "$PSScriptRoot\manifest.json", "$PSScriptRoot\manifest-owner.json" -Destination "$PSScriptRoot\android\app\src\main\assets\" -Force
 Copy-Item "$PSScriptRoot\css\*" -Destination "$PSScriptRoot\android\app\src\main\assets\css\" -Recurse -Force
 Copy-Item "$PSScriptRoot\js\*" -Destination "$PSScriptRoot\android\app\src\main\assets\js\" -Recurse -Force
 if (-not (Test-Path "$PSScriptRoot\android\app\src\main\assets\data")) { New-Item -ItemType Directory -Path "$PSScriptRoot\android\app\src\main\assets\data" -Force | Out-Null }
-Copy-Item "$PSScriptRoot\data\version.json" -Destination "$PSScriptRoot\android\app\src\main\assets\data\version.json" -Force
+Copy-Item "$PSScriptRoot\data\*" -Destination "$PSScriptRoot\android\app\src\main\assets\data\" -Force
 
 Set-Location -Path "$PSScriptRoot\android"
 & ".\gradlew.bat" assembleCustomerRelease assembleOwnerRelease --no-daemon

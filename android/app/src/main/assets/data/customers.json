@@ -1,0 +1,144 @@
+﻿[
+    {
+        "phone":  "6381663753",
+        "name":  "Seema Bhegam",
+        "password":  "123456789",
+        "stamps":  5,
+        "giftsEarned":  0,
+        "memberId":  "GP-65052",
+        "deviceName":  "Seema\u0027s A34",
+        "deviceId":  "59c0077746a284bf",
+        "history":  [
+                        {
+                            "date":  "23 Oct, 23:29",
+                            "note":  "Store Purchase - Tick #1 of 11 Collected",
+                            "type":  "stamp"
+                        },
+                        {
+                            "date":  "23 Oct 2026",
+                            "note":  "Joined Loyalty Reward from Seema\u0027s A34",
+                            "type":  "joined",
+                            "device":  "Seema\u0027s A34",
+                            "deviceId":  "59c0077746a284bf"
+                        },
+                        {
+                            "date":  "24 Oct, 17:30",
+                            "note":  "Store Purchase - Tick #2 of 11 Collected",
+                            "type":  "stamp"
+                        },
+                        {
+                            "date":  "28 Oct, 19:47",
+                            "note":  "Store Purchase (2nd Visit Cashier Approved) - Tick #5 of 11 Collected",
+                            "type":  "stamp"
+                        },
+                        {
+                            "date":  "28 Oct, 19:47",
+                            "note":  "Store Purchase (2nd Visit Cashier Approved) - Tick #4 of 11 Collected",
+                            "type":  "stamp"
+                        },
+                        {
+                            "date":  "28 Oct, 19:47",
+                            "note":  "Store Purchase - Tick #3 of 11 Collected",
+                            "type":  "stamp"
+                        }
+                    ],
+        "createdAt":  "23 Oct 2026",
+        "lastStampDate":  "2026-10-28",
+        "lastUpdated":  1793728114681
+    },
+    {
+        "phone":  "8015589598",
+        "name":  "Sakthivel s",
+        "password":  "crazygetzi06",
+        "stamps":  1,
+        "giftsEarned":  0,
+        "memberId":  "GP-86179",
+        "deviceName":  "Apple iPhone (iOS 26.6)",
+        "deviceId":  "DEV_HN2E3Z4V_MVMCPUYF",
+        "history":  [
+                        {
+                            "date":  "24 Oct 2026",
+                            "type":  "joined",
+                            "note":  "Joined Loyalty Reward from Apple iPhone (iOS 26.6)",
+                            "device":  "Apple iPhone (iOS 26.6)",
+                            "deviceId":  "DEV_HN2E3Z4V_MVMCPUYF"
+                        },
+                        {
+                            "date":  "24 Oct, 17:35",
+                            "type":  "stamp",
+                            "note":  "Store Purchase (2nd Visit Cashier Approved) - Tick #1 of 11 Collected"
+                        },
+                        {
+                            "date":  "24 Oct, 05:35 PM",
+                            "note":  "Store Purchase (2nd Visit Cashier Approved) - Tick #1 of 11 Collected",
+                            "type":  "stamp"
+                        }
+                    ],
+        "createdAt":  "24 Oct 2026",
+        "lastStampDate":  "2026-10-24",
+        "lastUpdated":  1793728114681
+    },
+    {
+        "phone":  "8428243504",
+        "name":  "Manoj",
+        "password":  "MANOJkennedy@07",
+        "stamps":  1,
+        "giftsEarned":  0,
+        "memberId":  "GP-22696",
+        "deviceName":  "Apple iPhone (iOS 27.0)",
+        "deviceId":  "DEV_39FRVSGX_MVMDHSFC",
+        "history":  [
+                        {
+                            "date":  "24 Oct, 17:56",
+                            "type":  "stamp",
+                            "note":  "Welcome Reward Claimed: 1st Loyalty Tick Unlocked! (Tick #1 of 11)",
+                            "device":  "Apple iPhone (iOS 27.0)",
+                            "deviceId":  "DEV_39FRVSGX_MVMDHSFC"
+                        },
+                        {
+                            "date":  "24 Oct 2026",
+                            "type":  "joined",
+                            "note":  "Joined Loyalty Reward from Apple iPhone (iOS 27.0)",
+                            "device":  "Apple iPhone (iOS 27.0)",
+                            "deviceId":  "DEV_39FRVSGX_MVMDHSFC"
+                        }
+                    ],
+        "createdAt":  "24 Oct 2026",
+        "lastStampDate":  "2026-10-24",
+        "lastUpdated":  1793728114681
+    },
+    {
+        "phone":  "9944214325",
+        "name":  "Lingesh",
+        "password":  "Lingesh@19",
+        "stamps":  2,
+        "giftsEarned":  0,
+        "memberId":  "GP-86895",
+        "deviceName":  "Apple iPhone (iOS 27.0)",
+        "deviceId":  "DEV_JOE5S9RF_MW0U0O41",
+        "history":  [
+                        {
+                            "date":  "3 Nov, 20:47",
+                            "type":  "stamp",
+                            "note":  "Welcome Reward Claimed: 1st Loyalty Tick Unlocked! (Tick #1 of 11)",
+                            "device":  "Apple iPhone (iOS 27.0)",
+                            "deviceId":  "DEV_JOE5S9RF_MW0U0O41"
+                        },
+                        {
+                            "date":  "3 Nov 2026",
+                            "type":  "joined",
+                            "note":  "Joined Loyalty Reward from Apple iPhone (iOS 27.0)",
+                            "device":  "Apple iPhone (iOS 27.0)",
+                            "deviceId":  "DEV_JOE5S9RF_MW0U0O41"
+                        },
+                        {
+                            "date":  "3 Nov, 20:51",
+                            "type":  "stamp",
+                            "note":  "Store Purchase (2nd Visit Cashier Approved) - Tick #2 of 11 Collected"
+                        }
+                    ],
+        "createdAt":  "3 Nov 2026",
+        "lastStampDate":  "2026-11-03",
+        "lastUpdated":  1793728114681
+    }
+]

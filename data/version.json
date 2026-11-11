@@ -1,9 +1,9 @@
 ﻿{
-    "version":  "1.5.0",
-    "versionCode":  7,
-    "releaseDate":  "2026-11-03",
-    "title":  "Loyalty Pass Update",
-    "notes":  "Latest features and improvements released by store owner.",
+    "version":  "1.6.0",
+    "versionCode":  8,
+    "releaseDate":  "2026-11-11",
+    "title":  "Loyalty Pass 11-Stamp Milestone Update",
+    "notes":  "11-stamp milestone loyalty rewards with 20% OFF, 50% OFF, and Free Gift rewards.",
     "customerApk":  "apks/LoyaltyPass-Customer.apk",
     "ownerApk":  "apks/StoreTerminal-Owner.apk",
     "downloadUrl":  "download.html"
