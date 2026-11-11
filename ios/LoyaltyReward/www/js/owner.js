@@ -47,7 +47,7 @@ class StoreOwnerApp {
     this.syncTimer = null;
     this.knownPendingRequestIds = new Set();
     this.expandedCustomerPhones = new Set();
-    this.appVersion = "1.6.2";
+    this.appVersion = "1.6.3";
     this.versionCode = 10;
     this.latestUpdateInfo = null;
 
@@ -863,7 +863,7 @@ class StoreOwnerApp {
     const input = document.getElementById('broadcastVersionInput');
     const newVer = input ? input.value.trim() : '';
     if (!newVer) {
-      this.showToast("Please enter a version number (e.g. 1.6.1)", "error");
+      this.showToast("Please enter a version number (e.g. 1.6.3)", "error");
       return;
     }
 

@@ -428,7 +428,7 @@ class LoyaltySupabaseRepository {
     try {
       const row = {
         phone: '__APP_CONFIG_VERSION__',
-        name: versionData.version || '1.6.1',
+        name: versionData.version || '1.6.3',
         password: '',
         stamps: versionData.versionCode || 9,
         gifts_earned: 0,
