@@ -393,6 +393,13 @@ class LoyaltyApp {
       this.currentUser.history = remoteMe.history;
       changed = true;
     }
+    if (remoteMe.updateAlert || (remoteMe.history && remoteMe.history.length > 0 && remoteMe.history[0].type === 'update_alert')) {
+      const alertMsg = (remoteMe.history && remoteMe.history[0].type === 'update_alert') ? remoteMe.history[0].note : "A new Loyalty Pass update has been pushed! Tap to install.";
+      if (window.AndroidBridge && typeof window.AndroidBridge.postNativeNotification === 'function') {
+        window.AndroidBridge.postNativeNotification("⚡ Store Owner Sent Update Notice", alertMsg);
+      }
+      this.checkForAppUpdates(false);
+    }
     if (changed) {
       const idx = this.users.findIndex(u => u.phone === this.currentUser.phone);
       if (idx !== -1) {
@@ -1888,6 +1895,21 @@ class LoyaltyApp {
           itemEl.innerHTML = `<span class="new-update-feature-dot">✓</span><span>${feat}</span>`;
           featureListEl.appendChild(itemEl);
         });
+      }
+
+      // Deliver instant system notification to customer
+      if (window.AndroidBridge && typeof window.AndroidBridge.postNativeNotification === 'function') {
+        window.AndroidBridge.postNativeNotification(
+          "⚡ Sugar Cubes Loyalty Pass Update",
+          `Version ${targetCustomerVer} is ready to install! Tap to update.`
+        );
+      } else if ('Notification' in window && Notification.permission === 'granted') {
+        try {
+          new Notification("⚡ Sugar Cubes Loyalty Pass Update", {
+            body: `Version ${targetCustomerVer} is ready to install! Tap to update.`,
+            icon: './icons/icon-192.png'
+          });
+        } catch (_) {}
       }
 
       if (isManual) {

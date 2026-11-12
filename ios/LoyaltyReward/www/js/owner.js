@@ -478,8 +478,10 @@ class StoreOwnerApp {
       });
     }
 
-    const logoutHeaderBtn = document.getElementById('ownerLogoutHeaderBtn');
-    if (logoutHeaderBtn) logoutHeaderBtn.addEventListener('click', () => this.handleLogout());
+    ['ownerLogoutHeaderBtn', 'ownerDashboardLogoutBtn'].forEach(btnId => {
+      const btn = document.getElementById(btnId);
+      if (btn) btn.addEventListener('click', () => this.handleLogout());
+    });
 
     // Search and Filter Pills
     const searchInput = document.getElementById('ownerCustomerSearch');
@@ -1789,9 +1791,9 @@ class StoreOwnerApp {
       if (stamps >= MAX_STAMPS) {
         badgeHtml = `<span class="remaining-badge ready" title="Ready to claim Free Gift">🎉 READY FOR GIFT!</span>`;
       } else if (stamps >= MILESTONE_50_OFF) {
-        badgeHtml = `<span class="remaining-badge badge-offer-50" title="50% OFF Unlocked (${remaining} more to Free Gift)">⚡ 50% OFF (${remaining} Left)</span>`;
+        badgeHtml = `<span class="remaining-badge badge-offer-50" style="cursor: pointer;" onclick="window.ownerApp.ownerRedeemCustomerOffer('${customer.phone}', 50)" title="50% OFF Unlocked (${remaining} more to Free Gift) • Click to record discount">⚡ 50% OFF (${remaining} Left)</span>`;
       } else if (stamps >= MILESTONE_20_OFF) {
-        badgeHtml = `<span class="remaining-badge badge-offer-20" title="20% OFF Unlocked (${MILESTONE_50_OFF - stamps} more to 50% OFF)">🏷️ 20% OFF (${MILESTONE_50_OFF - stamps} to 50%)</span>`;
+        badgeHtml = `<span class="remaining-badge badge-offer-20" style="cursor: pointer;" onclick="window.ownerApp.ownerRedeemCustomerOffer('${customer.phone}', 20)" title="20% OFF Unlocked (${MILESTONE_50_OFF - stamps} more to 50% OFF) • Click to record discount">🏷️ 20% OFF (${MILESTONE_50_OFF - stamps} to 50%)</span>`;
       } else if (stamps === 0) {
         badgeHtml = `<span class="remaining-badge new" title="New customer with 0 stamps">★ 11 TICKS LEFT</span>`;
       } else {
@@ -1920,15 +1922,6 @@ class StoreOwnerApp {
                 +1 Stamp
               </button>
             `}
-            ${stamps >= MILESTONE_50_OFF && stamps < MAX_STAMPS ? `
-              <button type="button" class="btn-offer-redeem" style="background:#581c87; color:#f3e8ff; border:1px solid #c084fc;" onclick="window.ownerApp.ownerRedeemCustomerOffer('${customer.phone}', 50)" title="Apply 50% OFF to customer bill">
-                ⚡ 50% OFF
-              </button>
-            ` : (stamps >= MILESTONE_20_OFF && stamps < MILESTONE_50_OFF ? `
-              <button type="button" class="btn-offer-redeem" style="background:#78350f; color:#fef3c7; border:1px solid #fbbf24;" onclick="window.ownerApp.ownerRedeemCustomerOffer('${customer.phone}', 20)" title="Apply 20% OFF to customer bill">
-                🏷️ 20% OFF
-              </button>
-            ` : '')}
             <button type="button" id="historyBtn-${customer.phone}" class="btn-toggle-history ${isExpanded ? 'active' : ''}" onclick="window.ownerApp.toggleCustomerHistory('${customer.phone}')" title="Click to view stamp history">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
               <span>History (${history.length})</span>
@@ -1991,17 +1984,20 @@ class StoreOwnerApp {
     const authSection = document.getElementById('ownerAuthSection');
     const dashboardSection = document.getElementById('ownerDashboardSection');
     const logoutHeaderBtn = document.getElementById('ownerLogoutHeaderBtn');
+    const dashboardLogoutBtn = document.getElementById('ownerDashboardLogoutBtn');
 
     if (!this.isLoggedIn) {
       if (authSection) authSection.style.display = 'block';
       if (dashboardSection) dashboardSection.style.display = 'none';
       if (logoutHeaderBtn) logoutHeaderBtn.style.display = 'none';
+      if (dashboardLogoutBtn) dashboardLogoutBtn.style.display = 'none';
       return;
     }
 
     if (authSection) authSection.style.display = 'none';
     if (dashboardSection) dashboardSection.style.display = 'flex';
     if (logoutHeaderBtn) logoutHeaderBtn.style.display = 'inline-flex';
+    if (dashboardLogoutBtn) dashboardLogoutBtn.style.display = 'inline-flex';
 
     this.renderMetrics();
     this.renderCustomerList();

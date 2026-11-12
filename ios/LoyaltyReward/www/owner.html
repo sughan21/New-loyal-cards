@@ -58,8 +58,8 @@
 
 <body class="store-mode-active">
 
-  <!-- Top Navigation Header -->
-  <header class="app-header" style="justify-content: flex-end;">
+  <!-- Top Navigation Header (Hidden: controls consolidated into dashboard header & settings) -->
+  <header class="app-header" style="display: none !important;">
     <div class="header-actions">
       <!-- Settings & Version Trigger -->
       <button id="ownerOpenSettingsBtn" class="header-icon-btn" title="Settings & Version Manager" aria-label="Settings">
@@ -194,6 +194,16 @@
               </svg>
               Customer Pass ↗
             </a>
+
+            <button id="ownerDashboardLogoutBtn" class="mode-toggle-btn"
+              style="display: inline-flex; align-items: center; gap: 6px; background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.35); color: #fca5a5;" title="Sign Out of Store Admin">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                <polyline points="16 17 21 12 16 7"></polyline>
+                <line x1="21" y1="12" x2="9" y2="12"></line>
+              </svg>
+              Sign Out
+            </button>
           </div>
         </div>
 
@@ -321,7 +331,9 @@
 
           <!-- Table Header for Precision Column Alignment -->
           <div class="customer-table-header">
-            <div class="th-col th-customer">Customer Details</div>
+            <div class="th-col th-customer">Customer</div>
+            <div class="th-col th-progress">Stamps (11 Ticks)</div>
+            <div class="th-col th-status">Milestones &amp; Status</div>
             <div class="th-col th-action">Cashier Actions</div>
           </div>
 

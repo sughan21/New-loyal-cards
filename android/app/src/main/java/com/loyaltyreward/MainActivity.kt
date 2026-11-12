@@ -41,6 +41,12 @@ class MainActivity : AppCompatActivity() {
         pendingPermissionRequest = null
     }
 
+    private val notificationPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { _ ->
+        // Notification permission granted or dismissed
+    }
+
     private fun getLaunchUrl(intent: Intent?): String {
         val startFile = if (BuildConfig.FLAVOR == "owner") "owner.html" else "index.html"
         val baseUrl = "https://appassets.androidplatform.net/assets/$startFile"
@@ -66,6 +72,17 @@ class MainActivity : AppCompatActivity() {
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Initialize notification channel and schedule background periodic update checks
+        UpdateCheckReceiver.createNotificationChannel(this)
+        UpdateCheckReceiver.schedulePeriodicCheck(this)
+
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+                != PackageManager.PERMISSION_GRANTED) {
+                notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            }
+        }
 
         // Sleek immersive status bar
         window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS)
@@ -429,6 +446,20 @@ class MainActivity : AppCompatActivity() {
                 val prefs = context.getSharedPreferences("loyalty_app_prefs", android.content.Context.MODE_PRIVATE)
                 prefs.edit().remove("saved_customer_phone").remove("saved_customer_profile").apply()
             } catch (e: Exception) {}
+        }
+
+        @JavascriptInterface
+        fun postNativeNotification(title: String, message: String) {
+            UpdateCheckReceiver.showSystemNotification(context, title, message)
+        }
+
+        @JavascriptInterface
+        fun checkUpdatesNow() {
+            Thread {
+                try {
+                    UpdateCheckReceiver.performBackgroundCheck(context)
+                } catch (_: Exception) {}
+            }.start()
         }
 
         @JavascriptInterface
