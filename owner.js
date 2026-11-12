@@ -26,7 +26,7 @@ const DEFAULT_STORE = {
 };
 
 // Known mock demo customer phone numbers & automation accounts to purge
-const MOCK_DEMO_PHONES = ["9876543210", "9811223344", "9822334455", "9833445566", "9988776655", "9876543211", "9840123456", "test_check_cols", "6369095106", "918940757402", "9698970896"];
+const MOCK_DEMO_PHONES = ["test_check_cols"];
 const DEFAULT_USERS = [];
 
 const API_BASE_URL = (function() {
@@ -47,8 +47,8 @@ class StoreOwnerApp {
     this.syncTimer = null;
     this.knownPendingRequestIds = new Set();
     this.expandedCustomerPhones = new Set();
-    this.appVersion = "1.6.4";
-    this.versionCode = 12;
+    this.appVersion = "1.6.5";
+    this.versionCode = 13;
     this.latestUpdateInfo = null;
 
     this.init();
@@ -110,11 +110,12 @@ class StoreOwnerApp {
   loadState() {
     // 1. Load shared users
     const storedUsers = localStorage.getItem(APP_STORAGE_KEY_USERS);
+    const deletedSet = new Set(JSON.parse(localStorage.getItem('loyalty_deleted_customers') || '[]'));
     if (storedUsers) {
       try {
         let loaded = JSON.parse(storedUsers);
-        // Retain only real registered customers, purge hardcoded demo mock names
-        this.users = Array.isArray(loaded) ? loaded.filter(u => !MOCK_DEMO_PHONES.includes(u.phone)) : [];
+        // Retain only active real customers, exclude deleted and demo entries
+        this.users = Array.isArray(loaded) ? loaded.filter(u => u && u.phone && !MOCK_DEMO_PHONES.includes(u.phone) && !deletedSet.has(String(u.phone).trim()) && u.name !== '__DELETED__') : [];
       } catch (e) {
         this.users = [];
       }
@@ -122,7 +123,7 @@ class StoreOwnerApp {
       this.users = [];
     }
     this.sanitizeCustomerNotes(this.users);
-    this.saveUsers();
+    localStorage.setItem(APP_STORAGE_KEY_USERS, JSON.stringify(this.users));
 
     // 2. Load store configuration
     const storedStore = localStorage.getItem(APP_STORAGE_KEY_STORE);
@@ -170,15 +171,25 @@ class StoreOwnerApp {
       if (Array.isArray(remoteUsers) && remoteUsers.length > 0) {
         this.sanitizeCustomerNotes(remoteUsers);
         let changed = false;
+        const deletedSet = new Set(JSON.parse(localStorage.getItem('loyalty_deleted_customers') || '[]'));
+
+        // Purge any locally present customers that were marked deleted
+        const countBefore = this.users.length;
+        this.users = this.users.filter(u => u && u.phone && !deletedSet.has(String(u.phone).trim()) && u.name !== '__DELETED__');
+        if (this.users.length !== countBefore) changed = true;
+
         remoteUsers.forEach(rem => {
-          if (!rem.phone || MOCK_DEMO_PHONES.includes(rem.phone)) return;
-          const idx = this.users.findIndex(u => u.phone === rem.phone);
+          const remPhone = String(rem.phone || '').trim();
+          if (!remPhone || MOCK_DEMO_PHONES.includes(remPhone) || deletedSet.has(remPhone) || rem.name === '__DELETED__') return;
+          const idx = this.users.findIndex(u => String(u.phone).trim() === remPhone);
           if (idx === -1) {
             this.users.unshift(rem);
             changed = true;
           } else {
             const current = this.users[idx];
             let userChanged = false;
+            if (rem.name && rem.name !== current.name) { current.name = rem.name; userChanged = true; }
+            if (rem.memberId && rem.memberId !== current.memberId) { current.memberId = rem.memberId; userChanged = true; }
             if (rem.stamps !== current.stamps) { current.stamps = rem.stamps; userChanged = true; }
             if (rem.giftsEarned !== current.giftsEarned) { current.giftsEarned = rem.giftsEarned; userChanged = true; }
             if (rem.appVersion && rem.appVersion !== current.appVersion) { current.appVersion = rem.appVersion; userChanged = true; }
@@ -203,8 +214,20 @@ class StoreOwnerApp {
   startLiveSync() {
     if (this.syncTimer) clearInterval(this.syncTimer);
 
-    // Setup Supabase Realtime Stream for Instant Push
+    // Setup Supabase Realtime Stream for Instant Push of Customers & Requests
     if (window.loyaltyDb && window.loyaltyDb.isReady) {
+      window.loyaltyDb.subscribeToAllCustomers((cust, eventType) => {
+        console.log("⚡ Owner Realtime Customer Sync:", eventType, cust ? cust.phone : '');
+        if ((eventType === 'DELETE' || (cust && cust.name === '__DELETED__')) && cust && cust.phone) {
+          const p = String(cust.phone).trim();
+          this.users = this.users.filter(u => String(u.phone).trim() !== p);
+          localStorage.setItem(APP_STORAGE_KEY_USERS, JSON.stringify(this.users));
+          this.render();
+          return;
+        }
+        this.fetchRemoteCustomers();
+      });
+
       window.loyaltyDb.subscribeToPendingRequests((req, eventType) => {
         if (this.isLoggedIn) {
           this.fetchPendingApprovalRequests();
@@ -218,7 +241,7 @@ class StoreOwnerApp {
       if (this.isLoggedIn) {
         this.fetchPendingApprovalRequests();
       }
-    }, 3500);
+    }, 2000);
   }
 
   async fetchPendingApprovalRequests() {
@@ -478,8 +501,10 @@ class StoreOwnerApp {
       });
     }
 
-    const logoutHeaderBtn = document.getElementById('ownerLogoutHeaderBtn');
-    if (logoutHeaderBtn) logoutHeaderBtn.addEventListener('click', () => this.handleLogout());
+    ['ownerLogoutHeaderBtn', 'ownerDashboardLogoutBtn'].forEach(btnId => {
+      const btn = document.getElementById(btnId);
+      if (btn) btn.addEventListener('click', () => this.handleLogout());
+    });
 
     // Search and Filter Pills
     const searchInput = document.getElementById('ownerCustomerSearch');
@@ -495,6 +520,8 @@ class StoreOwnerApp {
       manualSyncBtn.addEventListener('click', async () => {
         manualSyncBtn.innerText = "⏳ Syncing...";
         await this.fetchRemoteCustomers();
+        this.renderCustomerList();
+        this.renderMetrics();
         manualSyncBtn.innerText = "✓ Synced";
         this.showToast("☁️ Customer directory refreshed from server!", "success");
         setTimeout(() => { manualSyncBtn.innerText = "🔄 Refresh Now"; }, 1500);
@@ -976,7 +1003,7 @@ class StoreOwnerApp {
     const notesInput = document.getElementById('broadcastNotesInput');
     const newVer = input ? input.value.trim() : '';
     if (!newVer) {
-      this.showToast("Please enter a version number (e.g. 1.6.4)", "error");
+      this.showToast("Please enter a version number (e.g. 1.6.5)", "error");
       return;
     }
 
@@ -1259,26 +1286,50 @@ class StoreOwnerApp {
   }
 
   async ownerDeleteCustomer(phone) {
-    const customer = this.users.find(u => u.phone === phone);
+    const cleanPhone = String(phone).trim();
+    const customer = this.users.find(u => String(u.phone).trim() === cleanPhone);
     const name = customer ? customer.name : phone;
-    if (!confirm(`Are you sure you want to permanently delete customer "${name}" (${phone})?`)) {
+    if (!confirm(`Are you sure you want to permanently delete customer "${name}" (${phone})? This will delete their card and stamps from the database.`)) {
       return;
     }
 
-    this.users = this.users.filter(u => u.phone !== phone);
-    this.saveUsers();
+    // 1. Remove from local memory & persistent storage immediately
+    this.users = this.users.filter(u => String(u.phone).trim() !== cleanPhone);
+    localStorage.setItem(APP_STORAGE_KEY_USERS, JSON.stringify(this.users));
 
+    // 2. Add to local tombstone set so background polls never restore it
+    try {
+      const deletedSet = new Set(JSON.parse(localStorage.getItem('loyalty_deleted_customers') || '[]'));
+      deletedSet.add(cleanPhone);
+      localStorage.setItem('loyalty_deleted_customers', JSON.stringify(Array.from(deletedSet)));
+    } catch (_) {}
+
+    // 3. Immediately re-render UI so customer disappears without delay
+    if (window.soundEngine && typeof window.soundEngine.playTrashSound === 'function') {
+      window.soundEngine.playTrashSound();
+    } else if (window.soundEngine && typeof window.soundEngine.playSuccessTone === 'function') {
+      window.soundEngine.playSuccessTone();
+    }
+    this.showToast(`🗑️ Permanently deleted customer "${name}".`, "info");
+    this.render();
+
+    // 4. Delete from Supabase cloud database
+    try {
+      if (window.loyaltyDb && window.loyaltyDb.isReady) {
+        await window.loyaltyDb.deleteCustomer(cleanPhone);
+      }
+    } catch (e) {
+      console.warn("Cloud delete failed:", e);
+    }
+
+    // 5. Try local backend delete endpoint as well
     try {
       await fetch(`${API_BASE_URL}/api/customer/delete`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone })
+        body: JSON.stringify({ phone: cleanPhone })
       });
     } catch (e) {}
-
-    if (window.soundEngine) window.soundEngine.playTrashSound ? window.soundEngine.playTrashSound() : null;
-    this.showToast(`🗑️ Removed customer "${name}".`, "info");
-    this.render();
   }
 
   handleManualVoucherRedeem() {
@@ -1548,7 +1599,7 @@ class StoreOwnerApp {
     }
     const broadcastVer = localStorage.getItem('loyalty_owner_broadcast_version');
     if (broadcastVer) return broadcastVer;
-    return this.appVersion || "1.6.4";
+    return this.appVersion || "1.6.5";
   }
 
   isCustomerOutdated(customer) {
@@ -1608,9 +1659,11 @@ class StoreOwnerApp {
     customer.history.unshift({
       date: `${date}, ${time}`,
       type: "update_alert",
-      note: `⚡ System Update Alert (v${targetVer}) pushed by Store Owner: Please uninstall older version & install new build!`
+      note: `⚡ System Update Alert (v${targetVer}) pushed by Store Owner: Please install the latest build!`,
+      targetVersion: targetVer
     });
 
+    customer.lastUpdated = Date.now();
     this.saveUsers();
     await this.pushCustomerToServer(customer);
 
@@ -1784,14 +1837,15 @@ class StoreOwnerApp {
       const targetVer = this.getTargetCustomerVersion();
       const isOutdated = this.isCustomerOutdated(customer);
       const customerVer = customer.appVersion;
+      const hasAlertSent = (customer.updateAlert && customer.updateAlert.status === 'pending') || (latestEvent && latestEvent.type === 'update_alert');
 
       let badgeHtml = '';
       if (stamps >= MAX_STAMPS) {
         badgeHtml = `<span class="remaining-badge ready" title="Ready to claim Free Gift">🎉 READY FOR GIFT!</span>`;
       } else if (stamps >= MILESTONE_50_OFF) {
-        badgeHtml = `<span class="remaining-badge badge-offer-50" title="50% OFF Unlocked (${remaining} more to Free Gift)">⚡ 50% OFF (${remaining} Left)</span>`;
+        badgeHtml = `<span class="remaining-badge badge-offer-50" style="cursor: pointer;" onclick="window.ownerApp.ownerRedeemCustomerOffer('${customer.phone}', 50)" title="50% OFF Unlocked (${remaining} more to Free Gift) • Click to record discount">⚡ 50% OFF (${remaining} Left)</span>`;
       } else if (stamps >= MILESTONE_20_OFF) {
-        badgeHtml = `<span class="remaining-badge badge-offer-20" title="20% OFF Unlocked (${MILESTONE_50_OFF - stamps} more to 50% OFF)">🏷️ 20% OFF (${MILESTONE_50_OFF - stamps} to 50%)</span>`;
+        badgeHtml = `<span class="remaining-badge badge-offer-20" style="cursor: pointer;" onclick="window.ownerApp.ownerRedeemCustomerOffer('${customer.phone}', 20)" title="20% OFF Unlocked (${MILESTONE_50_OFF - stamps} more to 50% OFF) • Click to record discount">🏷️ 20% OFF (${MILESTONE_50_OFF - stamps} to 50%)</span>`;
       } else if (stamps === 0) {
         badgeHtml = `<span class="remaining-badge new" title="New customer with 0 stamps">★ 11 TICKS LEFT</span>`;
       } else {
@@ -1920,15 +1974,6 @@ class StoreOwnerApp {
                 +1 Stamp
               </button>
             `}
-            ${stamps >= MILESTONE_50_OFF && stamps < MAX_STAMPS ? `
-              <button type="button" class="btn-offer-redeem" style="background:#581c87; color:#f3e8ff; border:1px solid #c084fc;" onclick="window.ownerApp.ownerRedeemCustomerOffer('${customer.phone}', 50)" title="Apply 50% OFF to customer bill">
-                ⚡ 50% OFF
-              </button>
-            ` : (stamps >= MILESTONE_20_OFF && stamps < MILESTONE_50_OFF ? `
-              <button type="button" class="btn-offer-redeem" style="background:#78350f; color:#fef3c7; border:1px solid #fbbf24;" onclick="window.ownerApp.ownerRedeemCustomerOffer('${customer.phone}', 20)" title="Apply 20% OFF to customer bill">
-                🏷️ 20% OFF
-              </button>
-            ` : '')}
             <button type="button" id="historyBtn-${customer.phone}" class="btn-toggle-history ${isExpanded ? 'active' : ''}" onclick="window.ownerApp.toggleCustomerHistory('${customer.phone}')" title="Click to view stamp history">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
               <span>History (${history.length})</span>
@@ -1949,16 +1994,16 @@ class StoreOwnerApp {
                     App Update Available <span class="update-target-pill">v${targetVer}</span>
                   </div>
                   <div class="update-info-desc">
-                    Customer on ${customerVer ? 'v' + customerVer : 'older build'} • Send update alert
+                    ${hasAlertSent ? `<span style="color:#059669; font-weight:700;">✓ Alert Pushed</span> • Waiting for customer to open &amp; install v${targetVer}` : `Customer on ${customerVer ? 'v' + customerVer : 'older build'} • Send update alert`}
                   </div>
                 </div>
               </div>
               <div class="customer-update-box-actions">
-                <button type="button" class="btn-push-update-alert" onclick="window.ownerApp.pushIndividualCustomerUpdate('${customer.phone}', '${encodeURIComponent(customer.name)}')" title="Send in-app update notification to this customer">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
-                  <span>Push Update Alert</span>
+                <button type="button" class="btn-push-update-alert ${hasAlertSent ? 'sent' : ''}" onclick="window.ownerApp.pushIndividualCustomerUpdate('${customer.phone}', '${encodeURIComponent(customer.name)}')" title="${hasAlertSent ? 'Alert already pushed. Click to re-send update notice.' : 'Send in-app update notification to this customer'}">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">${hasAlertSent ? '<polyline points="20 6 9 17 4 12"></polyline>' : '<path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path>'}</svg>
+                  <span>${hasAlertSent ? `✓ Alert Sent (v${targetVer})` : 'Push Update Alert'}</span>
                 </button>
-                <button type="button" class="btn-whatsapp-update" onclick="window.ownerApp.sendWhatsAppUpdate('${customer.phone}', '${encodeURIComponent(customer.name)}', '${customerVer || 'older'}')" title="Send WhatsApp message with uninstall older & install new version instructions">
+                <button type="button" class="btn-whatsapp-update" onclick="window.ownerApp.sendWhatsAppUpdate('${customer.phone}', '${encodeURIComponent(customer.name)}', '${customerVer || 'older'}')" title="Send WhatsApp message with install instructions">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/></svg>
                   <span>Send on WhatsApp</span>
                 </button>
@@ -1991,17 +2036,20 @@ class StoreOwnerApp {
     const authSection = document.getElementById('ownerAuthSection');
     const dashboardSection = document.getElementById('ownerDashboardSection');
     const logoutHeaderBtn = document.getElementById('ownerLogoutHeaderBtn');
+    const dashboardLogoutBtn = document.getElementById('ownerDashboardLogoutBtn');
 
     if (!this.isLoggedIn) {
       if (authSection) authSection.style.display = 'block';
       if (dashboardSection) dashboardSection.style.display = 'none';
       if (logoutHeaderBtn) logoutHeaderBtn.style.display = 'none';
+      if (dashboardLogoutBtn) dashboardLogoutBtn.style.display = 'none';
       return;
     }
 
     if (authSection) authSection.style.display = 'none';
     if (dashboardSection) dashboardSection.style.display = 'flex';
     if (logoutHeaderBtn) logoutHeaderBtn.style.display = 'inline-flex';
+    if (dashboardLogoutBtn) dashboardLogoutBtn.style.display = 'inline-flex';
 
     this.renderMetrics();
     this.renderCustomerList();

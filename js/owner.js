@@ -110,11 +110,12 @@ class StoreOwnerApp {
   loadState() {
     // 1. Load shared users
     const storedUsers = localStorage.getItem(APP_STORAGE_KEY_USERS);
+    const deletedSet = new Set(JSON.parse(localStorage.getItem('loyalty_deleted_customers') || '[]'));
     if (storedUsers) {
       try {
         let loaded = JSON.parse(storedUsers);
-        // Retain only real registered customers, purge hardcoded demo mock names
-        this.users = Array.isArray(loaded) ? loaded.filter(u => !MOCK_DEMO_PHONES.includes(u.phone)) : [];
+        // Retain only active real customers, exclude deleted and demo entries
+        this.users = Array.isArray(loaded) ? loaded.filter(u => u && u.phone && !MOCK_DEMO_PHONES.includes(u.phone) && !deletedSet.has(String(u.phone).trim()) && u.name !== '__DELETED__') : [];
       } catch (e) {
         this.users = [];
       }
@@ -122,7 +123,7 @@ class StoreOwnerApp {
       this.users = [];
     }
     this.sanitizeCustomerNotes(this.users);
-    this.saveUsers();
+    localStorage.setItem(APP_STORAGE_KEY_USERS, JSON.stringify(this.users));
 
     // 2. Load store configuration
     const storedStore = localStorage.getItem(APP_STORAGE_KEY_STORE);
@@ -170,9 +171,17 @@ class StoreOwnerApp {
       if (Array.isArray(remoteUsers) && remoteUsers.length > 0) {
         this.sanitizeCustomerNotes(remoteUsers);
         let changed = false;
+        const deletedSet = new Set(JSON.parse(localStorage.getItem('loyalty_deleted_customers') || '[]'));
+
+        // Purge any locally present customers that were marked deleted
+        const countBefore = this.users.length;
+        this.users = this.users.filter(u => u && u.phone && !deletedSet.has(String(u.phone).trim()) && u.name !== '__DELETED__');
+        if (this.users.length !== countBefore) changed = true;
+
         remoteUsers.forEach(rem => {
-          if (!rem.phone || MOCK_DEMO_PHONES.includes(rem.phone)) return;
-          const idx = this.users.findIndex(u => u.phone === rem.phone);
+          const remPhone = String(rem.phone || '').trim();
+          if (!remPhone || MOCK_DEMO_PHONES.includes(remPhone) || deletedSet.has(remPhone) || rem.name === '__DELETED__') return;
+          const idx = this.users.findIndex(u => String(u.phone).trim() === remPhone);
           if (idx === -1) {
             this.users.unshift(rem);
             changed = true;
@@ -209,6 +218,13 @@ class StoreOwnerApp {
     if (window.loyaltyDb && window.loyaltyDb.isReady) {
       window.loyaltyDb.subscribeToAllCustomers((cust, eventType) => {
         console.log("⚡ Owner Realtime Customer Sync:", eventType, cust ? cust.phone : '');
+        if ((eventType === 'DELETE' || (cust && cust.name === '__DELETED__')) && cust && cust.phone) {
+          const p = String(cust.phone).trim();
+          this.users = this.users.filter(u => String(u.phone).trim() !== p);
+          localStorage.setItem(APP_STORAGE_KEY_USERS, JSON.stringify(this.users));
+          this.render();
+          return;
+        }
         this.fetchRemoteCustomers();
       });
 
@@ -1270,26 +1286,50 @@ class StoreOwnerApp {
   }
 
   async ownerDeleteCustomer(phone) {
-    const customer = this.users.find(u => u.phone === phone);
+    const cleanPhone = String(phone).trim();
+    const customer = this.users.find(u => String(u.phone).trim() === cleanPhone);
     const name = customer ? customer.name : phone;
-    if (!confirm(`Are you sure you want to permanently delete customer "${name}" (${phone})?`)) {
+    if (!confirm(`Are you sure you want to permanently delete customer "${name}" (${phone})? This will delete their card and stamps from the database.`)) {
       return;
     }
 
-    this.users = this.users.filter(u => u.phone !== phone);
-    this.saveUsers();
+    // 1. Remove from local memory & persistent storage immediately
+    this.users = this.users.filter(u => String(u.phone).trim() !== cleanPhone);
+    localStorage.setItem(APP_STORAGE_KEY_USERS, JSON.stringify(this.users));
 
+    // 2. Add to local tombstone set so background polls never restore it
+    try {
+      const deletedSet = new Set(JSON.parse(localStorage.getItem('loyalty_deleted_customers') || '[]'));
+      deletedSet.add(cleanPhone);
+      localStorage.setItem('loyalty_deleted_customers', JSON.stringify(Array.from(deletedSet)));
+    } catch (_) {}
+
+    // 3. Immediately re-render UI so customer disappears without delay
+    if (window.soundEngine && typeof window.soundEngine.playTrashSound === 'function') {
+      window.soundEngine.playTrashSound();
+    } else if (window.soundEngine && typeof window.soundEngine.playSuccessTone === 'function') {
+      window.soundEngine.playSuccessTone();
+    }
+    this.showToast(`🗑️ Permanently deleted customer "${name}".`, "info");
+    this.render();
+
+    // 4. Delete from Supabase cloud database
+    try {
+      if (window.loyaltyDb && window.loyaltyDb.isReady) {
+        await window.loyaltyDb.deleteCustomer(cleanPhone);
+      }
+    } catch (e) {
+      console.warn("Cloud delete failed:", e);
+    }
+
+    // 5. Try local backend delete endpoint as well
     try {
       await fetch(`${API_BASE_URL}/api/customer/delete`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone })
+        body: JSON.stringify({ phone: cleanPhone })
       });
     } catch (e) {}
-
-    if (window.soundEngine) window.soundEngine.playTrashSound ? window.soundEngine.playTrashSound() : null;
-    this.showToast(`🗑️ Removed customer "${name}".`, "info");
-    this.render();
   }
 
   handleManualVoucherRedeem() {

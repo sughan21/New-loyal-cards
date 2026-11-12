@@ -30,7 +30,7 @@ const DEFAULT_STORE = {
 };
 
 // Known mock demo customer phone numbers & automation accounts to purge
-const MOCK_DEMO_PHONES = ["9876543210", "9811223344", "9822334455", "9833445566", "9988776655", "9876543211", "9840123456", "test_check_cols"];
+const MOCK_DEMO_PHONES = ["test_check_cols"];
 const DEFAULT_USERS = [];
 
 const API_BASE_URL = (function() {
@@ -54,8 +54,8 @@ class LoyaltyApp {
     this.customerResetOtp = '';
     this.customerResetPhone = '';
     this.repeatApprovalPollTimer = null;
-    this.appVersion = "1.6.4";
-    this.versionCode = 12;
+    this.appVersion = "1.6.5";
+    this.versionCode = 13;
     this.latestUpdateInfo = null;
 
     this.init();
@@ -300,20 +300,20 @@ class LoyaltyApp {
       } catch (e) {
         console.warn("Session save warning:", e);
       }
+      this.pushUserToServer(this.currentUser);
     }
   }
 
   async pushUserToServer(userData) {
-    if (!userData) return;
+    if (!userData) return false;
     let synced = false;
     try {
       if (window.loyaltyDb && window.loyaltyDb.isReady) {
         if (Array.isArray(userData)) {
-          await window.loyaltyDb.upsertCustomers(userData);
+          synced = await window.loyaltyDb.upsertCustomers(userData);
         } else {
-          await window.loyaltyDb.upsertCustomer(userData);
+          synced = await window.loyaltyDb.upsertCustomer(userData);
         }
-        synced = true;
       }
     } catch (dbErr) {
       console.warn("Cloud DB sync attempt:", dbErr);
@@ -335,14 +335,27 @@ class LoyaltyApp {
     } else {
       localStorage.setItem('offline_pending_sync', 'true');
     }
+    return synced;
   }
 
   async syncWithServer() {
     try {
       if (this.currentUser) {
+        let isNewInstall = false;
         if (!this.currentUser.appVersion || this.currentUser.appVersion !== this.appVersion) {
+          isNewInstall = true;
           this.currentUser.appVersion = this.appVersion;
           this.currentUser.versionCode = this.versionCode;
+          if (!Array.isArray(this.currentUser.history)) this.currentUser.history = [];
+          const time = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+          const date = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+          this.currentUser.history.unshift({
+            date: `${date}, ${time}`,
+            type: "update_installed",
+            note: `✅ App Updated to v${this.appVersion} Successfully`,
+            appVersion: this.appVersion,
+            versionCode: this.versionCode
+          });
           this.saveCurrentUser();
         }
         await this.pushUserToServer(this.currentUser);
@@ -393,6 +406,30 @@ class LoyaltyApp {
       this.currentUser.history = remoteMe.history;
       changed = true;
     }
+    
+    // Evaluate store owner update alert
+    const latestEvent = (remoteMe.history && remoteMe.history.length > 0) ? remoteMe.history[0] : null;
+    const isUpdateAlert = latestEvent && latestEvent.type === 'update_alert';
+    const targetVer = (isUpdateAlert && latestEvent.targetVersion)
+      ? latestEvent.targetVersion
+      : (remoteMe.updateAlert ? remoteMe.updateAlert.targetVersion : "1.6.5");
+    const isOutdated = this.isNewerVersion(targetVer, this.appVersion);
+
+    if (isOutdated && (isUpdateAlert || remoteMe.updateAlert)) {
+      const alertMsg = (isUpdateAlert && latestEvent.note)
+        ? latestEvent.note
+        : `A new Loyalty Pass update (v${targetVer}) has been pushed by the Store Owner! Tap to install.`;
+      
+      this.showOwnerUpdateAlertModal(alertMsg, targetVer);
+      this.renderUpdateTopBanner(true, targetVer);
+
+      if (window.AndroidBridge && typeof window.AndroidBridge.postNativeNotification === 'function') {
+        window.AndroidBridge.postNativeNotification("⚡ Store Owner Update Notice", alertMsg);
+      }
+      this.checkForAppUpdates(false);
+    } else {
+      this.renderUpdateTopBanner(false);
+    }
     if (changed) {
       const idx = this.users.findIndex(u => u.phone === this.currentUser.phone);
       if (idx !== -1) {
@@ -408,11 +445,18 @@ class LoyaltyApp {
 
   setupRealtimeCustomerSync() {
     if (window.loyaltyDb && window.loyaltyDb.isReady && this.currentUser) {
-      window.loyaltyDb.subscribeToCustomerUpdates(this.currentUser.phone, (updatedCust) => {
-        if (updatedCust && this.currentUser && updatedCust.phone === this.currentUser.phone) {
-          this.applyRemoteUserUpdate(updatedCust);
+      window.loyaltyDb.subscribeToCustomerUpdates(
+        this.currentUser.phone,
+        (updatedCust) => {
+          if (updatedCust && this.currentUser && updatedCust.phone === this.currentUser.phone) {
+            this.applyRemoteUserUpdate(updatedCust);
+          }
+        },
+        () => {
+          this.showToast("Your loyalty pass was removed by the store owner.", "info");
+          this.handleLogout();
         }
-      });
+      );
     }
   }
 
@@ -803,6 +847,73 @@ class LoyaltyApp {
     }
 
     if (!user) {
+      // Check if mobile exists with another password
+      const phoneExists = this.users.some(u => {
+        const uClean = String(u.phone).replace(/\D/g, '').replace(/^91(?=\d{10}$)/, '').replace(/^0(?=\d{10}$)/, '');
+        return u.phone === rawPhone || u.phone === phone || uClean === phone;
+      });
+
+      if (phoneExists) {
+        if (window.soundEngine) window.soundEngine.playError();
+        this.showToast("Incorrect password for this registered mobile number.", "error");
+        return;
+      }
+
+      // If user enters a new mobile number (>= 10 digits) on Login tab, auto-create their loyalty pass seamlessly!
+      if (phone.length >= 10 && password) {
+        const devInfo = window.detectDeviceInfo ? await window.detectDeviceInfo() : { deviceName: "Mobile Device", deviceId: "" };
+        const timeStr = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+        const dateStr = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+        const fullDateStr = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+        const initialHistory = [
+          { 
+            date: `${dateStr}, ${timeStr}`, 
+            type: 'stamp', 
+            note: `Welcome Reward Claimed: 1st Loyalty Tick Unlocked! (Tick #1 of ${MAX_STAMPS})`,
+            device: devInfo.deviceName,
+            deviceId: devInfo.deviceId,
+            appVersion: this.appVersion,
+            versionCode: this.versionCode
+          },
+          { 
+            date: fullDateStr, 
+            type: 'joined', 
+            note: `Joined Loyalty Reward from ${devInfo.deviceName}`,
+            device: devInfo.deviceName,
+            deviceId: devInfo.deviceId,
+            appVersion: this.appVersion,
+            versionCode: this.versionCode
+          }
+        ];
+        user = {
+          phone,
+          name: 'Loyalty Member ' + phone.slice(-4),
+          password,
+          stamps: 1,
+          giftsEarned: 0,
+          memberId: 'GP-' + Math.floor(10000 + Math.random() * 90000),
+          deviceName: devInfo.deviceName,
+          deviceId: devInfo.deviceId,
+          appVersion: this.appVersion,
+          versionCode: this.versionCode,
+          history: initialHistory,
+          lastStampDate: new Date().toISOString().slice(0, 10),
+          createdAt: fullDateStr
+        };
+        this.users.push(user);
+        this.currentUser = user;
+        this.saveCurrentUser();
+        await this.pushUserToServer(user);
+        this.setupRealtimeCustomerSync();
+        this._hasScrolledToTop = false;
+        window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+        if (window.soundEngine) window.soundEngine.playStampSound();
+        this.triggerConfetti(false);
+        this.showToast(`🎉 Welcome to ${this.storeConfig.name}! New Pass created & 1st Stamp added! (1/${MAX_STAMPS})`, "success");
+        this.render();
+        return;
+      }
+
       if (window.soundEngine) window.soundEngine.playError();
       this.showToast("Invalid mobile number or password.", "error");
       return;
@@ -855,10 +966,12 @@ class LoyaltyApp {
       });
       user.lastStampDate = new Date().toISOString().slice(0, 10);
       this.saveCurrentUser();
+      await this.pushUserToServer(user);
       if (window.soundEngine) window.soundEngine.playStampSound();
       this.triggerConfetti(false);
       this.showToast(`🎁 Welcome Reward Claimed! 1st Stamp added to your card! (1/${MAX_STAMPS})`, "success");
     } else {
+      await this.pushUserToServer(user);
       if (window.soundEngine) window.soundEngine.playSuccessTone();
       this.showToast(`✨ Welcome back, ${user.name}!`, "success");
     }
@@ -958,6 +1071,8 @@ class LoyaltyApp {
     this.users.push(newUser);
     this.currentUser = newUser;
     this.saveCurrentUser();
+    await this.pushUserToServer(newUser);
+    this.setupRealtimeCustomerSync();
     this._hasScrolledToTop = false;
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
 
@@ -1890,6 +2005,21 @@ class LoyaltyApp {
         });
       }
 
+      // Deliver instant system notification to customer
+      if (window.AndroidBridge && typeof window.AndroidBridge.postNativeNotification === 'function') {
+        window.AndroidBridge.postNativeNotification(
+          "⚡ Sugar Cubes Loyalty Pass Update",
+          `Version ${targetCustomerVer} is ready to install! Tap to update.`
+        );
+      } else if ('Notification' in window && Notification.permission === 'granted') {
+        try {
+          new Notification("⚡ Sugar Cubes Loyalty Pass Update", {
+            body: `Version ${targetCustomerVer} is ready to install! Tap to update.`,
+            icon: './icons/icon-192.png'
+          });
+        } catch (_) {}
+      }
+
       if (isManual) {
         this.showToast(`⚡ New version ${updateData.version} is available!`, "gold");
       }
@@ -1916,6 +2046,43 @@ class LoyaltyApp {
       if (isManual) {
         this.showToast(`✅ You are using the latest version (v${this.appVersion})`, "success");
       }
+    }
+  }
+
+  showOwnerUpdateAlertModal(note, targetVer) {
+    const modal = document.getElementById('customerOwnerUpdateModal');
+    if (!modal) return;
+    const title = document.getElementById('ownerUpdateModalTitle');
+    const desc = document.getElementById('ownerUpdateModalDesc');
+    const target = targetVer || (this.latestUpdateInfo && (this.latestUpdateInfo.customerVersion || this.latestUpdateInfo.version)) || this.appVersion;
+    if (title) title.textContent = `New Update Available (v${target})`;
+    if (desc && note) desc.textContent = note;
+    modal.classList.add('active');
+    modal.style.setProperty('display', 'flex', 'important');
+    document.body.classList.add('modal-open');
+    if (window.soundEngine) window.soundEngine.playSuccessTone();
+  }
+
+  closeOwnerUpdateModal() {
+    const modal = document.getElementById('customerOwnerUpdateModal');
+    if (modal) {
+      modal.classList.remove('active');
+      modal.style.setProperty('display', 'none', 'important');
+      document.body.classList.remove('modal-open');
+    }
+  }
+
+  renderUpdateTopBanner(show, targetVer) {
+    const banner = document.getElementById('customerUpdateTopBanner');
+    if (!banner) return;
+    if (show) {
+      banner.style.setProperty('display', 'flex', 'important');
+      const textEl = banner.querySelector('.banner-text');
+      if (textEl) {
+        textEl.innerHTML = `Store Owner sent an update alert! <strong>Tap to update to v${targetVer || '1.6.5'}</strong>`;
+      }
+    } else {
+      banner.style.setProperty('display', 'none', 'important');
     }
   }
 
@@ -2140,6 +2307,14 @@ class LoyaltyApp {
     // Customer Logged In -> Show 11-Tick Loyalty Pass
     if (authView) authView.style.display = 'none';
     if (customerDashboard) customerDashboard.style.display = 'flex';
+
+    // Check if customer has an active update alert pending
+    const history = Array.isArray(this.currentUser.history) ? this.currentUser.history : [];
+    const latestEvent = history.length > 0 ? history[0] : null;
+    const hasPendingAlert = latestEvent && latestEvent.type === 'update_alert';
+    const targetVer = (hasPendingAlert && latestEvent.targetVersion) || (this.latestUpdateInfo && (this.latestUpdateInfo.customerVersion || this.latestUpdateInfo.version)) || "1.6.5";
+    const isOutdated = this.isNewerVersion(targetVer, this.appVersion);
+    this.renderUpdateTopBanner(isOutdated && hasPendingAlert, targetVer);
 
     const headerSub = document.getElementById('appHeaderSubtitle');
     if (headerSub) headerSub.innerText = `Digital Loyalty Member • ${this.currentUser.name}`;

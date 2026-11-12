@@ -65,8 +65,6 @@ class LoyaltySupabaseRepository {
     };
     if (u.deviceName) row.device_name = u.deviceName;
     if (u.deviceId) row.device_id = u.deviceId;
-    if (u.appVersion) row.app_version = u.appVersion;
-    if (u.versionCode) row.version_code = u.versionCode;
     return row;
   }
 
@@ -76,7 +74,16 @@ class LoyaltySupabaseRepository {
     let devId = db.device_id || '';
     let appVer = db.app_version || '';
     let verCode = db.version_code || 0;
+    let alertObj = null;
+
     if (Array.isArray(db.history)) {
+      if (db.history.length > 0 && db.history[0] && db.history[0].type === 'update_alert') {
+        alertObj = {
+          targetVersion: db.history[0].targetVersion || '',
+          sentAt: db.history[0].date || '',
+          status: 'pending'
+        };
+      }
       for (const h of db.history) {
         if (!dev && h && h.device) dev = h.device;
         if (!devId && h && h.deviceId) devId = h.deviceId;
@@ -95,6 +102,7 @@ class LoyaltySupabaseRepository {
       deviceId: devId,
       appVersion: appVer || '',
       versionCode: verCode || 0,
+      updateAlert: alertObj,
       history: Array.isArray(db.history) ? db.history : [],
       lastStampDate: db.last_stamp_date || null,
       lastUpdated: db.last_updated || Date.now(),
@@ -139,6 +147,7 @@ class LoyaltySupabaseRepository {
       const { data, error } = await this.client
         .from('customers')
         .select('*')
+        .neq('name', '__DELETED__')
         .order('last_updated', { ascending: false });
 
       if (error) {
@@ -146,7 +155,7 @@ class LoyaltySupabaseRepository {
         return null;
       }
       return Array.isArray(data) 
-        ? data.filter(d => d.phone && !d.phone.startsWith('__')).map(d => this.toLocalCustomer(d)) 
+        ? data.filter(d => d.phone && !d.phone.startsWith('__') && d.name !== '__DELETED__' && d.member_id !== '__DELETED__').map(d => this.toLocalCustomer(d)) 
         : [];
     } catch (e) {
       console.warn("Supabase network error:", e);
@@ -167,6 +176,9 @@ class LoyaltySupabaseRepository {
         console.warn("Supabase fetchCustomer error:", error);
         return null;
       }
+      if (data && (data.name === '__DELETED__' || data.member_id === '__DELETED__')) {
+        return null;
+      }
       return data ? this.toLocalCustomer(data) : null;
     } catch (e) {
       console.warn("Supabase network error:", e);
@@ -174,21 +186,71 @@ class LoyaltySupabaseRepository {
     }
   }
 
+  async deleteCustomer(phone) {
+    if (!this.isReady || !phone) return false;
+    const cleanPhone = String(phone).trim();
+    try {
+      // 1. Attempt direct SQL DELETE
+      try {
+        await this.client
+          .from('customers')
+          .delete()
+          .eq('phone', cleanPhone);
+      } catch (_) {}
+
+      // 2. Mark as __DELETED__ tombstone so query filters exclude it immediately
+      const time = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+      const date = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+      await this.client
+        .from('customers')
+        .update({
+          name: '__DELETED__',
+          member_id: '__DELETED__',
+          stamps: 0,
+          history: [{
+            type: 'account_deleted',
+            date: `${date}, ${time}`,
+            note: 'Customer account permanently deleted by Store Owner'
+          }],
+          last_updated: Date.now()
+        })
+        .eq('phone', cleanPhone);
+
+      // 3. Clean up any pending or past stamp requests for this customer
+      try {
+        await this.client
+          .from('stamp_requests')
+          .delete()
+          .eq('phone', cleanPhone);
+      } catch (_) {}
+
+      return true;
+    } catch (e) {
+      console.error("Supabase deleteCustomer error:", e);
+      return false;
+    }
+  }
+
   async upsertCustomer(customer) {
     if (!this.isReady || !customer || !customer.phone) return false;
     try {
       const row = this.toDbCustomer(customer);
+      // Clean out any transient fields not in Supabase customers schema
+      delete row.app_version;
+      delete row.version_code;
+
       let { error } = await this.client
         .from('customers')
         .upsert(row, { onConflict: 'phone' });
 
-      // If device_name, app_version or version_code column isn't created in Supabase yet, retry without them
-      if (error && error.message && (error.message.includes('device_name') || error.message.includes('app_version') || error.message.includes('version_code'))) {
-        if (error.message.includes('device_name')) delete row.device_name;
-        if (error.message.includes('app_version')) delete row.app_version;
-        if (error.message.includes('version_code')) delete row.version_code;
-        const res = await this.client.from('customers').upsert(row, { onConflict: 'phone' });
-        error = res.error;
+      // If unmapped column error occurs, extract the column name, strip it, and retry
+      if (error && error.message) {
+        const matches = error.message.match(/Could not find the '([^']+)' column/);
+        if (matches && matches[1]) {
+          delete row[matches[1]];
+          const res = await this.client.from('customers').upsert(row, { onConflict: 'phone' });
+          error = res.error;
+        }
       }
 
       if (error) {
@@ -205,21 +267,26 @@ class LoyaltySupabaseRepository {
   async upsertCustomers(customersList) {
     if (!this.isReady || !Array.isArray(customersList) || customersList.length === 0) return false;
     try {
-      let rows = customersList.map(c => this.toDbCustomer(c)).filter(Boolean);
+      let rows = customersList.map(c => {
+        const r = this.toDbCustomer(c);
+        if (r) {
+          delete r.app_version;
+          delete r.version_code;
+        }
+        return r;
+      }).filter(Boolean);
+
       let { error } = await this.client
         .from('customers')
         .upsert(rows, { onConflict: 'phone' });
 
-      if (error && error.message && (error.message.includes('device_name') || error.message.includes('app_version') || error.message.includes('version_code'))) {
-        rows = rows.map(r => {
-          const c = { ...r };
-          if (error.message.includes('device_name')) delete c.device_name;
-          if (error.message.includes('app_version')) delete c.app_version;
-          if (error.message.includes('version_code')) delete c.version_code;
-          return c;
-        });
-        const res = await this.client.from('customers').upsert(rows, { onConflict: 'phone' });
-        error = res.error;
+      if (error && error.message) {
+        const matches = error.message.match(/Could not find the '([^']+)' column/);
+        if (matches && matches[1]) {
+          rows.forEach(r => delete r[matches[1]]);
+          const res = await this.client.from('customers').upsert(rows, { onConflict: 'phone' });
+          error = res.error;
+        }
       }
 
       if (error) {
@@ -309,30 +376,38 @@ class LoyaltySupabaseRepository {
       // 2. If approved, add stamp to customer in database
       if (action === 'approved' && updatedReq) {
         const phone = updatedReq.phone;
-        const currentCust = customerObj || await this.fetchCustomer(phone);
-        if (currentCust) {
-          const currentStamps = parseInt(currentCust.stamps, 10) || 0;
-          if (currentStamps < 11) {
-            const nextStamps = currentStamps + 1;
-            const now = new Date();
-            const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            const dateStr = now.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-            const todayIso = now.toISOString().split('T')[0];
+        let currentCust = customerObj || await this.fetchCustomer(phone);
+        if (!currentCust) {
+          currentCust = {
+            phone: phone,
+            name: updatedReq.name || 'Loyalty Member',
+            memberId: updatedReq.member_id || ('GP-' + Math.floor(10000 + Math.random() * 90000)),
+            stamps: parseInt(updatedReq.current_stamps, 10) || 0,
+            giftsEarned: 0,
+            history: []
+          };
+        }
+        const currentStamps = parseInt(currentCust.stamps, 10) || 0;
+        if (currentStamps < 11) {
+          const nextStamps = currentStamps + 1;
+          const now = new Date();
+          const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          const dateStr = now.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+          const todayIso = now.toISOString().split('T')[0];
 
-            const newHistItem = {
-              date: `${dateStr}, ${timeStr}`,
-              type: 'stamp',
-              note: `Store Purchase (2nd Visit Cashier Approved) - Tick #${nextStamps} of 11 Collected`
-            };
+          const newHistItem = {
+            date: `${dateStr}, ${timeStr}`,
+            type: 'stamp',
+            note: `Store Purchase (2nd Visit Cashier Approved) - Tick #${nextStamps} of 11 Collected`
+          };
 
-            const updatedHistory = [newHistItem, ...(currentCust.history || [])];
-            currentCust.stamps = nextStamps;
-            currentCust.history = updatedHistory;
-            currentCust.lastStampDate = todayIso;
-            currentCust.lastUpdated = Date.now();
+          const updatedHistory = [newHistItem, ...(currentCust.history || [])];
+          currentCust.stamps = nextStamps;
+          currentCust.history = updatedHistory;
+          currentCust.lastStampDate = todayIso;
+          currentCust.lastUpdated = Date.now();
 
-            await this.upsertCustomer(currentCust);
-          }
+          await this.upsertCustomer(currentCust);
         }
       }
 
@@ -410,7 +485,7 @@ class LoyaltySupabaseRepository {
     return channel;
   }
 
-  subscribeToCustomerUpdates(phone, onUpdate) {
+  subscribeToCustomerUpdates(phone, onUpdate, onDelete) {
     if (!this.isReady || !phone) return null;
     const channelName = `cust_sync_${phone}`;
 
@@ -423,14 +498,52 @@ class LoyaltySupabaseRepository {
       .on(
         'postgres_changes',
         {
-          event: 'UPDATE',
+          event: '*',
           schema: 'public',
           table: 'customers',
           filter: `phone=eq.${String(phone).trim()}`
         },
         (payload) => {
-          if (payload.new) {
+          if (payload.eventType === 'DELETE' || (payload.new && (payload.new.name === '__DELETED__' || payload.new.member_id === '__DELETED__'))) {
+            if (typeof onDelete === 'function') onDelete();
+          } else if (payload.new) {
             onUpdate(this.toLocalCustomer(payload.new));
+          }
+        }
+      )
+      .subscribe();
+
+    this.activeChannels.set(channelName, channel);
+    return channel;
+  }
+
+  subscribeToAllCustomers(onCustomerChange) {
+    if (!this.isReady) return null;
+    const channelName = 'all_customers_stream';
+
+    if (this.activeChannels.has(channelName)) {
+      this.unsubscribe(channelName);
+    }
+
+    const channel = this.client
+      .channel(channelName)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'customers'
+        },
+        (payload) => {
+          if (payload.new) {
+            if (payload.new.name === '__DELETED__' || payload.new.member_id === '__DELETED__') {
+              onCustomerChange({ phone: payload.new.phone }, 'DELETE');
+              return;
+            }
+            const cust = this.toLocalCustomer(payload.new);
+            onCustomerChange(cust, payload.eventType);
+          } else if (payload.eventType === 'DELETE' && payload.old) {
+            onCustomerChange({ phone: payload.old.phone }, 'DELETE');
           }
         }
       )

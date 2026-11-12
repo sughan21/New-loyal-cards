@@ -147,6 +147,7 @@ class LoyaltySupabaseRepository {
       const { data, error } = await this.client
         .from('customers')
         .select('*')
+        .neq('name', '__DELETED__')
         .order('last_updated', { ascending: false });
 
       if (error) {
@@ -154,7 +155,7 @@ class LoyaltySupabaseRepository {
         return null;
       }
       return Array.isArray(data) 
-        ? data.filter(d => d.phone && !d.phone.startsWith('__')).map(d => this.toLocalCustomer(d)) 
+        ? data.filter(d => d.phone && !d.phone.startsWith('__') && d.name !== '__DELETED__' && d.member_id !== '__DELETED__').map(d => this.toLocalCustomer(d)) 
         : [];
     } catch (e) {
       console.warn("Supabase network error:", e);
@@ -175,10 +176,58 @@ class LoyaltySupabaseRepository {
         console.warn("Supabase fetchCustomer error:", error);
         return null;
       }
+      if (data && (data.name === '__DELETED__' || data.member_id === '__DELETED__')) {
+        return null;
+      }
       return data ? this.toLocalCustomer(data) : null;
     } catch (e) {
       console.warn("Supabase network error:", e);
       return null;
+    }
+  }
+
+  async deleteCustomer(phone) {
+    if (!this.isReady || !phone) return false;
+    const cleanPhone = String(phone).trim();
+    try {
+      // 1. Attempt direct SQL DELETE
+      try {
+        await this.client
+          .from('customers')
+          .delete()
+          .eq('phone', cleanPhone);
+      } catch (_) {}
+
+      // 2. Mark as __DELETED__ tombstone so query filters exclude it immediately
+      const time = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+      const date = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+      await this.client
+        .from('customers')
+        .update({
+          name: '__DELETED__',
+          member_id: '__DELETED__',
+          stamps: 0,
+          history: [{
+            type: 'account_deleted',
+            date: `${date}, ${time}`,
+            note: 'Customer account permanently deleted by Store Owner'
+          }],
+          last_updated: Date.now()
+        })
+        .eq('phone', cleanPhone);
+
+      // 3. Clean up any pending or past stamp requests for this customer
+      try {
+        await this.client
+          .from('stamp_requests')
+          .delete()
+          .eq('phone', cleanPhone);
+      } catch (_) {}
+
+      return true;
+    } catch (e) {
+      console.error("Supabase deleteCustomer error:", e);
+      return false;
     }
   }
 
@@ -436,7 +485,7 @@ class LoyaltySupabaseRepository {
     return channel;
   }
 
-  subscribeToCustomerUpdates(phone, onUpdate) {
+  subscribeToCustomerUpdates(phone, onUpdate, onDelete) {
     if (!this.isReady || !phone) return null;
     const channelName = `cust_sync_${phone}`;
 
@@ -449,13 +498,15 @@ class LoyaltySupabaseRepository {
       .on(
         'postgres_changes',
         {
-          event: 'UPDATE',
+          event: '*',
           schema: 'public',
           table: 'customers',
           filter: `phone=eq.${String(phone).trim()}`
         },
         (payload) => {
-          if (payload.new) {
+          if (payload.eventType === 'DELETE' || (payload.new && (payload.new.name === '__DELETED__' || payload.new.member_id === '__DELETED__'))) {
+            if (typeof onDelete === 'function') onDelete();
+          } else if (payload.new) {
             onUpdate(this.toLocalCustomer(payload.new));
           }
         }
@@ -485,6 +536,10 @@ class LoyaltySupabaseRepository {
         },
         (payload) => {
           if (payload.new) {
+            if (payload.new.name === '__DELETED__' || payload.new.member_id === '__DELETED__') {
+              onCustomerChange({ phone: payload.new.phone }, 'DELETE');
+              return;
+            }
             const cust = this.toLocalCustomer(payload.new);
             onCustomerChange(cust, payload.eventType);
           } else if (payload.eventType === 'DELETE' && payload.old) {

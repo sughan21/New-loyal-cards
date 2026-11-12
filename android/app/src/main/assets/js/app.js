@@ -445,11 +445,18 @@ class LoyaltyApp {
 
   setupRealtimeCustomerSync() {
     if (window.loyaltyDb && window.loyaltyDb.isReady && this.currentUser) {
-      window.loyaltyDb.subscribeToCustomerUpdates(this.currentUser.phone, (updatedCust) => {
-        if (updatedCust && this.currentUser && updatedCust.phone === this.currentUser.phone) {
-          this.applyRemoteUserUpdate(updatedCust);
+      window.loyaltyDb.subscribeToCustomerUpdates(
+        this.currentUser.phone,
+        (updatedCust) => {
+          if (updatedCust && this.currentUser && updatedCust.phone === this.currentUser.phone) {
+            this.applyRemoteUserUpdate(updatedCust);
+          }
+        },
+        () => {
+          this.showToast("Your loyalty pass was removed by the store owner.", "info");
+          this.handleLogout();
         }
-      });
+      );
     }
   }
 

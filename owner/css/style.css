@@ -5706,3 +5706,81 @@ body.modal-open {
   text-align: center !important;
   padding: 26px 20px !important;
 }
+
+/* ==========================================================================
+   CUSTOMER TOP UPDATE BANNER & OWNER UPDATE ALERT MODAL
+   ========================================================================== */
+
+.customer-update-top-banner {
+  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%) !important;
+  border: 1.5px solid #f59e0b !important;
+  border-radius: 14px !important;
+  padding: 10px 14px !important;
+  margin: 0 0 14px 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 10px !important;
+  cursor: pointer !important;
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.2) !important;
+  animation: bannerFadeIn 0.35s ease-out !important;
+  user-select: none !important;
+}
+
+.customer-update-top-banner:active {
+  transform: scale(0.98) !important;
+}
+
+.customer-update-top-banner .banner-pulse {
+  font-size: 1.25rem !important;
+  animation: updatePulseGlow 1.5s infinite !important;
+  flex-shrink: 0 !important;
+}
+
+.customer-update-top-banner .banner-text {
+  font-size: 0.82rem !important;
+  color: #92400e !important;
+  font-weight: 600 !important;
+  flex: 1 !important;
+  line-height: 1.35 !important;
+}
+
+.customer-update-top-banner .banner-arrow {
+  font-size: 0.95rem !important;
+  color: #b45309 !important;
+  font-weight: 800 !important;
+  flex-shrink: 0 !important;
+}
+
+@keyframes bannerFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Owner Push Alert Sent Feedback Button */
+.btn-push-update-alert.sent {
+  background: rgba(16, 185, 129, 0.12) !important;
+  border-color: rgba(16, 185, 129, 0.45) !important;
+  color: #059669 !important;
+}
+
+.btn-push-update-alert.sent:hover {
+  background: rgba(16, 185, 129, 0.2) !important;
+}
+
+.update-alert-dialog {
+  max-width: 420px !important;
+  width: 92% !important;
+  background: #ffffff !important;
+  border: 1px solid #e7dfd5 !important;
+  border-radius: 20px !important;
+  box-shadow: 0 16px 40px rgba(28, 18, 12, 0.2) !important;
+  text-align: center !important;
+  padding: 26px 20px !important;
+}
