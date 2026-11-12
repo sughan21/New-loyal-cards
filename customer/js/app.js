@@ -114,6 +114,13 @@ class LoyaltyApp {
         });
       }
     }
+
+    // Auto-record installed app version & build code on customer profile for store owner tracking
+    if (this.currentUser && (this.currentUser.appVersion !== this.appVersion || !this.currentUser.appVersion)) {
+      this.currentUser.appVersion = this.appVersion;
+      this.currentUser.versionCode = this.versionCode;
+      this.saveCurrentUser();
+    }
   }
 
   setupOfflineSync() {
@@ -798,6 +805,8 @@ class LoyaltyApp {
     user.deviceId = devInfo.deviceId;
     user.lastLoginDevice = devInfo.deviceName;
     user.lastLoginAt = new Date().toISOString();
+    user.appVersion = this.appVersion;
+    user.versionCode = this.versionCode;
 
     // Ensure history is an array and clean out any old login records
     if (!Array.isArray(user.history)) user.history = [];
@@ -928,6 +937,8 @@ class LoyaltyApp {
       memberId: 'GP-' + Math.floor(10000 + Math.random() * 90000),
       deviceName: deviceName,
       deviceId: deviceId,
+      appVersion: this.appVersion,
+      versionCode: this.versionCode,
       history: initialHistory,
       lastStampDate: new Date().toISOString().slice(0, 10),
       createdAt: fullDateStr

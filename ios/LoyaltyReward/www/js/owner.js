@@ -1498,6 +1498,84 @@ class StoreOwnerApp {
     this.renderCustomerList();
   }
 
+  // --- Customer Version Helpers ---
+  getTargetCustomerVersion() {
+    if (this.latestUpdateInfo && (this.latestUpdateInfo.customerVersion || this.latestUpdateInfo.version)) {
+      return this.latestUpdateInfo.customerVersion || this.latestUpdateInfo.version;
+    }
+    const broadcastVer = localStorage.getItem('loyalty_owner_broadcast_version');
+    if (broadcastVer) return broadcastVer;
+    return this.appVersion || "1.6.4";
+  }
+
+  isCustomerOutdated(customer) {
+    if (!customer) return false;
+    const targetVer = this.getTargetCustomerVersion();
+    const custVer = customer.appVersion;
+    if (!custVer) return true;
+    return this.isNewerVersion(targetVer, custVer);
+  }
+
+  sendWhatsAppUpdate(phone, encodedName, currentVer) {
+    const name = decodeURIComponent(encodedName || 'Valued Customer');
+    const targetVer = this.getTargetCustomerVersion();
+    const cleanPhone = String(phone).replace(/\D/g, '');
+    const intlPhone = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
+    const downloadUrl = 'https://sughan21.github.io/New-loyal-cards/LoyaltyPass-Customer.apk';
+
+    const cust = this.users.find(u => u.phone === phone);
+    const stamps = cust ? (cust.stamps || 0) : 0;
+
+    const message = `Hello ${name}! 👋\n\n` +
+      `A new update (*v${targetVer}*) is ready for your *Sugar Cubes Loyalty Pass* app! 🎁✨\n\n` +
+      `⚠️ *IMPORTANT UPDATE STEPS:*\n` +
+      `1️⃣ Please *uninstall the older version* of the Loyalty Pass app from your phone first.\n` +
+      `2️⃣ Download and install the new version from this official link:\n` +
+      `👉 ${downloadUrl}\n\n` +
+      `💡 *Don't worry:* All your loyalty stamps (${stamps}/11 ticks), rewards, and free gift progress are safely saved in the cloud and will restore automatically when you sign in with your mobile number (*${phone}*)!\n\n` +
+      `Thank you! 🌟\n- Sugar Cubes Store`;
+
+    const waUrl = `https://wa.me/${intlPhone}?text=${encodeURIComponent(message)}`;
+
+    if (window.AndroidBridge && typeof window.AndroidBridge.openExternalUrl === 'function') {
+      window.AndroidBridge.openExternalUrl(waUrl);
+    } else {
+      window.open(waUrl, '_blank');
+    }
+
+    this.showToast(`💬 Opening WhatsApp to send update instructions to ${name}...`, "success");
+  }
+
+  async pushIndividualCustomerUpdate(phone, encodedName) {
+    const name = decodeURIComponent(encodedName || phone);
+    const customer = this.users.find(u => u.phone === phone);
+    if (!customer) return;
+
+    const targetVer = this.getTargetCustomerVersion();
+    const time = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+    const date = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+
+    customer.updateAlert = {
+      targetVersion: targetVer,
+      sentAt: new Date().toISOString(),
+      status: 'pending'
+    };
+
+    if (!Array.isArray(customer.history)) customer.history = [];
+    customer.history.unshift({
+      date: `${date}, ${time}`,
+      type: "update_alert",
+      note: `⚡ System Update Alert (v${targetVer}) pushed by Store Owner: Please uninstall older version & install new build!`
+    });
+
+    this.saveUsers();
+    await this.pushCustomerToServer(customer);
+
+    if (window.soundEngine) window.soundEngine.playSuccessTone();
+    this.showToast(`📲 Update alert (v${targetVer}) pushed to ${name}!`, "gold");
+    this.renderCustomerList();
+  }
+
   // --- Card Stamp History Toggle Handler ---
   toggleCustomerHistory(phone) {
     const pStr = String(phone);
@@ -1520,6 +1598,7 @@ class StoreOwnerApp {
     const activeOffers = this.users.filter(u => Number(u.stamps || 0) >= MILESTONE_20_OFF && Number(u.stamps || 0) < MAX_STAMPS).length;
     const inProgress = this.users.filter(u => Number(u.stamps || 0) >= 1 && Number(u.stamps || 0) < MAX_STAMPS).length;
     const newCust = this.users.filter(u => Number(u.stamps || 0) === 0).length;
+    const outdatedCust = this.users.filter(u => this.isCustomerOutdated(u)).length;
     const totalGiftsRedeemed = this.users.reduce((acc, u) => acc + (Number(u.giftsEarned) || 0), 0);
 
     const elTotal = document.getElementById('ownerTotalCustomers');
@@ -1545,6 +1624,8 @@ class StoreOwnerApp {
     if (pillProg) pillProg.innerText = inProgress;
     const pillNew = document.getElementById('pillCountNew');
     if (pillNew) pillNew.innerText = newCust;
+    const pillOutdated = document.getElementById('pillCountOutdated');
+    if (pillOutdated) pillOutdated.innerText = outdatedCust;
 
     // Synchronize active class and aria-selected state on filter pills
     document.querySelectorAll('.filter-pill').forEach(pill => {
@@ -1572,6 +1653,8 @@ class StoreOwnerApp {
       filtered = filtered.filter(u => Number(u.stamps || 0) >= 1 && Number(u.stamps || 0) < MAX_STAMPS);
     } else if (this.ownerFilter === 'new') {
       filtered = filtered.filter(u => Number(u.stamps || 0) === 0);
+    } else if (this.ownerFilter === 'outdated') {
+      filtered = filtered.filter(u => this.isCustomerOutdated(u));
     }
 
     if (this.ownerSearchQuery) {
@@ -1599,7 +1682,8 @@ class StoreOwnerApp {
           'offers': 'Active Offers (5 or 8 Ticks)',
           'urgent': 'Active Offers (5 or 8 Ticks)',
           'progress': 'In Progress (1-10 Ticks)',
-          'new': 'New Customers (0 Ticks)'
+          'new': 'New Customers (0 Ticks)',
+          'outdated': 'Customers Needing App Update'
         };
         const currentName = filterNames[this.ownerFilter] || 'Selected Filter';
         listEl.innerHTML = `
@@ -1625,6 +1709,10 @@ class StoreOwnerApp {
       const history = Array.isArray(customer.history) ? customer.history : [];
       const isExpanded = this.expandedCustomerPhones.has(String(customer.phone));
       const latestEvent = history.length > 0 ? history[0] : null;
+
+      const targetVer = this.getTargetCustomerVersion();
+      const isOutdated = this.isCustomerOutdated(customer);
+      const customerVer = customer.appVersion;
 
       let badgeHtml = '';
       if (stamps >= MAX_STAMPS) {
@@ -1661,6 +1749,7 @@ class StoreOwnerApp {
         historyItemsHtml = displayHistory.map(item => {
           const isReward = item.type === 'reward';
           const isJoined = item.type === 'joined';
+          const isUpdateAlert = item.type === 'update_alert';
           let tagText = '✓ STAMP';
           let tagClass = 'tag-stamp';
           if (isReward) {
@@ -1669,6 +1758,9 @@ class StoreOwnerApp {
           } else if (isJoined) {
             tagText = '★ JOINED';
             tagClass = 'tag-joined';
+          } else if (isUpdateAlert) {
+            tagText = '⚡ UPDATE';
+            tagClass = 'tag-update-alert';
           }
           return `
             <div class="history-item-row">
@@ -1693,13 +1785,16 @@ class StoreOwnerApp {
             <div class="customer-name-phone">
               <h4 onclick="window.ownerApp.toggleCustomerHistory('${customer.phone}')" style="cursor: pointer;" title="Click to view stamp history">${customer.name}</h4>
               <p>📞 ${customer.phone} <span class="customer-id-tag">(${customer.memberId || 'GP-10023'})</span></p>
-              ${(customer.deviceName || (history.find(h => h.device) && history.find(h => h.device).device)) ? `
-                <div style="margin-top: 3px;">
+              <div style="margin-top: 3px; display: flex; flex-wrap: wrap; gap: 5px; align-items: center;">
+                ${(customer.deviceName || (history.find(h => h.device) && history.find(h => h.device).device)) ? `
                   <span style="display: inline-flex; align-items: center; gap: 4px; font-size: 0.7rem; color: #38bdf8; background: rgba(56, 189, 248, 0.12); padding: 2px 7px; border-radius: 5px; border: 1px solid rgba(56, 189, 248, 0.25); font-weight: 600;">
                     📱 ${customer.deviceName || (history.find(h => h.device) && history.find(h => h.device).device)}
                   </span>
-                </div>
-              ` : ''}
+                ` : ''}
+                <span class="customer-ver-tag ${isOutdated ? 'outdated' : 'up-to-date'}" title="${isOutdated ? 'Needs update to latest version v' + targetVer : 'Up to date with version v' + (customerVer || targetVer)}">
+                  ${isOutdated ? `⚠️ ${customerVer ? 'v' + customerVer : 'Older Version'} (Update Needed)` : `✓ v${customerVer || targetVer} (Up to Date)`}
+                </span>
+              </div>
               ${latestEvent ? `
                 <div class="customer-latest-stamp-hint" onclick="window.ownerApp.toggleCustomerHistory('${customer.phone}')" style="cursor: pointer;" title="${latestEvent.note} (${latestEvent.date})">
                   <span class="hint-dot"></span>
@@ -1752,6 +1847,23 @@ class StoreOwnerApp {
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
             </button>
           </div>
+
+          ${isOutdated ? `
+            <!-- Customer App Outdated Alert & Direct Push / WhatsApp Action Bar -->
+            <div class="customer-update-box">
+              <div class="customer-update-box-info">
+                <span>⚠️ <strong>App Update Needed:</strong> Using ${customerVer ? 'v' + customerVer : 'older build'} • Latest is <strong>v${targetVer}</strong></span>
+              </div>
+              <div class="customer-update-box-actions">
+                <button type="button" class="btn-push-update-alert" onclick="window.ownerApp.pushIndividualCustomerUpdate('${customer.phone}', '${encodeURIComponent(customer.name)}')" title="Send in-app update notification to this customer">
+                  📲 Push Update Alert
+                </button>
+                <button type="button" class="btn-whatsapp-update" onclick="window.ownerApp.sendWhatsAppUpdate('${customer.phone}', '${encodeURIComponent(customer.name)}', '${customerVer || 'older'}')" title="Send WhatsApp message with uninstall older & install new version instructions">
+                  💬 Send on WhatsApp
+                </button>
+              </div>
+            </div>
+          ` : ''}
 
           <!-- Expandable Card Stamp History Drawer Matching Reference Image -->
           <div id="historyDrawer-${customer.phone}" class="customer-history-drawer" style="display: ${isExpanded ? 'block' : 'none'};">

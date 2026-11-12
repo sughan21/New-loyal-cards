@@ -193,7 +193,7 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
 
-                if (scheme == "tel" || scheme == "mailto" || scheme == "whatsapp") {
+                if (scheme == "tel" || scheme == "mailto" || scheme == "whatsapp" || uri.host?.contains("whatsapp") == true || uri.host == "wa.me") {
                     try {
                         val intent = Intent(Intent.ACTION_VIEW, uri)
                         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
@@ -429,6 +429,20 @@ class MainActivity : AppCompatActivity() {
                 val prefs = context.getSharedPreferences("loyalty_app_prefs", android.content.Context.MODE_PRIVATE)
                 prefs.edit().remove("saved_customer_phone").remove("saved_customer_profile").apply()
             } catch (e: Exception) {}
+        }
+
+        @JavascriptInterface
+        fun openExternalUrl(url: String) {
+            val act = context as? MainActivity ?: return
+            act.runOnUiThread {
+                try {
+                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    context.startActivity(intent)
+                } catch (e: Exception) {
+                    Toast.makeText(context, "Could not open link: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
+            }
         }
     }
 }
