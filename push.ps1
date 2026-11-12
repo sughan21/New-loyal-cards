@@ -1,4 +1,4 @@
-﻿# Quick 1-command GitHub push from IDE PowerShell terminal
+# Quick 1-command GitHub push from IDE PowerShell terminal
 $git = "$PSScriptRoot\bin\git\cmd\git.exe"
 if (-not (Test-Path $git)) { $git = "git" }
 
@@ -20,3 +20,4 @@ if ($LASTEXITCODE -eq 0) {
 } else {
     Write-Host "`n❌ Push failed with exit code $LASTEXITCODE" -ForegroundColor Red
 }
+
