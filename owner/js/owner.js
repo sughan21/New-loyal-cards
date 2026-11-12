@@ -815,6 +815,35 @@ class StoreOwnerApp {
       }
       if (newUpdateVerText) newUpdateVerText.textContent = `Version ${updateData.version} Available`;
       if (newUpdateNotesText) newUpdateNotesText.textContent = updateData.notes || 'Terminal improvements available.';
+
+      // Dynamically populate What's New Feature List
+      const ownerFeatureListEl = document.getElementById('ownerNewUpdateFeatureList');
+      if (ownerFeatureListEl) {
+        ownerFeatureListEl.innerHTML = '';
+        let items = [];
+
+        if (Array.isArray(updateData.features) && updateData.features.length > 0) {
+          items = updateData.features;
+        } else if (updateData.notes) {
+          items = updateData.notes.split(/\n|•|;|\band\b|(?<=\.)\s+/).map(s => s.trim().replace(/^[-*•]\s*/, '')).filter(s => s.length > 4);
+        }
+
+        if (items.length === 0) {
+          items = [
+            "Seamless 1-tap terminal updates without uninstalling",
+            "Realtime Supabase cross-device sync",
+            "Optimized counter scan flow and cashier tools",
+            "Enhanced security, battery & offline reliability"
+          ];
+        }
+
+        items.forEach(feat => {
+          const itemEl = document.createElement('div');
+          itemEl.className = 'new-update-feature-item';
+          itemEl.innerHTML = `<span class="new-update-feature-dot">✓</span><span>${feat}</span>`;
+          ownerFeatureListEl.appendChild(itemEl);
+        });
+      }
       if (isManual) this.showToast(`⚡ New version ${updateData.version} is available!`, "gold");
     } else {
       ownerBadgeIds.forEach(id => {
@@ -883,18 +912,28 @@ class StoreOwnerApp {
 
   async handleBroadcastVersion() {
     const input = document.getElementById('broadcastVersionInput');
+    const notesInput = document.getElementById('broadcastNotesInput');
     const newVer = input ? input.value.trim() : '';
     if (!newVer) {
-      this.showToast("Please enter a version number (e.g. 1.6.3)", "error");
+      this.showToast("Please enter a version number (e.g. 1.6.4)", "error");
       return;
     }
+
+    const customNotes = notesInput && notesInput.value.trim() ? notesInput.value.trim() : "Seamless 1-tap updates, faster cloud sync & iPhone pass support.";
+    const customFeatures = customNotes.split(/\n|•|;|\band\b|(?<=\.)\s+/).map(s => s.trim().replace(/^[-*•]\s*/, '')).filter(s => s.length > 3);
 
     const payload = {
       version: newVer,
       versionCode: (this.versionCode || 9) + 1,
       releaseDate: new Date().toISOString().slice(0, 10),
       title: "Loyalty Pass Update",
-      notes: "Latest features and improvements released by store owner.",
+      notes: customNotes,
+      features: customFeatures.length > 0 ? customFeatures : [
+        "Seamless 1-tap app updates without uninstalling",
+        "Instant cloud stamp & reward sync",
+        "Apple iPhone Safari pass & Android dual mode",
+        "Verified release security & performance fixes"
+      ],
       customerApk: "LoyaltyPass-Customer.apk",
       ownerApk: "StoreTerminal-Owner.apk",
       downloadUrl: "download.html"

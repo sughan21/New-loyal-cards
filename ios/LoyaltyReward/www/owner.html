@@ -665,7 +665,31 @@
         <div id="ownerNewUpdateBanner" class="new-update-banner" style="display: none !important;">
           <div class="new-update-tag">⚡ TERMINAL UPDATE AVAILABLE</div>
           <div class="new-update-ver" id="ownerNewUpdateVerText">New Version Available</div>
-          <p class="new-update-notes" id="ownerNewUpdateNotesText">Features improvements, faster sync, and latest fixes.</p>
+          <p class="new-update-notes" id="ownerNewUpdateNotesText" style="display: none;"></p>
+
+          <!-- What's New Feature Highlights Box -->
+          <div id="ownerNewUpdateChangelogBox" class="new-update-changelog-box">
+            <div class="new-update-changelog-title">✨ What's New in this update:</div>
+            <div id="ownerNewUpdateFeatureList" class="new-update-feature-list">
+              <div class="new-update-feature-item">
+                <span class="new-update-feature-dot">✓</span>
+                <span>Seamless 1-tap in-place updates without uninstalling</span>
+              </div>
+              <div class="new-update-feature-item">
+                <span class="new-update-feature-dot">✓</span>
+                <span>Realtime Supabase cross-device sync</span>
+              </div>
+              <div class="new-update-feature-item">
+                <span class="new-update-feature-dot">✓</span>
+                <span>Optimized counter scan flow and cashier tools</span>
+              </div>
+              <div class="new-update-feature-item">
+                <span class="new-update-feature-dot">✓</span>
+                <span>Enhanced security, battery &amp; offline reliability</span>
+              </div>
+            </div>
+          </div>
+
           <button id="ownerApplyUpdateBtn" class="btn-update-now">
             <span>🚀 Update Terminal App</span>
           </button>
@@ -686,12 +710,16 @@
         <p style="font-size: 0.74rem; color: var(--text-secondary); margin-bottom: 10px;">
           When you release a new app build or backend update, bump the version here. All Store Terminals and Customer Passes will immediately receive the update notification!
         </p>
-        <div style="display: flex; gap: 8px; margin-bottom: 8px;">
-          <input type="text" id="broadcastVersionInput" class="custom-input" placeholder="e.g. 1.6.4"
-            style="flex: 1; font-size: 0.85rem; padding: 8px 10px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); color: #fff; border-radius: 8px;">
-          <button id="broadcastVersionBtn" class="primary-btn" style="white-space: nowrap; padding: 8px 14px; margin: 0; font-size: 0.8rem;">
-            📢 Publish Version
-          </button>
+        <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px;">
+          <div style="display: flex; gap: 8px;">
+            <input type="text" id="broadcastVersionInput" class="custom-input" placeholder="e.g. 1.6.4"
+              style="flex: 1; font-size: 0.85rem; padding: 8px 10px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); color: #fff; border-radius: 8px;">
+            <button id="broadcastVersionBtn" class="primary-btn" style="white-space: nowrap; padding: 8px 14px; margin: 0; font-size: 0.8rem;">
+              📢 Publish Version
+            </button>
+          </div>
+          <input type="text" id="broadcastNotesInput" class="custom-input" placeholder="What's new in this release (e.g. 1-Tap updates, Faster sync, New gift rewards)"
+            style="font-size: 0.78rem; padding: 7px 10px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); color: #fff; border-radius: 8px;">
         </div>
       </div>
 

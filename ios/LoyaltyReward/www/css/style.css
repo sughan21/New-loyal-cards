@@ -4650,6 +4650,54 @@ body.store-mode-active .app-container {
   margin: 0 !important;
 }
 
+/* What's New Feature List in Update Banner */
+.new-update-changelog-box {
+  background: rgba(255, 255, 255, 0.75) !important;
+  border: 1px solid rgba(217, 119, 6, 0.22) !important;
+  border-radius: 10px !important;
+  padding: 10px 12px !important;
+  margin: 2px 0 6px 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 6px !important;
+  text-align: left !important;
+}
+
+.new-update-changelog-title {
+  font-size: 0.72rem !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.05em !important;
+  text-transform: uppercase !important;
+  color: #92400e !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 5px !important;
+}
+
+.new-update-feature-list {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 5px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.new-update-feature-item {
+  font-size: 0.78rem !important;
+  color: #451a03 !important;
+  line-height: 1.35 !important;
+  display: flex !important;
+  align-items: flex-start !important;
+  gap: 6px !important;
+}
+
+.new-update-feature-dot {
+  color: #059669 !important;
+  font-weight: 900 !important;
+  flex-shrink: 0 !important;
+  font-size: 0.82rem !important;
+}
+
 .btn-update-now {
   background: linear-gradient(135deg, #d49b4f 0%, #b87c32 100%) !important;
   color: #ffffff !important;

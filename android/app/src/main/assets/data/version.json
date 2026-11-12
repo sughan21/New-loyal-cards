@@ -3,7 +3,13 @@
     "versionCode":  12,
     "releaseDate":  "2026-11-12",
     "title":  "Loyalty Pass v1.6.4 Update",
-    "notes":  "Latest release update with clean status display, fast cloud sync, and 1-tap in-place updater.",
+    "notes":  "Seamless 1-tap updates, faster cloud sync & iPhone pass support.",
+    "features": [
+        "Seamless 1-tap app updates without uninstalling",
+        "Instant cloud stamp & reward sync",
+        "Apple iPhone Safari pass & Android dual mode",
+        "Verified release security & performance fixes"
+    ],
     "customerApk":  "LoyaltyPass-Customer.apk",
     "ownerApk":  "StoreTerminal-Owner.apk",
     "downloadUrl":  "download.html"

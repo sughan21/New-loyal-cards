@@ -1655,6 +1655,35 @@ class LoyaltyApp {
       if (newUpdateVerText) newUpdateVerText.textContent = `Version ${updateData.version} Available`;
       if (newUpdateNotesText) newUpdateNotesText.textContent = updateData.notes || updateData.description || 'New features, improvements and fixes.';
 
+      // Dynamically populate What's New Feature List
+      const featureListEl = document.getElementById('newUpdateFeatureList');
+      if (featureListEl) {
+        featureListEl.innerHTML = '';
+        let items = [];
+
+        if (Array.isArray(updateData.features) && updateData.features.length > 0) {
+          items = updateData.features;
+        } else if (updateData.notes) {
+          items = updateData.notes.split(/\n|•|;|\band\b|(?<=\.)\s+/).map(s => s.trim().replace(/^[-*•]\s*/, '')).filter(s => s.length > 4);
+        }
+
+        if (items.length === 0) {
+          items = [
+            "Seamless 1-tap app updates without uninstalling",
+            "Instant cloud stamp & reward sync",
+            "Apple iPhone Safari pass & Android dual mode",
+            "Verified release security & performance fixes"
+          ];
+        }
+
+        items.forEach(feat => {
+          const itemEl = document.createElement('div');
+          itemEl.className = 'new-update-feature-item';
+          itemEl.innerHTML = `<span class="new-update-feature-dot">✓</span><span>${feat}</span>`;
+          featureListEl.appendChild(itemEl);
+        });
+      }
+
       if (isManual) {
         this.showToast(`⚡ New version ${updateData.version} is available!`, "gold");
       }
