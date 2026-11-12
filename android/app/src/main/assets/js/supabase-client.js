@@ -317,30 +317,38 @@ class LoyaltySupabaseRepository {
       // 2. If approved, add stamp to customer in database
       if (action === 'approved' && updatedReq) {
         const phone = updatedReq.phone;
-        const currentCust = customerObj || await this.fetchCustomer(phone);
-        if (currentCust) {
-          const currentStamps = parseInt(currentCust.stamps, 10) || 0;
-          if (currentStamps < 11) {
-            const nextStamps = currentStamps + 1;
-            const now = new Date();
-            const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            const dateStr = now.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-            const todayIso = now.toISOString().split('T')[0];
+        let currentCust = customerObj || await this.fetchCustomer(phone);
+        if (!currentCust) {
+          currentCust = {
+            phone: phone,
+            name: updatedReq.name || 'Loyalty Member',
+            memberId: updatedReq.member_id || ('GP-' + Math.floor(10000 + Math.random() * 90000)),
+            stamps: parseInt(updatedReq.current_stamps, 10) || 0,
+            giftsEarned: 0,
+            history: []
+          };
+        }
+        const currentStamps = parseInt(currentCust.stamps, 10) || 0;
+        if (currentStamps < 11) {
+          const nextStamps = currentStamps + 1;
+          const now = new Date();
+          const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          const dateStr = now.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+          const todayIso = now.toISOString().split('T')[0];
 
-            const newHistItem = {
-              date: `${dateStr}, ${timeStr}`,
-              type: 'stamp',
-              note: `Store Purchase (2nd Visit Cashier Approved) - Tick #${nextStamps} of 11 Collected`
-            };
+          const newHistItem = {
+            date: `${dateStr}, ${timeStr}`,
+            type: 'stamp',
+            note: `Store Purchase (2nd Visit Cashier Approved) - Tick #${nextStamps} of 11 Collected`
+          };
 
-            const updatedHistory = [newHistItem, ...(currentCust.history || [])];
-            currentCust.stamps = nextStamps;
-            currentCust.history = updatedHistory;
-            currentCust.lastStampDate = todayIso;
-            currentCust.lastUpdated = Date.now();
+          const updatedHistory = [newHistItem, ...(currentCust.history || [])];
+          currentCust.stamps = nextStamps;
+          currentCust.history = updatedHistory;
+          currentCust.lastStampDate = todayIso;
+          currentCust.lastUpdated = Date.now();
 
-            await this.upsertCustomer(currentCust);
-          }
+          await this.upsertCustomer(currentCust);
         }
       }
 

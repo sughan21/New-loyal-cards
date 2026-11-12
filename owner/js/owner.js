@@ -26,7 +26,7 @@ const DEFAULT_STORE = {
 };
 
 // Known mock demo customer phone numbers & automation accounts to purge
-const MOCK_DEMO_PHONES = ["9876543210", "9811223344", "9822334455", "9833445566", "9988776655", "9876543211", "9840123456", "test_check_cols", "6369095106", "918940757402", "9698970896"];
+const MOCK_DEMO_PHONES = ["test_check_cols"];
 const DEFAULT_USERS = [];
 
 const API_BASE_URL = (function() {
