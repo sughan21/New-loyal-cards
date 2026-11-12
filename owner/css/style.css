@@ -2857,8 +2857,29 @@ body.store-mode-active .app-container {
 }
 
 /* ==========================================================================
-   MODALS & VIEWPORT
+   MODALS & VIEWPORT (BACKGROUND SCROLL LOCK & POPUP ISOLATION)
    ========================================================================== */
+
+/* Freeze background scrolling completely whenever ANY modal popup is open */
+body.modal-open,
+html.modal-open,
+body:has(.modal-backdrop.active),
+html:has(.modal-backdrop.active) {
+  overflow: hidden !important;
+  height: 100% !important;
+  max-height: 100vh !important;
+  touch-action: none !important;
+  -webkit-overflow-scrolling: auto !important;
+  overscroll-behavior: none !important;
+}
+
+body.modal-open .app-container,
+body:has(.modal-backdrop.active) .app-container {
+  overflow: hidden !important;
+  pointer-events: none !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+}
 
 .modal-backdrop {
   position: fixed;
@@ -2877,6 +2898,9 @@ body.store-mode-active .app-container {
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.2s ease;
+  /* Prevent scroll chaining from backdrop to background page */
+  overscroll-behavior: contain !important;
+  touch-action: none !important;
 }
 
 .modal-backdrop.active {
@@ -2885,7 +2909,12 @@ body.store-mode-active .app-container {
 }
 
 .modal-dialog,
-.modal-card {
+.modal-card,
+.settings-dialog,
+.owner-approval-dialog,
+.forgot-dialog,
+.store-scan-dialog,
+.install-app-modal-card {
   background: var(--bg-surface-elevated);
   border: 1px solid var(--border-medium);
   border-radius: var(--radius-xl);
@@ -2897,15 +2926,26 @@ body.store-mode-active .app-container {
   flex-direction: column;
   gap: 14px;
   position: relative;
-  max-height: 90vh;
-  overflow-y: auto;
+  max-height: 85vh !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
   box-sizing: border-box;
   transform: translateY(12px) scale(0.98);
   transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  /* Isolate scrolling exclusively to the modal dialog */
+  overscroll-behavior: contain !important;
+  -webkit-overflow-scrolling: touch !important;
+  touch-action: pan-y !important;
+  pointer-events: auto !important;
 }
 
 .modal-backdrop.active .modal-dialog,
-.modal-backdrop.active .modal-card {
+.modal-backdrop.active .modal-card,
+.modal-backdrop.active .settings-dialog,
+.modal-backdrop.active .owner-approval-dialog,
+.modal-backdrop.active .forgot-dialog,
+.modal-backdrop.active .store-scan-dialog,
+.modal-backdrop.active .install-app-modal-card {
   transform: translateY(0) scale(1);
 }
 
@@ -4502,6 +4542,13 @@ body.store-mode-active .app-container {
   box-shadow: 0 24px 60px rgba(35, 20, 10, 0.25), 0 4px 18px rgba(0, 0, 0, 0.08) !important;
   color: #1c120c !important;
   position: relative !important;
+  max-height: 85vh !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  overscroll-behavior: contain !important;
+  -webkit-overflow-scrolling: touch !important;
+  touch-action: pan-y !important;
+  pointer-events: auto !important;
 }
 
 .settings-modal-icon {

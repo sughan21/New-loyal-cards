@@ -451,6 +451,9 @@ class LoyaltyApp {
       });
     });
 
+    // Setup modal scroll isolation (locks background page scrolling while modal is active)
+    this.setupModalScrollIsolation();
+
     // Settings & In-App Update Triggers (Header, Mobile Dashboard & Auth Card)
     ['openSettingsBtn', 'customerSettingsBtn', 'authSettingsBtn'].forEach(btnId => {
       const btn = document.getElementById(btnId);
@@ -1128,6 +1131,42 @@ class LoyaltyApp {
     this.startLiveScanner();
   }
 
+  setupModalScrollIsolation() {
+    const updateBodyLock = () => {
+      const activeBackdrop = document.querySelector('.modal-backdrop.active');
+      if (activeBackdrop) {
+        document.body.classList.add('modal-open');
+        document.documentElement.classList.add('modal-open');
+      } else {
+        document.body.classList.remove('modal-open');
+        document.documentElement.classList.remove('modal-open');
+      }
+    };
+
+    if (typeof MutationObserver !== 'undefined') {
+      const observer = new MutationObserver(() => updateBodyLock());
+      document.querySelectorAll('.modal-backdrop').forEach(modal => {
+        observer.observe(modal, { attributes: true, attributeFilter: ['class', 'style'] });
+      });
+    }
+
+    // Isolate touch scrolling: prevent dragging backdrop from scrolling page behind modal
+    document.querySelectorAll('.modal-backdrop').forEach(modal => {
+      modal.addEventListener('touchmove', (e) => {
+        if (e.target === modal) {
+          e.preventDefault();
+        }
+      }, { passive: false });
+    });
+
+    // Keep scrolling inside the modal dialog only
+    document.querySelectorAll('.modal-dialog, .modal-card, .settings-dialog').forEach(dialog => {
+      dialog.addEventListener('touchmove', (e) => {
+        e.stopPropagation();
+      }, { passive: true });
+    });
+  }
+
   closeAllModals() {
     if (this.repeatApprovalPollTimer) {
       clearInterval(this.repeatApprovalPollTimer);
@@ -1135,6 +1174,8 @@ class LoyaltyApp {
     }
     document.querySelectorAll('.modal-backdrop').forEach(m => m.classList.remove('active'));
     this.stopLiveScanner();
+    document.body.classList.remove('modal-open');
+    document.documentElement.classList.remove('modal-open');
   }
 
   startLiveScanner() {
