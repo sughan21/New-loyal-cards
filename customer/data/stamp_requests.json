@@ -1,0 +1,79 @@
+﻿[
+    {
+        "id":  "req_1792411938120_9791",
+        "phone":  "6369095106",
+        "name":  "Prakash",
+        "memberId":  "GP-54142",
+        "currentStamps":  3,
+        "timeStr":  "05:42 PM",
+        "dateStr":  "19 Oct 2026",
+        "timestamp":  1792411938120,
+        "status":  "approved"
+    },
+    {
+        "id":  "req_1792413902862_1235",
+        "phone":  "918940757402",
+        "name":  "Krithvik Rohan",
+        "memberId":  "GP-56331",
+        "currentStamps":  1,
+        "timeStr":  "06:15 PM",
+        "dateStr":  "19 Oct 2026",
+        "timestamp":  1792413902862,
+        "status":  "approved"
+    },
+    {
+        "id":  "req_1792415007772_9938",
+        "phone":  "9999999999",
+        "name":  "Test User",
+        "memberId":  "GP-TEST",
+        "currentStamps":  1,
+        "timeStr":  "06:33 PM",
+        "dateStr":  "19 Oct 2026",
+        "timestamp":  1792415007794,
+        "status":  "declined"
+    },
+    {
+        "id":  "req_1792417797167_5541",
+        "phone":  "918940757402",
+        "name":  "Krithvik Rohan",
+        "memberId":  "GP-56331",
+        "currentStamps":  2,
+        "timeStr":  "07:19 PM",
+        "dateStr":  "19 Oct 2026",
+        "timestamp":  1792417797167,
+        "status":  "declined"
+    },
+    {
+        "id":  "req_1792417821207_7548",
+        "phone":  "918940757402",
+        "name":  "Krithvik Rohan",
+        "memberId":  "GP-56331",
+        "currentStamps":  2,
+        "timeStr":  "07:20 PM",
+        "dateStr":  "19 Oct 2026",
+        "timestamp":  1792417821207,
+        "status":  "declined"
+    },
+    {
+        "id":  "req_1792843511532_5168",
+        "phone":  "8015589598",
+        "name":  "Sakthivel s",
+        "memberId":  "GP-86179",
+        "currentStamps":  0,
+        "timeStr":  "05:35 PM",
+        "dateStr":  "24 Oct 2026",
+        "timestamp":  1792843511544,
+        "status":  "pending"
+    },
+    {
+        "id":  "req_1793719336633_8618",
+        "phone":  "9944214325",
+        "name":  "Lingesh",
+        "memberId":  "GP-86895",
+        "currentStamps":  2,
+        "timeStr":  "08:52 PM",
+        "dateStr":  "03 Nov 2026",
+        "timestamp":  1793719336633,
+        "status":  "pending"
+    }
+]

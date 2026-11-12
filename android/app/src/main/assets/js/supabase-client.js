@@ -74,7 +74,16 @@ class LoyaltySupabaseRepository {
     let devId = db.device_id || '';
     let appVer = db.app_version || '';
     let verCode = db.version_code || 0;
+    let alertObj = null;
+
     if (Array.isArray(db.history)) {
+      if (db.history.length > 0 && db.history[0] && db.history[0].type === 'update_alert') {
+        alertObj = {
+          targetVersion: db.history[0].targetVersion || '',
+          sentAt: db.history[0].date || '',
+          status: 'pending'
+        };
+      }
       for (const h of db.history) {
         if (!dev && h && h.device) dev = h.device;
         if (!devId && h && h.deviceId) devId = h.deviceId;
@@ -93,6 +102,7 @@ class LoyaltySupabaseRepository {
       deviceId: devId,
       appVersion: appVer || '',
       versionCode: verCode || 0,
+      updateAlert: alertObj,
       history: Array.isArray(db.history) ? db.history : [],
       lastStampDate: db.last_stamp_date || null,
       lastUpdated: db.last_updated || Date.now(),

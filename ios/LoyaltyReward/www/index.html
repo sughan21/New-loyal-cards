@@ -275,6 +275,13 @@
            ===================================================================== -->
       <div id="customerDashboard" class="customer-dashboard" style="display: none; flex-direction: column; gap: 16px;">
 
+        <!-- Store Owner Push Update Alert Top Banner -->
+        <div id="customerUpdateTopBanner" class="customer-update-top-banner" style="display: none;" onclick="window.customerApp.showOwnerUpdateAlertModal()">
+          <span class="banner-pulse">⚡</span>
+          <span class="banner-text">Store Owner sent an update alert! <strong>Tap to update to v1.6.5</strong></span>
+          <span class="banner-arrow">➔</span>
+        </div>
+
         <!-- Customer Top Profile Bar -->
         <div class="customer-header-bar">
           <div style="display: flex; align-items: center; gap: 10px;">
@@ -886,12 +893,12 @@
         <div class="update-version-strip" id="updateVersionStrip">
           <div class="version-chip current-version-chip">
             <span class="version-chip-label">Current Version</span>
-            <span class="version-chip-val" id="currentVerDisplay">v1.6.4 <span class="version-chip-badge latest" id="currentVerBadge">Latest ✅</span></span>
+            <span class="version-chip-val" id="currentVerDisplay">v1.6.5 <span class="version-chip-badge latest" id="currentVerBadge">Latest ✅</span></span>
           </div>
           <div class="version-chip-arrow" id="versionChipArrow" style="display: none;">➔</div>
           <div class="version-chip new-version-chip" id="newVersionChip" style="display: none;">
             <span class="version-chip-label">New Version</span>
-            <span class="version-chip-val" id="newVerDisplay">v1.6.4 <span class="version-chip-badge update">⚡ New</span></span>
+            <span class="version-chip-val" id="newVerDisplay">v1.6.5 <span class="version-chip-badge update">⚡ New</span></span>
           </div>
         </div>
 
@@ -992,6 +999,33 @@
         </button>
       </div>
 
+    </div>
+  </div>
+
+  <!-- Dedicated Store Owner Update Alert Modal Backdrop -->
+  <div id="customerOwnerUpdateModal" class="modal-backdrop" style="display: none;">
+    <div class="modal-dialog update-alert-dialog">
+      <button type="button" class="modal-close-btn" onclick="window.customerApp.closeOwnerUpdateModal()" title="Close">&times;</button>
+      <div style="width: 58px; height: 58px; border-radius: 50%; background: rgba(245, 158, 11, 0.15); border: 2px solid #f59e0b; display: inline-flex; align-items: center; justify-content: center; font-size: 1.8rem; margin-bottom: 12px;">
+        ⚡
+      </div>
+      <div style="display: inline-block; padding: 4px 12px; background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.4); border-radius: 999px; font-size: 0.72rem; font-weight: 700; color: #b45309; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">
+        Store Owner Update Notice
+      </div>
+      <h3 style="font-size: 1.25rem; font-weight: 800; color: #1c120c; margin-bottom: 6px;" id="ownerUpdateModalTitle">
+        New Update Available (v1.6.5)
+      </h3>
+      <p style="font-size: 0.85rem; color: #695547; line-height: 1.45; margin-bottom: 18px;" id="ownerUpdateModalDesc">
+        The store owner has pushed an update alert. Please update your Loyalty Pass to stay in sync with store purchases, rewards, and stamps!
+      </p>
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <button type="button" class="btn-update-now" onclick="window.customerApp.handleApplyUpdate()" style="width: 100%; padding: 13px; font-size: 0.95rem; font-weight: 700; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #ffffff; border: none; border-radius: 12px; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4); cursor: pointer;">
+          🚀 Update &amp; Install Now (v1.6.5)
+        </button>
+        <button type="button" onclick="window.customerApp.closeOwnerUpdateModal()" style="width: 100%; padding: 10px; font-size: 0.82rem; font-weight: 600; background: transparent; color: #78716c; border: 1px solid #e7e5e4; border-radius: 10px; cursor: pointer;">
+          Dismiss &amp; Remind Later
+        </button>
+      </div>
     </div>
   </div>
 

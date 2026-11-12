@@ -67,6 +67,21 @@ class MainActivity : AppCompatActivity() {
         setIntent(intent)
         val url = getLaunchUrl(intent)
         webView.loadUrl(url)
+        if (intent.getStringExtra("action") == "show_update") {
+            webView.postDelayed({
+                webView.evaluateJavascript("""
+                    if (window.customerApp) {
+                        if (typeof window.customerApp.showOwnerUpdateAlertModal === 'function') {
+                            window.customerApp.showOwnerUpdateAlertModal();
+                        }
+                        if (typeof window.customerApp.checkForAppUpdates === 'function') {
+                            window.customerApp.checkForAppUpdates(true);
+                        }
+                    }
+                """.trimIndent(), null)
+            }, 600)
+            intent.removeExtra("action")
+        }
     }
 
     @SuppressLint("SetJavaScriptEnabled")
@@ -232,6 +247,21 @@ class MainActivity : AppCompatActivity() {
             override fun onPageFinished(view: WebView?, url: String?) {
                 super.onPageFinished(view, url)
                 progressBar.visibility = View.GONE
+                if (intent?.getStringExtra("action") == "show_update") {
+                    view?.postDelayed({
+                        view.evaluateJavascript("""
+                            if (window.customerApp) {
+                                if (typeof window.customerApp.showOwnerUpdateAlertModal === 'function') {
+                                    window.customerApp.showOwnerUpdateAlertModal();
+                                }
+                                if (typeof window.customerApp.checkForAppUpdates === 'function') {
+                                    window.customerApp.checkForAppUpdates(true);
+                                }
+                            }
+                        """.trimIndent(), null)
+                    }, 600)
+                    intent?.removeExtra("action")
+                }
             }
         }
 

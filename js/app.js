@@ -54,8 +54,8 @@ class LoyaltyApp {
     this.customerResetOtp = '';
     this.customerResetPhone = '';
     this.repeatApprovalPollTimer = null;
-    this.appVersion = "1.6.4";
-    this.versionCode = 12;
+    this.appVersion = "1.6.5";
+    this.versionCode = 13;
     this.latestUpdateInfo = null;
 
     this.init();
@@ -341,9 +341,21 @@ class LoyaltyApp {
   async syncWithServer() {
     try {
       if (this.currentUser) {
+        let isNewInstall = false;
         if (!this.currentUser.appVersion || this.currentUser.appVersion !== this.appVersion) {
+          isNewInstall = true;
           this.currentUser.appVersion = this.appVersion;
           this.currentUser.versionCode = this.versionCode;
+          if (!Array.isArray(this.currentUser.history)) this.currentUser.history = [];
+          const time = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+          const date = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+          this.currentUser.history.unshift({
+            date: `${date}, ${time}`,
+            type: "update_installed",
+            note: `✅ App Updated to v${this.appVersion} Successfully`,
+            appVersion: this.appVersion,
+            versionCode: this.versionCode
+          });
           this.saveCurrentUser();
         }
         await this.pushUserToServer(this.currentUser);
@@ -394,12 +406,29 @@ class LoyaltyApp {
       this.currentUser.history = remoteMe.history;
       changed = true;
     }
-    if (remoteMe.updateAlert || (remoteMe.history && remoteMe.history.length > 0 && remoteMe.history[0].type === 'update_alert')) {
-      const alertMsg = (remoteMe.history && remoteMe.history[0].type === 'update_alert') ? remoteMe.history[0].note : "A new Loyalty Pass update has been pushed! Tap to install.";
+    
+    // Evaluate store owner update alert
+    const latestEvent = (remoteMe.history && remoteMe.history.length > 0) ? remoteMe.history[0] : null;
+    const isUpdateAlert = latestEvent && latestEvent.type === 'update_alert';
+    const targetVer = (isUpdateAlert && latestEvent.targetVersion)
+      ? latestEvent.targetVersion
+      : (remoteMe.updateAlert ? remoteMe.updateAlert.targetVersion : "1.6.5");
+    const isOutdated = this.isNewerVersion(targetVer, this.appVersion);
+
+    if (isOutdated && (isUpdateAlert || remoteMe.updateAlert)) {
+      const alertMsg = (isUpdateAlert && latestEvent.note)
+        ? latestEvent.note
+        : `A new Loyalty Pass update (v${targetVer}) has been pushed by the Store Owner! Tap to install.`;
+      
+      this.showOwnerUpdateAlertModal(alertMsg, targetVer);
+      this.renderUpdateTopBanner(true, targetVer);
+
       if (window.AndroidBridge && typeof window.AndroidBridge.postNativeNotification === 'function') {
-        window.AndroidBridge.postNativeNotification("⚡ Store Owner Sent Update Notice", alertMsg);
+        window.AndroidBridge.postNativeNotification("⚡ Store Owner Update Notice", alertMsg);
       }
       this.checkForAppUpdates(false);
+    } else {
+      this.renderUpdateTopBanner(false);
     }
     if (changed) {
       const idx = this.users.findIndex(u => u.phone === this.currentUser.phone);
@@ -2013,6 +2042,43 @@ class LoyaltyApp {
     }
   }
 
+  showOwnerUpdateAlertModal(note, targetVer) {
+    const modal = document.getElementById('customerOwnerUpdateModal');
+    if (!modal) return;
+    const title = document.getElementById('ownerUpdateModalTitle');
+    const desc = document.getElementById('ownerUpdateModalDesc');
+    const target = targetVer || (this.latestUpdateInfo && (this.latestUpdateInfo.customerVersion || this.latestUpdateInfo.version)) || this.appVersion;
+    if (title) title.textContent = `New Update Available (v${target})`;
+    if (desc && note) desc.textContent = note;
+    modal.classList.add('active');
+    modal.style.setProperty('display', 'flex', 'important');
+    document.body.classList.add('modal-open');
+    if (window.soundEngine) window.soundEngine.playSuccessTone();
+  }
+
+  closeOwnerUpdateModal() {
+    const modal = document.getElementById('customerOwnerUpdateModal');
+    if (modal) {
+      modal.classList.remove('active');
+      modal.style.setProperty('display', 'none', 'important');
+      document.body.classList.remove('modal-open');
+    }
+  }
+
+  renderUpdateTopBanner(show, targetVer) {
+    const banner = document.getElementById('customerUpdateTopBanner');
+    if (!banner) return;
+    if (show) {
+      banner.style.setProperty('display', 'flex', 'important');
+      const textEl = banner.querySelector('.banner-text');
+      if (textEl) {
+        textEl.innerHTML = `Store Owner sent an update alert! <strong>Tap to update to v${targetVer || '1.6.5'}</strong>`;
+      }
+    } else {
+      banner.style.setProperty('display', 'none', 'important');
+    }
+  }
+
   handleApplyUpdate() {
     const isAndroid = !!window.AndroidBridge || /android/i.test(navigator.userAgent);
     const customerApkUrl = 'https://raw.githubusercontent.com/sughan21/New-loyal-cards/main/LoyaltyPass-Customer.apk';
@@ -2234,6 +2300,14 @@ class LoyaltyApp {
     // Customer Logged In -> Show 11-Tick Loyalty Pass
     if (authView) authView.style.display = 'none';
     if (customerDashboard) customerDashboard.style.display = 'flex';
+
+    // Check if customer has an active update alert pending
+    const history = Array.isArray(this.currentUser.history) ? this.currentUser.history : [];
+    const latestEvent = history.length > 0 ? history[0] : null;
+    const hasPendingAlert = latestEvent && latestEvent.type === 'update_alert';
+    const targetVer = (hasPendingAlert && latestEvent.targetVersion) || (this.latestUpdateInfo && (this.latestUpdateInfo.customerVersion || this.latestUpdateInfo.version)) || "1.6.5";
+    const isOutdated = this.isNewerVersion(targetVer, this.appVersion);
+    this.renderUpdateTopBanner(isOutdated && hasPendingAlert, targetVer);
 
     const headerSub = document.getElementById('appHeaderSubtitle');
     if (headerSub) headerSub.innerText = `Digital Loyalty Member • ${this.currentUser.name}`;

@@ -164,7 +164,7 @@ class UpdateCheckReceiver : BroadcastReceiver() {
             val savedPhone = prefs.getString("saved_customer_phone", "")
             if (!savedPhone.isNullOrEmpty()) {
                 try {
-                    val supaUrl = URL("https://rhqpiskqgfmotazjzbnm.supabase.co/rest/v1/customers?phone=eq.$savedPhone&select=history,app_version")
+                    val supaUrl = URL("https://rhqpiskqgfmotazjzbnm.supabase.co/rest/v1/customers?phone=eq.$savedPhone&select=history")
                     val conn = supaUrl.openConnection() as HttpURLConnection
                     conn.connectTimeout = 8000
                     conn.readTimeout = 8000
