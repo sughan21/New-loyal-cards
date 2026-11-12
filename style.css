@@ -1805,7 +1805,7 @@ body.store-mode-active .app-container {
 /* Column 1: Customer Details */
 .customer-meta-wrap {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 12px;
   min-width: 0;
 }
@@ -1823,6 +1823,7 @@ body.store-mode-active .app-container {
   font-size: 0.88rem;
   color: #f3c892;
   flex-shrink: 0;
+  margin-top: 2px;
 }
 
 .customer-name-phone {
@@ -2291,6 +2292,21 @@ body.store-mode-active .app-container {
    CUSTOMER APP VERSION TRACKING & OUTDATED UPDATE ACTIONS
    ========================================================================== */
 
+.customer-device-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.69rem;
+  color: #0369a1;
+  background: #f0f9ff;
+  padding: 2px 7px;
+  border-radius: 5px;
+  border: 1px solid #bae6fd;
+  font-weight: 600;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
 .customer-ver-tag {
   display: inline-flex;
   align-items: center;
@@ -2300,6 +2316,7 @@ body.store-mode-active .app-container {
   padding: 2px 7px;
   border-radius: 5px;
   letter-spacing: 0.01em;
+  line-height: 1.4;
   white-space: nowrap;
 }
 
@@ -2310,15 +2327,9 @@ body.store-mode-active .app-container {
 }
 
 .customer-ver-tag.outdated {
-  color: #b91c1c;
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-  animation: pulse-outdated-badge 2.4s infinite ease-in-out;
-}
-
-@keyframes pulse-outdated-badge {
-  0%, 100% { border-color: #fecaca; box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
-  50% { border-color: #ef4444; box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15); }
+  color: #c2410c;
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
 }
 
 .customer-update-box {
@@ -2328,28 +2339,70 @@ body.store-mode-active .app-container {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  background: #fff8f8;
-  border: 1.5px dashed #fca5a5;
-  border-radius: var(--radius-md, 10px);
+  background: #fffcf8;
+  border: 1px solid #fed7aa;
+  border-radius: 12px;
   padding: 10px 14px;
   box-sizing: border-box;
-  margin-top: 8px;
-  box-shadow: 0 1px 3px rgba(185, 28, 28, 0.04);
+  margin-top: 10px;
+  box-shadow: 0 1px 4px rgba(180, 83, 9, 0.05);
 }
 
 .customer-update-box-info {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 0.78rem;
-  color: #7f1d1d;
-  font-weight: 600;
+  gap: 10px;
   min-width: 0;
   flex: 1;
 }
 
-.customer-update-box-info strong {
-  color: #991b1b;
+.update-info-badge {
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  background: #fef3c7;
+  border: 1px solid #fde68a;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+
+.update-info-text {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.update-info-title {
+  font-size: 0.80rem;
+  font-weight: 700;
+  color: #9a3412;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.update-target-pill {
+  font-size: 0.68rem;
+  font-weight: 800;
+  background: #ea580c;
+  color: #ffffff;
+  padding: 1px 6px;
+  border-radius: 9999px;
+  letter-spacing: 0.02em;
+}
+
+.update-info-desc {
+  font-size: 0.70rem;
+  color: #78350f;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .customer-update-box-actions {
@@ -2362,22 +2415,25 @@ body.store-mode-active .app-container {
 .btn-push-update-alert {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  justify-content: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 12px;
   background: #ffffff;
-  color: #b91c1c;
-  border: 1.5px solid #ef4444;
+  color: #c2410c;
+  border: 1.5px solid #ea580c;
   font-size: 0.74rem;
   font-weight: 700;
-  padding: 6px 11px;
-  border-radius: 7px;
+  border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
   white-space: nowrap;
+  box-sizing: border-box;
 }
 
 .btn-push-update-alert:hover {
-  background: #fee2e2;
-  border-color: #dc2626;
+  background: #fff7ed;
+  border-color: #c2410c;
   transform: translateY(-1px);
 }
 
@@ -2388,18 +2444,21 @@ body.store-mode-active .app-container {
 .btn-whatsapp-update {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
+  height: 36px;
+  padding: 0 14px;
   background: #25D366;
   color: #ffffff;
-  border: 1px solid #1ebe5d;
+  border: none;
   font-size: 0.74rem;
   font-weight: 700;
-  padding: 6px 13px;
-  border-radius: 7px;
+  border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 1.5px 4px rgba(37, 211, 102, 0.28);
   white-space: nowrap;
+  box-sizing: border-box;
+  box-shadow: 0 1.5px 4px rgba(37, 211, 102, 0.28);
 }
 
 .btn-whatsapp-update:hover {
@@ -2417,7 +2476,14 @@ body.store-mode-active .app-container {
     flex-direction: column;
     align-items: stretch;
     gap: 10px;
-    padding: 10px 12px;
+    padding: 11px 12px;
+  }
+  .customer-update-box-info {
+    width: 100%;
+    align-items: center;
+  }
+  .update-info-desc {
+    white-space: normal;
   }
   .customer-update-box-actions {
     display: flex;
@@ -2426,10 +2492,12 @@ body.store-mode-active .app-container {
   }
   .btn-push-update-alert,
   .btn-whatsapp-update {
-    flex: 1;
-    justify-content: center;
-    padding: 8px 10px;
-    font-size: 0.76rem;
+    flex: 1 1 0;
+    width: 50%;
+    min-width: 0;
+    height: 38px;
+    padding: 0 8px;
+    font-size: 0.74rem;
   }
 }
 
@@ -2525,6 +2593,9 @@ body.store-mode-active .app-container {
   }
   .customer-meta-wrap {
     width: 100%;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
   }
   .customer-progress-col {
     width: 100% !important;
