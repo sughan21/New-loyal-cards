@@ -1,9 +1,9 @@
 {
-    "version":  "1.6.3",
-    "versionCode":  11,
-    "releaseDate":  "2026-11-11",
-    "title":  "Loyalty Pass Update",
-    "notes":  "Verified release certificate, secure WebView sandbox, and full-column 11-tick layout.",
+    "version":  "1.6.4",
+    "versionCode":  12,
+    "releaseDate":  "2026-11-12",
+    "title":  "Loyalty Pass v1.6.4 Update",
+    "notes":  "Latest release update with clean status display, fast cloud sync, and 1-tap in-place updater.",
     "customerApk":  "LoyaltyPass-Customer.apk",
     "ownerApk":  "StoreTerminal-Owner.apk",
     "downloadUrl":  "download.html"
