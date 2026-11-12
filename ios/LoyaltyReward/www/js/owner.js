@@ -66,6 +66,9 @@ class StoreOwnerApp {
   }
 
   setupOfflineSync() {
+    // Clear any stale offline flags on startup
+    localStorage.removeItem('owner_offline_pending_sync');
+
     window.addEventListener('online', () => {
       this.syncOfflineQueue();
     });
@@ -74,16 +77,16 @@ class StoreOwnerApp {
       if (navigator.onLine && localStorage.getItem('owner_offline_pending_sync') === 'true') {
         this.syncOfflineQueue();
       }
-    }, 8000);
+    }, 15000);
   }
 
   async syncOfflineQueue() {
     if (localStorage.getItem('owner_offline_pending_sync') !== 'true') return;
+    localStorage.removeItem('owner_offline_pending_sync'); // Clear immediately to prevent repeat triggers
     try {
       if (this.users.length > 0) {
         await this.pushCustomerToServer(this.users);
       }
-      localStorage.removeItem('owner_offline_pending_sync');
       this.showToast("🔄 Reconnected! Offline store updates synced to server.", "success");
     } catch (e) {}
   }
@@ -396,6 +399,7 @@ class StoreOwnerApp {
 
   async pushCustomerToServer(customerData) {
     if (!customerData) return;
+    let synced = false;
     try {
       if (window.loyaltyDb && window.loyaltyDb.isReady) {
         if (Array.isArray(customerData)) {
@@ -403,20 +407,25 @@ class StoreOwnerApp {
         } else {
           await window.loyaltyDb.upsertCustomer(customerData);
         }
+        synced = true;
       }
+    } catch (dbErr) {
+      console.warn("Cloud DB sync attempt:", dbErr);
+    }
+
+    try {
       const resp = await fetch(`${API_BASE_URL}/api/customers`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(customerData)
       });
-      if (resp && resp.ok) {
-        localStorage.removeItem('owner_offline_pending_sync');
-      } else {
-        localStorage.setItem('owner_offline_pending_sync', 'true');
-      }
-    } catch (e) {
+      if (resp && resp.ok) synced = true;
+    } catch (e) {}
+
+    if (synced) {
+      localStorage.removeItem('owner_offline_pending_sync');
+    } else {
       localStorage.setItem('owner_offline_pending_sync', 'true');
-      console.warn("Offline: Store changes saved locally. Will auto-sync when online.", e);
     }
   }
 
@@ -1790,6 +1799,9 @@ class StoreOwnerApp {
     const container = document.getElementById('toastContainer');
     if (!container) return;
 
+    // Remove any previous toast so toasts don't stack or stay permanently
+    container.innerHTML = '';
+
     const toast = document.createElement('div');
     toast.className = `custom-toast ${type}`;
 
@@ -1805,12 +1817,15 @@ class StoreOwnerApp {
     toast.innerHTML = `${iconSvg}<span>${message}</span>`;
     container.appendChild(toast);
 
+    // Auto-hide toast after 3.2 seconds
     setTimeout(() => {
       toast.style.opacity = '0';
       toast.style.transform = 'translateY(10px)';
       toast.style.transition = 'all 0.3s ease';
-      setTimeout(() => toast.remove(), 300);
-    }, 4000);
+      setTimeout(() => {
+        if (toast.parentElement) toast.remove();
+      }, 300);
+    }, 3200);
   }
 
   // --- Standee Print Isolation Handler (Prints ONLY the Standee Card) ---

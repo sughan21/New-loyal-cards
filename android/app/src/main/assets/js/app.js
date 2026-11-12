@@ -117,30 +117,33 @@ class LoyaltyApp {
   }
 
   setupOfflineSync() {
+    // Clear any stale offline flags on startup
+    localStorage.removeItem('offline_pending_sync');
+
     window.addEventListener('online', () => {
       this.syncOfflineQueue();
     });
 
-    // Check periodically for network reconnection
+    // Check periodically for network reconnection only if an offline sync is truly queued
     setInterval(() => {
       if (navigator.onLine && localStorage.getItem('offline_pending_sync') === 'true') {
         this.syncOfflineQueue();
       }
-    }, 8000);
+    }, 15000);
   }
 
   async syncOfflineQueue() {
     if (localStorage.getItem('offline_pending_sync') !== 'true') return;
+    localStorage.removeItem('offline_pending_sync'); // Clear immediately to prevent repeat triggers
     try {
       if (this.currentUser) {
         await this.pushUserToServer(this.currentUser);
       } else if (this.users.length > 0) {
         await this.pushUserToServer(this.users);
       }
-      localStorage.removeItem('offline_pending_sync');
       this.showToast("🔄 Reconnected! Offline loyalty stamps synced to backend server.", "success");
     } catch (e) {
-      // Retry next cycle
+      // Offline still pending
     }
   }
 
@@ -291,6 +294,7 @@ class LoyaltyApp {
 
   async pushUserToServer(userData) {
     if (!userData) return;
+    let synced = false;
     try {
       if (window.loyaltyDb && window.loyaltyDb.isReady) {
         if (Array.isArray(userData)) {
@@ -298,20 +302,27 @@ class LoyaltyApp {
         } else {
           await window.loyaltyDb.upsertCustomer(userData);
         }
+        synced = true;
       }
+    } catch (dbErr) {
+      console.warn("Cloud DB sync attempt:", dbErr);
+    }
+
+    try {
       const resp = await fetch(`${API_BASE_URL}/api/customers`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(userData)
       });
-      if (resp && resp.ok) {
-        localStorage.removeItem('offline_pending_sync');
-      } else {
-        localStorage.setItem('offline_pending_sync', 'true');
-      }
+      if (resp && resp.ok) synced = true;
     } catch (e) {
+      // Local endpoint offline or static host (expected on GitHub Pages / Android WebView)
+    }
+
+    if (synced) {
+      localStorage.removeItem('offline_pending_sync');
+    } else {
       localStorage.setItem('offline_pending_sync', 'true');
-      console.warn("Offline: Data stored locally. Will auto-sync when online.", e);
     }
   }
 
@@ -2056,6 +2067,9 @@ class LoyaltyApp {
     const container = document.getElementById('toastContainer');
     if (!container) return;
 
+    // Clear previous toasts so multiple toasts don't stack or stay permanently
+    container.innerHTML = '';
+
     const toast = document.createElement('div');
     toast.className = `custom-toast ${type}`;
 
@@ -2071,12 +2085,15 @@ class LoyaltyApp {
     toast.innerHTML = `${iconSvg}<span>${message}</span>`;
     container.appendChild(toast);
 
+    // Auto-hide toast after 3.2 seconds
     setTimeout(() => {
       toast.style.opacity = '0';
       toast.style.transform = 'translateY(10px)';
       toast.style.transition = 'all 0.3s ease';
-      setTimeout(() => toast.remove(), 300);
-    }, 4000);
+      setTimeout(() => {
+        if (toast.parentElement) toast.remove();
+      }, 300);
+    }, 3200);
   }
 
   // --- Main Render Function (Customer Loyalty Pass) ---
