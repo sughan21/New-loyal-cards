@@ -4609,16 +4609,20 @@ body.store-mode-active .app-container {
   margin-top: 2px !important;
 }
 
-/* New Update Banner (When update is available) */
+/* New Update Banner (Hidden by default, shown ONLY when update is available) */
 .new-update-banner {
   background: linear-gradient(135deg, #fff7ed 0%, #fef3c7 100%) !important;
   border: 1.5px solid #f59e0b !important;
   border-radius: 14px !important;
   padding: 14px !important;
-  display: flex !important;
+  display: none !important;
   flex-direction: column !important;
   gap: 8px !important;
   text-align: left !important;
+}
+
+.new-update-banner.visible {
+  display: flex !important;
 }
 
 .new-update-tag {

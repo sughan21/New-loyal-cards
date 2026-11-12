@@ -1640,7 +1640,7 @@ class LoyaltyApp {
       // Show glowing red notification badge on all Settings icons
       badgeIds.forEach(id => {
         const b = document.getElementById(id);
-        if (b) b.style.display = 'block';
+        if (b) b.style.setProperty('display', 'block', 'important');
       });
 
       if (updateIconPulse) updateIconPulse.classList.add('has-update');
@@ -1648,7 +1648,10 @@ class LoyaltyApp {
       if (updateStatusTitle) updateStatusTitle.textContent = 'New Update Available!';
       if (updateStatusSubtitle) updateStatusSubtitle.textContent = `Version ${updateData.version} is ready to install`;
 
-      if (newUpdateBanner) newUpdateBanner.style.display = 'flex';
+      if (newUpdateBanner) {
+        newUpdateBanner.classList.add('visible');
+        newUpdateBanner.style.setProperty('display', 'flex', 'important');
+      }
       if (newUpdateVerText) newUpdateVerText.textContent = `Version ${updateData.version} Available`;
       if (newUpdateNotesText) newUpdateNotesText.textContent = updateData.notes || updateData.description || 'New features, improvements and fixes.';
 
@@ -1658,7 +1661,7 @@ class LoyaltyApp {
     } else {
       badgeIds.forEach(id => {
         const b = document.getElementById(id);
-        if (b) b.style.display = 'none';
+        if (b) b.style.setProperty('display', 'none', 'important');
       });
 
       if (updateIconPulse) updateIconPulse.classList.remove('has-update');
@@ -1666,7 +1669,10 @@ class LoyaltyApp {
       if (updateStatusTitle) updateStatusTitle.textContent = 'App is up to date';
       if (updateStatusSubtitle) updateStatusSubtitle.textContent = `Installed build: v${this.appVersion}`;
 
-      if (newUpdateBanner) newUpdateBanner.style.display = 'none';
+      if (newUpdateBanner) {
+        newUpdateBanner.classList.remove('visible');
+        newUpdateBanner.style.setProperty('display', 'none', 'important');
+      }
 
       if (isManual) {
         this.showToast(`✅ You are using the latest version (v${this.appVersion})`, "success");

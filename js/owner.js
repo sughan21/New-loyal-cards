@@ -803,26 +803,32 @@ class StoreOwnerApp {
     if (hasNewVersion) {
       ownerBadgeIds.forEach(id => {
         const b = document.getElementById(id);
-        if (b) b.style.display = 'block';
+        if (b) b.style.setProperty('display', 'block', 'important');
       });
       if (updateIconPulse) updateIconPulse.classList.add('has-update');
       if (updateIconSymbol) updateIconSymbol.textContent = '⚡';
       if (updateStatusTitle) updateStatusTitle.textContent = 'Terminal Update Available!';
       if (updateStatusSubtitle) updateStatusSubtitle.textContent = `Version ${updateData.version} is ready`;
-      if (newUpdateBanner) newUpdateBanner.style.display = 'flex';
+      if (newUpdateBanner) {
+        newUpdateBanner.classList.add('visible');
+        newUpdateBanner.style.setProperty('display', 'flex', 'important');
+      }
       if (newUpdateVerText) newUpdateVerText.textContent = `Version ${updateData.version} Available`;
       if (newUpdateNotesText) newUpdateNotesText.textContent = updateData.notes || 'Terminal improvements available.';
       if (isManual) this.showToast(`⚡ New version ${updateData.version} is available!`, "gold");
     } else {
       ownerBadgeIds.forEach(id => {
         const b = document.getElementById(id);
-        if (b) b.style.display = 'none';
+        if (b) b.style.setProperty('display', 'none', 'important');
       });
       if (updateIconPulse) updateIconPulse.classList.remove('has-update');
       if (updateIconSymbol) updateIconSymbol.textContent = '✅';
       if (updateStatusTitle) updateStatusTitle.textContent = 'Terminal is up to date';
       if (updateStatusSubtitle) updateStatusSubtitle.textContent = `Installed version: v${this.appVersion}`;
-      if (newUpdateBanner) newUpdateBanner.style.display = 'none';
+      if (newUpdateBanner) {
+        newUpdateBanner.classList.remove('visible');
+        newUpdateBanner.style.setProperty('display', 'none', 'important');
+      }
       if (isManual) this.showToast(`✅ Terminal is on latest version (v${this.appVersion})`, "success");
     }
   }
