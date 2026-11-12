@@ -657,7 +657,20 @@
           </div>
           <div style="flex: 1; text-align: left;">
             <div class="update-status-title" id="ownerUpdateStatusTitle">Terminal is up to date</div>
-            <div class="update-status-subtitle" id="ownerUpdateStatusSubtitle">Installed version: v1.6.4</div>
+            <div class="update-status-subtitle" id="ownerUpdateStatusSubtitle">You have the latest terminal build installed</div>
+          </div>
+        </div>
+
+        <!-- Current & New Version Comparison Strip -->
+        <div class="update-version-strip" id="ownerUpdateVersionStrip">
+          <div class="version-chip current-version-chip">
+            <span class="version-chip-label">Current Terminal Version</span>
+            <span class="version-chip-val" id="ownerCurrentVerDisplay">v1.6.4 <span class="version-chip-badge latest" id="ownerCurrentVerBadge">Latest ✅</span></span>
+          </div>
+          <div class="version-chip-arrow" id="ownerVersionChipArrow" style="display: none;">➔</div>
+          <div class="version-chip new-version-chip" id="ownerNewVersionChip" style="display: none;">
+            <span class="version-chip-label">New Terminal Version</span>
+            <span class="version-chip-val" id="ownerNewVerDisplay">v1.6.4 <span class="version-chip-badge update">⚡ New</span></span>
           </div>
         </div>
 

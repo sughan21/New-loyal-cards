@@ -878,7 +878,20 @@
           </div>
           <div style="flex: 1; text-align: left;">
             <div class="update-status-title" id="updateStatusTitle">App is up to date</div>
-            <div class="update-status-subtitle" id="updateStatusSubtitle">Installed version: v1.6.4</div>
+            <div class="update-status-subtitle" id="updateStatusSubtitle">You have the latest version installed</div>
+          </div>
+        </div>
+
+        <!-- Current & New Version Comparison Strip -->
+        <div class="update-version-strip" id="updateVersionStrip">
+          <div class="version-chip current-version-chip">
+            <span class="version-chip-label">Current Version</span>
+            <span class="version-chip-val" id="currentVerDisplay">v1.6.4 <span class="version-chip-badge latest" id="currentVerBadge">Latest ✅</span></span>
+          </div>
+          <div class="version-chip-arrow" id="versionChipArrow" style="display: none;">➔</div>
+          <div class="version-chip new-version-chip" id="newVersionChip" style="display: none;">
+            <span class="version-chip-label">New Version</span>
+            <span class="version-chip-val" id="newVerDisplay">v1.6.4 <span class="version-chip-badge update">⚡ New</span></span>
           </div>
         </div>
 

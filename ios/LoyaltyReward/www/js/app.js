@@ -1638,7 +1638,22 @@ class LoyaltyApp {
     const newUpdateVerText = document.getElementById('newUpdateVerText');
     const newUpdateNotesText = document.getElementById('newUpdateNotesText');
 
+    const currentVerDisplay = document.getElementById('currentVerDisplay');
+    const versionChipArrow = document.getElementById('versionChipArrow');
+    const newVersionChip = document.getElementById('newVersionChip');
+    const newVerDisplay = document.getElementById('newVerDisplay');
+
+    if (currentVerDisplay) {
+      currentVerDisplay.innerHTML = `v${this.appVersion} <span class="version-chip-badge ${hasNewVersion ? 'installed' : 'latest'}">${hasNewVersion ? 'Installed' : 'Latest ✅'}</span>`;
+    }
+
     if (hasNewVersion) {
+      if (versionChipArrow) versionChipArrow.style.setProperty('display', 'block', 'important');
+      if (newVersionChip) newVersionChip.style.setProperty('display', 'flex', 'important');
+      if (newVerDisplay) {
+        newVerDisplay.innerHTML = `v${targetCustomerVer} <span class="version-chip-badge update">⚡ New</span>`;
+      }
+
       // Show glowing red notification badge on all Settings icons
       badgeIds.forEach(id => {
         const b = document.getElementById(id);
@@ -1690,6 +1705,9 @@ class LoyaltyApp {
         this.showToast(`⚡ New version ${updateData.version} is available!`, "gold");
       }
     } else {
+      if (versionChipArrow) versionChipArrow.style.setProperty('display', 'none', 'important');
+      if (newVersionChip) newVersionChip.style.setProperty('display', 'none', 'important');
+
       badgeIds.forEach(id => {
         const b = document.getElementById(id);
         if (b) b.style.setProperty('display', 'none', 'important');
@@ -1698,7 +1716,7 @@ class LoyaltyApp {
       if (updateIconPulse) updateIconPulse.classList.remove('has-update');
       if (updateIconSymbol) updateIconSymbol.textContent = '✅';
       if (updateStatusTitle) updateStatusTitle.textContent = 'App is up to date';
-      if (updateStatusSubtitle) updateStatusSubtitle.textContent = `Installed build: v${this.appVersion}`;
+      if (updateStatusSubtitle) updateStatusSubtitle.textContent = `You have the latest version installed`;
 
       if (newUpdateBanner) {
         newUpdateBanner.classList.remove('visible');

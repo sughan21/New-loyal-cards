@@ -810,7 +810,22 @@ class StoreOwnerApp {
     const newUpdateVerText = document.getElementById('ownerNewUpdateVerText');
     const newUpdateNotesText = document.getElementById('ownerNewUpdateNotesText');
 
+    const ownerCurrentVerDisplay = document.getElementById('ownerCurrentVerDisplay');
+    const ownerVersionChipArrow = document.getElementById('ownerVersionChipArrow');
+    const ownerNewVersionChip = document.getElementById('ownerNewVersionChip');
+    const ownerNewVerDisplay = document.getElementById('ownerNewVerDisplay');
+
+    if (ownerCurrentVerDisplay) {
+      ownerCurrentVerDisplay.innerHTML = `v${this.appVersion} <span class="version-chip-badge ${hasNewVersion ? 'installed' : 'latest'}">${hasNewVersion ? 'Installed' : 'Latest ✅'}</span>`;
+    }
+
     if (hasNewVersion) {
+      if (ownerVersionChipArrow) ownerVersionChipArrow.style.setProperty('display', 'block', 'important');
+      if (ownerNewVersionChip) ownerNewVersionChip.style.setProperty('display', 'flex', 'important');
+      if (ownerNewVerDisplay) {
+        ownerNewVerDisplay.innerHTML = `v${remoteOwnerVer || updateData.version} <span class="version-chip-badge update">⚡ New</span>`;
+      }
+
       ownerBadgeIds.forEach(id => {
         const b = document.getElementById(id);
         if (b) b.style.setProperty('display', 'block', 'important');
@@ -818,12 +833,12 @@ class StoreOwnerApp {
       if (updateIconPulse) updateIconPulse.classList.add('has-update');
       if (updateIconSymbol) updateIconSymbol.textContent = '⚡';
       if (updateStatusTitle) updateStatusTitle.textContent = 'Terminal Update Available!';
-      if (updateStatusSubtitle) updateStatusSubtitle.textContent = `Version ${updateData.version} is ready`;
+      if (updateStatusSubtitle) updateStatusSubtitle.textContent = `Version ${remoteOwnerVer || updateData.version} is ready`;
       if (newUpdateBanner) {
         newUpdateBanner.classList.add('visible');
         newUpdateBanner.style.setProperty('display', 'flex', 'important');
       }
-      if (newUpdateVerText) newUpdateVerText.textContent = `Version ${updateData.version} Available`;
+      if (newUpdateVerText) newUpdateVerText.textContent = `Version ${remoteOwnerVer || updateData.version} Available`;
       if (newUpdateNotesText) newUpdateNotesText.textContent = updateData.notes || 'Terminal improvements available.';
 
       // Dynamically populate What's New Feature List
@@ -854,8 +869,11 @@ class StoreOwnerApp {
           ownerFeatureListEl.appendChild(itemEl);
         });
       }
-      if (isManual) this.showToast(`⚡ New version ${updateData.version} is available!`, "gold");
+      if (isManual) this.showToast(`⚡ New version ${remoteOwnerVer || updateData.version} is available!`, "gold");
     } else {
+      if (ownerVersionChipArrow) ownerVersionChipArrow.style.setProperty('display', 'none', 'important');
+      if (ownerNewVersionChip) ownerNewVersionChip.style.setProperty('display', 'none', 'important');
+
       ownerBadgeIds.forEach(id => {
         const b = document.getElementById(id);
         if (b) b.style.setProperty('display', 'none', 'important');
@@ -863,7 +881,7 @@ class StoreOwnerApp {
       if (updateIconPulse) updateIconPulse.classList.remove('has-update');
       if (updateIconSymbol) updateIconSymbol.textContent = '✅';
       if (updateStatusTitle) updateStatusTitle.textContent = 'Terminal is up to date';
-      if (updateStatusSubtitle) updateStatusSubtitle.textContent = `Installed version: v${this.appVersion}`;
+      if (updateStatusSubtitle) updateStatusSubtitle.textContent = `You have the latest terminal build installed`;
       if (newUpdateBanner) {
         newUpdateBanner.classList.remove('visible');
         newUpdateBanner.style.setProperty('display', 'none', 'important');
