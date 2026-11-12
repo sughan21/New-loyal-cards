@@ -62,6 +62,10 @@ class LoyaltyApp {
   }
 
   init() {
+    if ('scrollRestoration' in history) {
+      try { history.scrollRestoration = 'manual'; } catch (e) {}
+    }
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
     this.loadState();
     this.bindEvents();
     this.setupPWA();
@@ -816,6 +820,8 @@ class LoyaltyApp {
     this.saveCurrentUser();
     localStorage.setItem(APP_STORAGE_KEY_CURRENT, user.phone);
     this.setupRealtimeCustomerSync();
+    this._hasScrolledToTop = false;
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
 
     // Check if customer arrived via Store Counter QR scan
     const pendingScan = sessionStorage.getItem('pending_store_token');
@@ -947,6 +953,8 @@ class LoyaltyApp {
     this.users.push(newUser);
     this.currentUser = newUser;
     this.saveCurrentUser();
+    this._hasScrolledToTop = false;
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
 
     if (window.soundEngine) window.soundEngine.playStampSound();
     this.triggerConfetti(false);
@@ -963,6 +971,8 @@ class LoyaltyApp {
     localStorage.removeItem(APP_STORAGE_KEY_CURRENT);
     localStorage.removeItem(APP_STORAGE_KEY_PROFILE);
     localStorage.removeItem('golden_loyalty_is_logged_in');
+    this._hasScrolledToTop = false;
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
     if (window.AndroidBridge && window.AndroidBridge.clearPersistentSession) {
       try {
         window.AndroidBridge.clearPersistentSession();

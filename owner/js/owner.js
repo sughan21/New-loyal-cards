@@ -1789,6 +1789,9 @@ class StoreOwnerApp {
               <h4 onclick="window.ownerApp.toggleCustomerHistory('${customer.phone}')" style="cursor: pointer;" title="Click to view stamp history">${customer.name}</h4>
               <p>📞 ${customer.phone} <span class="customer-id-tag">(${customer.memberId || 'GP-10023'})</span></p>
               <div class="customer-badges-row" style="margin-top: 4px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center;">
+                <span class="customer-stamps-badge ${stamps >= MAX_STAMPS ? 'ready' : (stamps > 0 ? 'active' : 'empty')}">
+                  ${stamps >= MAX_STAMPS ? '🎁 11/11 Ready for Gift' : `⭐ ${stamps} of ${MAX_STAMPS} Ticks`}
+                </span>
                 ${(customer.deviceName || (history.find(h => h.device) && history.find(h => h.device).device)) ? `
                   <span class="customer-device-badge">
                     📱 ${customer.deviceName || (history.find(h => h.device) && history.find(h => h.device).device)}
@@ -1807,20 +1810,7 @@ class StoreOwnerApp {
             </div>
           </div>
 
-          <!-- Column 2: Stamp Progress & Mini Dots (11 Ticks) -->
-          <div class="customer-progress-col">
-            <div class="tick-count-text">${stamps} of ${MAX_STAMPS} Ticks</div>
-            <div class="mini-stamps-bar">
-              ${dotsHtml}
-            </div>
-          </div>
-
-          <!-- Column 3: Remaining Ticks / Milestone Badge -->
-          <div class="customer-status-col">
-            ${badgeHtml}
-          </div>
-
-          <!-- Column 4: Instant Cashier Action & Card Stamp History Button -->
+          <!-- Cashier Actions & Card Stamp History Button -->
           <div class="customer-row-actions">
             ${stamps >= MAX_STAMPS ? `
               <button type="button" class="btn-gift-redeem" onclick="window.ownerApp.ownerRedeemCustomerGift('${customer.phone}')">
