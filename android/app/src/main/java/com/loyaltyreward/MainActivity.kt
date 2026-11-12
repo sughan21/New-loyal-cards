@@ -141,6 +141,15 @@ class MainActivity : AppCompatActivity() {
                 view: WebView,
                 request: WebResourceRequest
             ): WebResourceResponse? {
+                val uri = request.url
+                if (uri.host == "appassets.androidplatform.net") {
+                    val path = uri.path ?: ""
+                    if (!path.startsWith("/assets/")) {
+                        val fixedPath = "/assets" + (if (path.startsWith("/")) path else "/$path")
+                        val fixedUri = uri.buildUpon().path(fixedPath).build()
+                        return assetLoader.shouldInterceptRequest(fixedUri)
+                    }
+                }
                 return assetLoader.shouldInterceptRequest(request.url)
             }
 
@@ -151,6 +160,16 @@ class MainActivity : AppCompatActivity() {
                 val uri = request.url
                 val scheme = uri.scheme?.lowercase() ?: ""
                 val urlStr = uri.toString()
+
+                if (uri.host == "appassets.androidplatform.net") {
+                    val path = uri.path ?: ""
+                    if (!path.startsWith("/assets/")) {
+                        val fixedPath = "/assets" + (if (path.startsWith("/")) path else "/$path")
+                        val fixedUri = uri.buildUpon().path(fixedPath).build()
+                        view.loadUrl(fixedUri.toString())
+                        return true
+                    }
+                }
 
                 if (scheme == "loyaltypass" || scheme == "storeterminal") {
                     try {
@@ -296,6 +315,18 @@ class MainActivity : AppCompatActivity() {
 
                     act.runOnUiThread {
                         try {
+                            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                                if (!context.packageManager.canRequestPackageInstalls()) {
+                                    val manageIntent = Intent(android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES).apply {
+                                        data = Uri.parse("package:${context.packageName}")
+                                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                    }
+                                    Toast.makeText(context, "Please allow 'Install unknown apps', then tap Update again.", Toast.LENGTH_LONG).show()
+                                    context.startActivity(manageIntent)
+                                    return@runOnUiThread
+                                }
+                            }
+
                             val uri = FileProvider.getUriForFile(
                                 context,
                                 "${context.packageName}.fileprovider",
@@ -306,6 +337,13 @@ class MainActivity : AppCompatActivity() {
                                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                             }
+
+                            val resInfoList = context.packageManager.queryIntentActivities(installIntent, PackageManager.MATCH_DEFAULT_ONLY)
+                            for (resolveInfo in resInfoList) {
+                                val pkgName = resolveInfo.activityInfo.packageName
+                                context.grantUriPermission(pkgName, uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                            }
+
                             context.startActivity(installIntent)
                         } catch (e: Exception) {
                             val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
