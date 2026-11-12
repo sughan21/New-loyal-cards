@@ -82,11 +82,13 @@
         "phone":  "8428243504",
         "name":  "Manoj",
         "password":  "MANOJkennedy@07",
-        "stamps":  1,
+        "stamps":  2,
         "giftsEarned":  0,
         "memberId":  "GP-22696",
-        "deviceName":  "Apple iPhone (iOS 27.0)",
+        "deviceName":  "Apple iPhone (iOS 27.2)",
         "deviceId":  "DEV_39FRVSGX_MVMDHSFC",
+        "appVersion":  "1.6.4",
+        "versionCode":  12,
         "history":  [
                         {
                             "date":  "24 Oct, 17:56",
@@ -116,6 +118,8 @@
         "memberId":  "GP-86895",
         "deviceName":  "Apple iPhone (iOS 27.0)",
         "deviceId":  "DEV_JOE5S9RF_MW0U0O41",
+        "appVersion":  "1.6.4",
+        "versionCode":  12,
         "history":  [
                         {
                             "date":  "3 Nov, 20:47",

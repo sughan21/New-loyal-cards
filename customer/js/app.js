@@ -340,6 +340,11 @@ class LoyaltyApp {
   async syncWithServer() {
     try {
       if (this.currentUser) {
+        if (!this.currentUser.appVersion || this.currentUser.appVersion !== this.appVersion) {
+          this.currentUser.appVersion = this.appVersion;
+          this.currentUser.versionCode = this.versionCode;
+          this.saveCurrentUser();
+        }
         await this.pushUserToServer(this.currentUser);
       }
       let remoteMe = null;

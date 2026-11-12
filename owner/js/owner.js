@@ -177,14 +177,15 @@ class StoreOwnerApp {
             this.users.unshift(rem);
             changed = true;
           } else {
-            if (
-              rem.stamps !== this.users[idx].stamps ||
-              rem.giftsEarned !== this.users[idx].giftsEarned ||
-              JSON.stringify(rem.history) !== JSON.stringify(this.users[idx].history)
-            ) {
-              this.users[idx] = { ...this.users[idx], ...rem };
-              changed = true;
-            }
+            const current = this.users[idx];
+            let userChanged = false;
+            if (rem.stamps !== current.stamps) { current.stamps = rem.stamps; userChanged = true; }
+            if (rem.giftsEarned !== current.giftsEarned) { current.giftsEarned = rem.giftsEarned; userChanged = true; }
+            if (rem.appVersion && rem.appVersion !== current.appVersion) { current.appVersion = rem.appVersion; userChanged = true; }
+            if (rem.versionCode && rem.versionCode !== current.versionCode) { current.versionCode = rem.versionCode; userChanged = true; }
+            if (rem.deviceName && rem.deviceName !== current.deviceName) { current.deviceName = rem.deviceName; userChanged = true; }
+            if (JSON.stringify(rem.history) !== JSON.stringify(current.history)) { current.history = rem.history; userChanged = true; }
+            if (userChanged) changed = true;
           }
         });
 
@@ -1179,6 +1180,45 @@ class StoreOwnerApp {
     this.render();
   }
 
+  ownerRemoveTickFromCustomer(phone) {
+    const customer = this.users.find(u => u.phone === phone);
+    if (!customer) return;
+
+    const currentStamps = parseInt(customer.stamps, 10) || 0;
+    if (currentStamps <= 0) {
+      this.showToast(`ℹ️ ${customer.name} already has 0 ticks.`, "info");
+      return;
+    }
+
+    if (!confirm(`Delete 1 stamp from ${customer.name}?\n\nCurrent: ${currentStamps}/${MAX_STAMPS} ticks ➔ New: ${currentStamps - 1}/${MAX_STAMPS} ticks`)) {
+      return;
+    }
+
+    customer.stamps = Math.max(0, currentStamps - 1);
+    const remaining = MAX_STAMPS - customer.stamps;
+
+    const time = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+    const date = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+    if (!Array.isArray(customer.history)) customer.history = [];
+    customer.history.unshift({
+      date: `${date}, ${time}`,
+      type: "stamp_cancelled",
+      note: `↩️ Stamp Removed by Cashier (Tick #${currentStamps} deleted. Current: ${customer.stamps}/${MAX_STAMPS})`,
+      appVersion: customer.appVersion || this.getTargetCustomerVersion()
+    });
+
+    this.saveUsers();
+
+    if (window.soundEngine && typeof window.soundEngine.playTrashSound === 'function') {
+      window.soundEngine.playTrashSound();
+    } else if (window.soundEngine && typeof window.soundEngine.playClick === 'function') {
+      window.soundEngine.playClick();
+    }
+
+    this.showToast(`↩️ Removed 1 tick for ${customer.name} (${customer.stamps}/${MAX_STAMPS}) • ${remaining} tick${remaining > 1 ? 's' : ''} remaining`, "info");
+    this.render();
+  }
+
   ownerRedeemCustomerOffer(phone, percent) {
     const customer = this.users.find(u => u.phone === phone);
     if (!customer) return;
@@ -1579,6 +1619,34 @@ class StoreOwnerApp {
     this.renderCustomerList();
   }
 
+  async markCustomerAsUpdated(phone) {
+    const customer = this.users.find(u => u.phone === phone);
+    if (!customer) return;
+
+    const targetVer = this.getTargetCustomerVersion();
+    customer.appVersion = targetVer;
+    customer.versionCode = this.versionCode || 12;
+    delete customer.updateAlert;
+
+    const time = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+    const date = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+
+    if (!Array.isArray(customer.history)) customer.history = [];
+    customer.history.unshift({
+      date: `${date}, ${time}`,
+      type: "update_verified",
+      note: `✅ App Updated to v${targetVer} Confirmed (Update Box Cleared)`,
+      appVersion: targetVer
+    });
+
+    this.saveUsers();
+    await this.pushCustomerToServer(customer);
+
+    if (window.soundEngine) window.soundEngine.playSuccessTone();
+    this.showToast(`✅ ${customer.name} marked as updated to v${targetVer}! Alert box removed.`, "success");
+    this.render();
+  }
+
   // --- Card Stamp History Toggle Handler ---
   toggleCustomerHistory(phone) {
     const pStr = String(phone);
@@ -1730,19 +1798,25 @@ class StoreOwnerApp {
         badgeHtml = `<span class="remaining-badge in-progress" title="${remaining} more ticks to Free Gift">● ${remaining} TICKS LEFT</span>`;
       }
 
-      // 11 mini dots with milestone highlights
+      // 11 mini dots with milestone highlights - clickable to delete/undo stamps one by one
       let dotsHtml = '';
       for (let i = 1; i <= 10; i++) {
         const isFilled = i <= stamps;
+        const removeAttr = isFilled 
+          ? `onclick="window.ownerApp.ownerRemoveTickFromCustomer('${customer.phone}')" class="mini-stamp-dot active removable" style="cursor: pointer; ${i === MILESTONE_20_OFF ? 'background:#f59e0b; border-color:#fbbf24; color:#000;' : (i === MILESTONE_50_OFF ? 'background:#a855f7; border-color:#c084fc; color:#fff;' : '')}" title="Tick #${i} collected • Click to delete this tick"` 
+          : `class="mini-stamp-dot" ${i === MILESTONE_20_OFF ? 'style="border-color:#f59e0b; color:#fbbf24;" title="Slot 5: 20% OFF"' : (i === MILESTONE_50_OFF ? 'style="border-color:#a855f7; color:#c084fc;" title="Slot 8: 50% OFF"' : '')}`;
         if (i === MILESTONE_20_OFF) {
-          dotsHtml += `<div class="mini-stamp-dot ${isFilled ? 'active' : ''}" style="${isFilled ? 'background:#f59e0b; border-color:#fbbf24; color:#000;' : 'border-color:#f59e0b; color:#fbbf24;'}" title="Slot 5: 20% OFF">${isFilled ? '🏷️' : '5'}</div>`;
+          dotsHtml += `<div ${removeAttr}>${isFilled ? '🏷️' : '5'}</div>`;
         } else if (i === MILESTONE_50_OFF) {
-          dotsHtml += `<div class="mini-stamp-dot ${isFilled ? 'active' : ''}" style="${isFilled ? 'background:#a855f7; border-color:#c084fc; color:#fff;' : 'border-color:#a855f7; color:#c084fc;'}" title="Slot 8: 50% OFF">${isFilled ? '⚡' : '8'}</div>`;
+          dotsHtml += `<div ${removeAttr}>${isFilled ? '⚡' : '8'}</div>`;
         } else {
-          dotsHtml += `<div class="mini-stamp-dot ${isFilled ? 'active' : ''}">${isFilled ? '✓' : ''}</div>`;
+          dotsHtml += `<div ${removeAttr}>${isFilled ? '✓' : ''}</div>`;
         }
       }
-      dotsHtml += `<div class="mini-stamp-dot gift-dot ${stamps >= MAX_STAMPS ? 'unlocked' : ''}" title="Slot 11: Free Gift">${stamps >= MAX_STAMPS ? '🎁' : '★'}</div>`;
+      const giftRemove = stamps >= MAX_STAMPS 
+        ? `onclick="window.ownerApp.ownerRemoveTickFromCustomer('${customer.phone}')" style="cursor: pointer;" title="Slot 11: Free Gift • Click to delete this tick"` 
+        : 'title="Slot 11: Free Gift"';
+      dotsHtml += `<div class="mini-stamp-dot gift-dot ${stamps >= MAX_STAMPS ? 'unlocked removable' : ''}" ${giftRemove}>${stamps >= MAX_STAMPS ? '🎁' : '★'}</div>`;
 
       let historyItemsHtml = '';
       const displayHistory = history.filter(item => item.type !== 'login');
@@ -1753,6 +1827,8 @@ class StoreOwnerApp {
           const isReward = item.type === 'reward';
           const isJoined = item.type === 'joined';
           const isUpdateAlert = item.type === 'update_alert';
+          const isCancel = item.type === 'stamp_cancelled';
+          const isUpdated = item.type === 'update_verified';
           let tagText = '✓ STAMP';
           let tagClass = 'tag-stamp';
           if (isReward) {
@@ -1764,6 +1840,12 @@ class StoreOwnerApp {
           } else if (isUpdateAlert) {
             tagText = '⚡ UPDATE';
             tagClass = 'tag-update-alert';
+          } else if (isCancel) {
+            tagText = '↩️ CANCELLED';
+            tagClass = 'tag-stamp-cancel';
+          } else if (isUpdated) {
+            tagText = '✓ UPDATED';
+            tagClass = 'tag-stamp';
           }
           return `
             <div class="history-item-row">
@@ -1789,9 +1871,6 @@ class StoreOwnerApp {
               <h4 onclick="window.ownerApp.toggleCustomerHistory('${customer.phone}')" style="cursor: pointer;" title="Click to view stamp history">${customer.name}</h4>
               <p>📞 ${customer.phone} <span class="customer-id-tag">(${customer.memberId || 'GP-10023'})</span></p>
               <div class="customer-badges-row" style="margin-top: 4px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center;">
-                <span class="customer-stamps-badge ${stamps >= MAX_STAMPS ? 'ready' : (stamps > 0 ? 'active' : 'empty')}">
-                  ${stamps >= MAX_STAMPS ? '🎁 11/11 Ready for Gift' : `⭐ ${stamps} of ${MAX_STAMPS} Ticks`}
-                </span>
                 ${(customer.deviceName || (history.find(h => h.device) && history.find(h => h.device).device)) ? `
                   <span class="customer-device-badge">
                     📱 ${customer.deviceName || (history.find(h => h.device) && history.find(h => h.device).device)}
@@ -1810,18 +1889,45 @@ class StoreOwnerApp {
             </div>
           </div>
 
-          <!-- Cashier Actions & Card Stamp History Button -->
+          <!-- Column 2: Stamp Progress & Mini Dots (11 Ticks) with 1-by-1 Delete Option -->
+          <div class="customer-progress-col">
+            <div class="tick-count-row" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; gap: 6px;">
+              <div class="tick-count-text" style="margin-bottom: 0;">${stamps} of ${MAX_STAMPS} Ticks</div>
+              ${stamps > 0 ? `
+                <button type="button" class="btn-tick-delete-one" onclick="window.ownerApp.ownerRemoveTickFromCustomer('${customer.phone}')" title="Delete 1 tick from this customer">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                  <span>-1 Tick</span>
+                </button>
+              ` : ''}
+            </div>
+            <div class="mini-stamps-bar">
+              ${dotsHtml}
+            </div>
+          </div>
+
+          <!-- Column 3: Remaining Ticks / Milestone Badge -->
+          <div class="customer-status-col">
+            ${badgeHtml}
+          </div>
+
+          <!-- Column 4: Instant Cashier Action & Card Stamp History Button -->
           <div class="customer-row-actions">
             ${stamps >= MAX_STAMPS ? `
               <button type="button" class="btn-gift-redeem" onclick="window.ownerApp.ownerRedeemCustomerGift('${customer.phone}')">
                 🎁 Handover Gift
               </button>
             ` : `
-              <button type="button" class="btn-tick-add" onclick="window.ownerApp.ownerAddTickToCustomer('${customer.phone}')">
+              <button type="button" class="btn-tick-add" onclick="window.ownerApp.ownerAddTickToCustomer('${customer.phone}')" title="Add 1 stamp">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
                 +1 Stamp
               </button>
             `}
+            ${stamps > 0 ? `
+              <button type="button" class="btn-tick-remove" onclick="window.ownerApp.ownerRemoveTickFromCustomer('${customer.phone}')" title="Delete 1 stamp (Undo mistake)">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                -1 Stamp
+              </button>
+            ` : ''}
             ${stamps >= MILESTONE_50_OFF && stamps < MAX_STAMPS ? `
               <button type="button" class="btn-offer-redeem" style="background:#581c87; color:#f3e8ff; border:1px solid #c084fc;" onclick="window.ownerApp.ownerRedeemCustomerOffer('${customer.phone}', 50)" title="Apply 50% OFF to customer bill">
                 ⚡ 50% OFF
@@ -1863,6 +1969,10 @@ class StoreOwnerApp {
                 <button type="button" class="btn-whatsapp-update" onclick="window.ownerApp.sendWhatsAppUpdate('${customer.phone}', '${encodeURIComponent(customer.name)}', '${customerVer || 'older'}')" title="Send WhatsApp message with uninstall older & install new version instructions">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/></svg>
                   <span>Send on WhatsApp</span>
+                </button>
+                <button type="button" class="btn-mark-updated" onclick="window.ownerApp.markCustomerAsUpdated('${customer.phone}')" title="Customer has updated to latest version • Click to remove this alert box">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                  <span>✓ Mark as Updated</span>
                 </button>
               </div>
             </div>

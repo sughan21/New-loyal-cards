@@ -59,6 +59,8 @@ class LoyaltySupabaseRepository {
     };
     if (u.deviceName) row.device_name = u.deviceName;
     if (u.deviceId) row.device_id = u.deviceId;
+    if (u.appVersion) row.app_version = u.appVersion;
+    if (u.versionCode) row.version_code = u.versionCode;
     return row;
   }
 
@@ -66,10 +68,14 @@ class LoyaltySupabaseRepository {
     if (!db) return null;
     let dev = db.device_name || '';
     let devId = db.device_id || '';
+    let appVer = db.app_version || '';
+    let verCode = db.version_code || 0;
     if (Array.isArray(db.history)) {
       for (const h of db.history) {
         if (!dev && h && h.device) dev = h.device;
         if (!devId && h && h.deviceId) devId = h.deviceId;
+        if (!appVer && h && (h.appVersion || h.version)) appVer = h.appVersion || h.version;
+        if (!verCode && h && h.versionCode) verCode = h.versionCode;
       }
     }
     return {
@@ -81,6 +87,8 @@ class LoyaltySupabaseRepository {
       memberId: db.member_id || '',
       deviceName: dev,
       deviceId: devId,
+      appVersion: appVer || '',
+      versionCode: verCode || 0,
       history: Array.isArray(db.history) ? db.history : [],
       lastStampDate: db.last_stamp_date || null,
       lastUpdated: db.last_updated || Date.now(),
@@ -168,9 +176,11 @@ class LoyaltySupabaseRepository {
         .from('customers')
         .upsert(row, { onConflict: 'phone' });
 
-      // If device_name column isn't created in Supabase yet, retry without device_name
-      if (error && error.message && error.message.includes('device_name')) {
-        delete row.device_name;
+      // If device_name, app_version or version_code column isn't created in Supabase yet, retry without them
+      if (error && error.message && (error.message.includes('device_name') || error.message.includes('app_version') || error.message.includes('version_code'))) {
+        if (error.message.includes('device_name')) delete row.device_name;
+        if (error.message.includes('app_version')) delete row.app_version;
+        if (error.message.includes('version_code')) delete row.version_code;
         const res = await this.client.from('customers').upsert(row, { onConflict: 'phone' });
         error = res.error;
       }
@@ -194,10 +204,12 @@ class LoyaltySupabaseRepository {
         .from('customers')
         .upsert(rows, { onConflict: 'phone' });
 
-      if (error && error.message && error.message.includes('device_name')) {
+      if (error && error.message && (error.message.includes('device_name') || error.message.includes('app_version') || error.message.includes('version_code'))) {
         rows = rows.map(r => {
           const c = { ...r };
-          delete c.device_name;
+          if (error.message.includes('device_name')) delete c.device_name;
+          if (error.message.includes('app_version')) delete c.app_version;
+          if (error.message.includes('version_code')) delete c.version_code;
           return c;
         });
         const res = await this.client.from('customers').upsert(rows, { onConflict: 'phone' });
