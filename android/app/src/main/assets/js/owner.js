@@ -1897,9 +1897,15 @@ class StoreOwnerApp {
             </div>
           </div>
 
-          <!-- Column 3: Remaining Ticks / Milestone Badge -->
+          <!-- Column 3: Remaining Ticks / Milestone Badge (Half Size) & Remove 1 Stamp (Half Side) -->
           <div class="customer-status-col">
             ${badgeHtml}
+            ${stamps > 0 ? `
+              <button type="button" class="btn-tick-remove" onclick="window.ownerApp.ownerRemoveTickFromCustomer('${customer.phone}')" title="Delete 1 stamp (Undo mistake)">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                <span>1 Stamp</span>
+              </button>
+            ` : ''}
           </div>
 
           <!-- Column 4: Instant Cashier Action & Card Stamp History Button -->
@@ -1914,12 +1920,6 @@ class StoreOwnerApp {
                 +1 Stamp
               </button>
             `}
-            ${stamps > 0 ? `
-              <button type="button" class="btn-tick-remove" onclick="window.ownerApp.ownerRemoveTickFromCustomer('${customer.phone}')" title="Delete 1 stamp (Undo mistake)">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                -1 Stamp
-              </button>
-            ` : ''}
             ${stamps >= MILESTONE_50_OFF && stamps < MAX_STAMPS ? `
               <button type="button" class="btn-offer-redeem" style="background:#581c87; color:#f3e8ff; border:1px solid #c084fc;" onclick="window.ownerApp.ownerRedeemCustomerOffer('${customer.phone}', 50)" title="Apply 50% OFF to customer bill">
                 ⚡ 50% OFF
