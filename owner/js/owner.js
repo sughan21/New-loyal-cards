@@ -788,8 +788,18 @@ class StoreOwnerApp {
       input.value = updateData.version;
     }
 
-    const hasNewVersion = this.isNewerVersion(updateData.version, this.appVersion) ||
-                          (updateData.versionCode && updateData.versionCode > this.versionCode);
+    // Releases published by store owner are intended for Customer Passes
+    const ownerBroadcastVer = localStorage.getItem('loyalty_owner_broadcast_version');
+    const isCustomerTarget = updateData.target === 'customer' ||
+                             (ownerBroadcastVer && ownerBroadcastVer === (updateData.version || updateData.customerVersion));
+
+    // Terminal updates are only triggered if there is an explicit owner build update:
+    const remoteOwnerVer = updateData.ownerVersion;
+    const remoteOwnerCode = updateData.ownerVersionCode;
+
+    const hasNewVersion = remoteOwnerVer 
+      ? (this.isNewerVersion(remoteOwnerVer, this.appVersion) || (remoteOwnerCode && remoteOwnerCode > this.versionCode))
+      : (!isCustomerTarget && (this.isNewerVersion(updateData.version, this.appVersion) || (updateData.versionCode && updateData.versionCode > this.versionCode)));
 
     const ownerBadgeIds = ['ownerSettingsUpdateBadge', 'ownerDashboardSettingsBadge'];
     const updateIconPulse = document.getElementById('ownerUpdateIconPulse');
@@ -923,8 +933,12 @@ class StoreOwnerApp {
     const customFeatures = customNotes.split(/\n|•|;|\band\b|(?<=\.)\s+/).map(s => s.trim().replace(/^[-*•]\s*/, '')).filter(s => s.length > 3);
 
     const payload = {
+      target: "customer",
       version: newVer,
-      versionCode: (this.versionCode || 9) + 1,
+      customerVersion: newVer,
+      customerVersionCode: (this.versionCode || 9) + 1,
+      ownerVersion: this.appVersion,
+      ownerVersionCode: this.versionCode,
       releaseDate: new Date().toISOString().slice(0, 10),
       title: "Loyalty Pass Update",
       notes: customNotes,
@@ -938,6 +952,8 @@ class StoreOwnerApp {
       ownerApk: "StoreTerminal-Owner.apk",
       downloadUrl: "download.html"
     };
+
+    localStorage.setItem('loyalty_owner_broadcast_version', newVer);
 
     let cloudSaved = false;
     let localSaved = false;
@@ -975,10 +991,10 @@ class StoreOwnerApp {
     } catch (e) {}
 
     if (cloudSaved || localSaved) {
-      this.showToast(`📢 Version ${newVer} broadcasted to all Terminals and Customer Passes!`, "gold");
+      this.showToast(`📢 Version ${newVer} broadcasted to all customer apps!`, "gold");
       this.checkForAppUpdates(false);
     } else {
-      this.showToast(`📢 Version ${newVer} broadcasted successfully!`, "gold");
+      this.showToast(`📢 Version ${newVer} broadcasted to all customer apps!`, "gold");
       this.checkForAppUpdates(false);
     }
   }

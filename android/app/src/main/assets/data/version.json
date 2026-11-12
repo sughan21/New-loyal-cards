@@ -1,6 +1,11 @@
 {
     "version":  "1.6.4",
     "versionCode":  12,
+    "target": "customer",
+    "customerVersion": "1.6.4",
+    "customerVersionCode": 12,
+    "ownerVersion": "1.6.4",
+    "ownerVersionCode": 12,
     "releaseDate":  "2026-11-12",
     "title":  "Loyalty Pass v1.6.4 Update",
     "notes":  "Seamless 1-tap updates, faster cloud sync & iPhone pass support.",

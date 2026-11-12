@@ -1624,8 +1624,10 @@ class LoyaltyApp {
 
     this.latestUpdateInfo = updateData;
 
-    const hasNewVersion = this.isNewerVersion(updateData.version, this.appVersion) ||
-                          (updateData.versionCode && updateData.versionCode > this.versionCode);
+    const targetCustomerVer = updateData.customerVersion || updateData.version;
+    const targetCustomerCode = updateData.customerVersionCode || updateData.versionCode;
+    const hasNewVersion = this.isNewerVersion(targetCustomerVer, this.appVersion) ||
+                          (targetCustomerCode && targetCustomerCode > this.versionCode);
 
     const badgeIds = ['settingsUpdateBadge', 'customerSettingsBadge', 'authSettingsBadge'];
     const updateIconPulse = document.getElementById('updateIconPulse');
@@ -1646,13 +1648,13 @@ class LoyaltyApp {
       if (updateIconPulse) updateIconPulse.classList.add('has-update');
       if (updateIconSymbol) updateIconSymbol.textContent = '⚡';
       if (updateStatusTitle) updateStatusTitle.textContent = 'New Update Available!';
-      if (updateStatusSubtitle) updateStatusSubtitle.textContent = `Version ${updateData.version} is ready to install`;
+      if (updateStatusSubtitle) updateStatusSubtitle.textContent = `Version ${targetCustomerVer} is ready to install`;
 
       if (newUpdateBanner) {
         newUpdateBanner.classList.add('visible');
         newUpdateBanner.style.setProperty('display', 'flex', 'important');
       }
-      if (newUpdateVerText) newUpdateVerText.textContent = `Version ${updateData.version} Available`;
+      if (newUpdateVerText) newUpdateVerText.textContent = `Version ${targetCustomerVer} Available`;
       if (newUpdateNotesText) newUpdateNotesText.textContent = updateData.notes || updateData.description || 'New features, improvements and fixes.';
 
       // Dynamically populate What's New Feature List
