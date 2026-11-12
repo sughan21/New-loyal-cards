@@ -1799,9 +1799,7 @@ class LoyaltyApp {
     this.latestUpdateInfo = updateData;
 
     const targetCustomerVer = updateData.customerVersion || updateData.version;
-    const targetCustomerCode = updateData.customerVersionCode || updateData.versionCode;
-    const hasNewVersion = this.isNewerVersion(targetCustomerVer, this.appVersion) ||
-                          (targetCustomerCode && targetCustomerCode > this.versionCode);
+    const hasNewVersion = this.isNewerVersion(targetCustomerVer, this.appVersion);
 
     const badgeIds = ['settingsUpdateBadge', 'customerSettingsBadge', 'authSettingsBadge'];
     const updateIconPulse = document.getElementById('updateIconPulse');
@@ -1812,6 +1810,7 @@ class LoyaltyApp {
     const newUpdateVerText = document.getElementById('newUpdateVerText');
     const newUpdateNotesText = document.getElementById('newUpdateNotesText');
 
+    const updateVersionStrip = document.getElementById('updateVersionStrip');
     const currentVerDisplay = document.getElementById('currentVerDisplay');
     const versionChipArrow = document.getElementById('versionChipArrow');
     const newVersionChip = document.getElementById('newVersionChip');
@@ -1822,7 +1821,8 @@ class LoyaltyApp {
     }
 
     if (hasNewVersion) {
-      if (versionChipArrow) versionChipArrow.style.setProperty('display', 'block', 'important');
+      if (updateVersionStrip) updateVersionStrip.classList.add('has-update');
+      if (versionChipArrow) versionChipArrow.style.setProperty('display', 'flex', 'important');
       if (newVersionChip) newVersionChip.style.setProperty('display', 'flex', 'important');
       if (newVerDisplay) {
         newVerDisplay.innerHTML = `v${targetCustomerVer} <span class="version-chip-badge update">⚡ New</span>`;
@@ -1879,6 +1879,7 @@ class LoyaltyApp {
         this.showToast(`⚡ New version ${updateData.version} is available!`, "gold");
       }
     } else {
+      if (updateVersionStrip) updateVersionStrip.classList.remove('has-update');
       if (versionChipArrow) versionChipArrow.style.setProperty('display', 'none', 'important');
       if (newVersionChip) newVersionChip.style.setProperty('display', 'none', 'important');
 

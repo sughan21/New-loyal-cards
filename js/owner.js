@@ -827,8 +827,8 @@ class StoreOwnerApp {
     const remoteOwnerCode = updateData.ownerVersionCode;
 
     const hasNewVersion = remoteOwnerVer 
-      ? (this.isNewerVersion(remoteOwnerVer, this.appVersion) || (remoteOwnerCode && remoteOwnerCode > this.versionCode))
-      : (!isCustomerTarget && (this.isNewerVersion(updateData.version, this.appVersion) || (updateData.versionCode && updateData.versionCode > this.versionCode)));
+      ? this.isNewerVersion(remoteOwnerVer, this.appVersion)
+      : (!isCustomerTarget && this.isNewerVersion(updateData.version, this.appVersion));
 
     const ownerBadgeIds = ['ownerSettingsUpdateBadge', 'ownerDashboardSettingsBadge'];
     const updateIconPulse = document.getElementById('ownerUpdateIconPulse');
@@ -839,6 +839,7 @@ class StoreOwnerApp {
     const newUpdateVerText = document.getElementById('ownerNewUpdateVerText');
     const newUpdateNotesText = document.getElementById('ownerNewUpdateNotesText');
 
+    const ownerUpdateVersionStrip = document.getElementById('ownerUpdateVersionStrip');
     const ownerCurrentVerDisplay = document.getElementById('ownerCurrentVerDisplay');
     const ownerVersionChipArrow = document.getElementById('ownerVersionChipArrow');
     const ownerNewVersionChip = document.getElementById('ownerNewVersionChip');
@@ -849,7 +850,8 @@ class StoreOwnerApp {
     }
 
     if (hasNewVersion) {
-      if (ownerVersionChipArrow) ownerVersionChipArrow.style.setProperty('display', 'block', 'important');
+      if (ownerUpdateVersionStrip) ownerUpdateVersionStrip.classList.add('has-update');
+      if (ownerVersionChipArrow) ownerVersionChipArrow.style.setProperty('display', 'flex', 'important');
       if (ownerNewVersionChip) ownerNewVersionChip.style.setProperty('display', 'flex', 'important');
       if (ownerNewVerDisplay) {
         ownerNewVerDisplay.innerHTML = `v${remoteOwnerVer || updateData.version} <span class="version-chip-badge update">⚡ New</span>`;
@@ -900,6 +902,7 @@ class StoreOwnerApp {
       }
       if (isManual) this.showToast(`⚡ New version ${remoteOwnerVer || updateData.version} is available!`, "gold");
     } else {
+      if (ownerUpdateVersionStrip) ownerUpdateVersionStrip.classList.remove('has-update');
       if (ownerVersionChipArrow) ownerVersionChipArrow.style.setProperty('display', 'none', 'important');
       if (ownerNewVersionChip) ownerNewVersionChip.style.setProperty('display', 'none', 'important');
 
@@ -983,7 +986,7 @@ class StoreOwnerApp {
       target: "customer",
       version: newVer,
       customerVersion: newVer,
-      customerVersionCode: (this.versionCode || 9) + 1,
+      customerVersionCode: this.versionCode,
       ownerVersion: this.appVersion,
       ownerVersionCode: this.versionCode,
       releaseDate: new Date().toISOString().slice(0, 10),
