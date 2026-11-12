@@ -484,10 +484,10 @@ while ($listener.IsListening) {
                     $verObj = $raw | ConvertFrom-Json
                     Send-JsonResponse $res 200 $verObj
                 } catch {
-                    Send-JsonResponse $res 200 @{ version = "1.5.0"; versionCode = 6; notes = "Loyalty Pass" }
+                    Send-JsonResponse $res 200 @{ version = "1.6.3"; versionCode = 11; notes = "Loyalty Pass" }
                 }
             } else {
-                Send-JsonResponse $res 200 @{ version = "1.5.0"; versionCode = 6; notes = "Loyalty Pass" }
+                Send-JsonResponse $res 200 @{ version = "1.6.3"; versionCode = 11; notes = "Loyalty Pass" }
             }
             continue
         }
