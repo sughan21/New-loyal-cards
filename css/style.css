@@ -2857,28 +2857,12 @@ body.store-mode-active .app-container {
 }
 
 /* ==========================================================================
-   MODALS & VIEWPORT (BACKGROUND SCROLL LOCK & POPUP ISOLATION)
+   MODALS & VIEWPORT (CLEAN SCROLL LOCK & POPUP ISOLATION)
    ========================================================================== */
 
-/* Freeze background scrolling completely whenever ANY modal popup is open */
-body.modal-open,
-html.modal-open,
-body:has(.modal-backdrop.active),
-html:has(.modal-backdrop.active) {
+/* Clean background scroll lock when a modal is open */
+body.modal-open {
   overflow: hidden !important;
-  height: 100% !important;
-  max-height: 100vh !important;
-  touch-action: none !important;
-  -webkit-overflow-scrolling: auto !important;
-  overscroll-behavior: none !important;
-}
-
-body.modal-open .app-container,
-body:has(.modal-backdrop.active) .app-container {
-  overflow: hidden !important;
-  pointer-events: none !important;
-  user-select: none !important;
-  -webkit-user-select: none !important;
 }
 
 .modal-backdrop {
@@ -2898,9 +2882,7 @@ body:has(.modal-backdrop.active) .app-container {
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.2s ease;
-  /* Prevent scroll chaining from backdrop to background page */
-  overscroll-behavior: contain !important;
-  touch-action: none !important;
+  overscroll-behavior: contain;
 }
 
 .modal-backdrop.active {
@@ -2932,10 +2914,9 @@ body:has(.modal-backdrop.active) .app-container {
   box-sizing: border-box;
   transform: translateY(12px) scale(0.98);
   transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  /* Isolate scrolling exclusively to the modal dialog */
+  /* Smooth native momentum scrolling inside modal */
   overscroll-behavior: contain !important;
   -webkit-overflow-scrolling: touch !important;
-  touch-action: pan-y !important;
   pointer-events: auto !important;
 }
 
@@ -4547,7 +4528,6 @@ body:has(.modal-backdrop.active) .app-container {
   overflow-x: hidden !important;
   overscroll-behavior: contain !important;
   -webkit-overflow-scrolling: touch !important;
-  touch-action: pan-y !important;
   pointer-events: auto !important;
 }
 

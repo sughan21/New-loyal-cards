@@ -434,20 +434,16 @@ class LoyaltyApp {
     };
 
     document.querySelectorAll('.modal-close-trigger').forEach(btn => {
-      btn.addEventListener('click', handleCloseModal);
-      btn.addEventListener('touchend', handleCloseModal);
+      btn.addEventListener('click', (e) => {
+        if (e) e.preventDefault();
+        this.closeAllModals();
+      });
     });
 
     // Close when tapping outside dialog on backdrop
     document.querySelectorAll('.modal-backdrop').forEach(backdrop => {
       backdrop.addEventListener('click', (e) => {
         if (e.target === backdrop) this.closeAllModals();
-      });
-      backdrop.addEventListener('touchend', (e) => {
-        if (e.target === backdrop) {
-          e.preventDefault();
-          this.closeAllModals();
-        }
       });
     });
 
@@ -1136,34 +1132,25 @@ class LoyaltyApp {
       const activeBackdrop = document.querySelector('.modal-backdrop.active');
       if (activeBackdrop) {
         document.body.classList.add('modal-open');
-        document.documentElement.classList.add('modal-open');
       } else {
         document.body.classList.remove('modal-open');
-        document.documentElement.classList.remove('modal-open');
       }
     };
 
     if (typeof MutationObserver !== 'undefined') {
       const observer = new MutationObserver(() => updateBodyLock());
       document.querySelectorAll('.modal-backdrop').forEach(modal => {
-        observer.observe(modal, { attributes: true, attributeFilter: ['class', 'style'] });
+        observer.observe(modal, { attributes: true, attributeFilter: ['class'] });
       });
     }
 
-    // Isolate touch scrolling: prevent dragging backdrop from scrolling page behind modal
+    // Only prevent scroll when dragging the empty backdrop, never inside the dialog
     document.querySelectorAll('.modal-backdrop').forEach(modal => {
       modal.addEventListener('touchmove', (e) => {
         if (e.target === modal) {
           e.preventDefault();
         }
       }, { passive: false });
-    });
-
-    // Keep scrolling inside the modal dialog only
-    document.querySelectorAll('.modal-dialog, .modal-card, .settings-dialog').forEach(dialog => {
-      dialog.addEventListener('touchmove', (e) => {
-        e.stopPropagation();
-      }, { passive: true });
     });
   }
 
@@ -1175,7 +1162,6 @@ class LoyaltyApp {
     document.querySelectorAll('.modal-backdrop').forEach(m => m.classList.remove('active'));
     this.stopLiveScanner();
     document.body.classList.remove('modal-open');
-    document.documentElement.classList.remove('modal-open');
   }
 
   startLiveScanner() {
