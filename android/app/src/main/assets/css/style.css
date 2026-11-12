@@ -2844,6 +2844,107 @@ body.store-mode-active .app-container {
   margin: 0;
 }
 
+/* Cashier Voucher Redeem & Standee Link Styling */
+.cashier-input-action-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  width: 100%;
+}
+
+.cashier-input-action-row .custom-input {
+  flex: 1 1 0;
+  min-width: 0;
+  height: 42px;
+  box-sizing: border-box;
+}
+
+.cashier-redeem-action-btn {
+  white-space: nowrap;
+  padding: 0 16px;
+  height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  flex-shrink: 0;
+  margin: 0 !important;
+}
+
+.standee-url-control-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  margin-top: 2px;
+}
+
+.standee-url-input {
+  width: 100%;
+  height: 38px;
+  font-size: 0.76rem;
+  color: var(--gold-light);
+  font-family: monospace;
+  background: var(--bg-surface-elevated);
+  padding: 0 12px;
+  box-sizing: border-box;
+  text-overflow: ellipsis;
+}
+
+.standee-url-btns {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+}
+
+.btn-update-qr,
+.btn-copy-link {
+  flex: 1 1 0;
+  height: 36px;
+  padding: 0 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  box-sizing: border-box;
+  white-space: nowrap;
+  margin: 0 !important;
+}
+
+.btn-update-qr {
+  background: var(--gold-primary) !important;
+  color: #000 !important;
+  border: 1px solid var(--gold-dark) !important;
+}
+
+.btn-update-qr:hover {
+  background: var(--gold-light) !important;
+}
+
+.btn-copy-link {
+  background: var(--bg-surface-elevated) !important;
+  color: var(--text-pure) !important;
+  border: 1px solid var(--border-medium) !important;
+}
+
+.btn-copy-link:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+}
+
+@media (max-width: 540px) {
+  .cashier-input-action-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .cashier-redeem-action-btn {
+    width: 100%;
+  }
+}
+
 /* Pending Scan Banner on Auth View */
 .pending-scan-alert {
   background: rgba(245, 158, 11, 0.12);

@@ -455,13 +455,11 @@
                 </svg>
                 Verify & Redeem Customer Gift Voucher
               </h4>
-              <p style="font-size: 0.75rem; color: var(--text-muted);">Enter customer's 6-digit gift voucher code to
-                approve free reward:</p>
-              <div style="display: flex; gap: 8px;">
+              <p style="font-size: 0.75rem; color: var(--text-muted); margin: 0;">Enter customer's 6-digit gift voucher code to approve free reward:</p>
+              <div class="cashier-input-action-row">
                 <input type="text" id="cashierVoucherCode" class="custom-input"
-                  placeholder="Voucher Code (e.g. GIFT-3210-99)" style="padding-left: 14px; text-transform: uppercase;">
-                <button id="cashierRedeemBtn" class="primary-btn"
-                  style="white-space: nowrap; padding: 10px 16px; margin: 0;">Redeem Gift</button>
+                  placeholder="e.g. GIFT-1234 or OFFER20" style="padding-left: 14px; text-transform: uppercase;">
+                <button id="cashierRedeemBtn" class="primary-btn cashier-redeem-action-btn">Redeem Gift</button>
               </div>
             </div>
 
@@ -481,17 +479,14 @@
                 • <strong>In-App Scanner:</strong> Customer opens their <strong>Loyalty Pass App</strong> & taps "Scan
                 Store QR" (works 100% offline).
               </p>
-              <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 8px;">Active QR Code Target
-                (Editable):</div>
-              <div style="display: flex; gap: 6px;">
-                <input type="text" id="standeeDirectUrl" class="custom-input"
-                  style="font-size: 0.74rem; color: var(--gold-light); font-family: monospace; background: var(--bg-surface-elevated);"
+              <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 6px;">Active QR Code Target (Editable):</div>
+              <div class="standee-url-control-wrap">
+                <input type="text" id="standeeDirectUrl" class="custom-input standee-url-input"
                   placeholder="https://your-domain.com/download.html or Cloudflare URL">
-                <button id="saveStandeeUrlBtn" type="button" class="scanner-opt-btn"
-                  style="white-space: nowrap; padding: 8px 12px; margin: 0; background: var(--gold-primary); color: #000; font-weight: 700;">Update
-                  QR</button>
-                <button id="copyStandeeUrlBtn" type="button" class="scanner-opt-btn"
-                  style="white-space: nowrap; padding: 8px 10px; margin: 0;">Copy</button>
+                <div class="standee-url-btns">
+                  <button id="saveStandeeUrlBtn" type="button" class="scanner-opt-btn btn-update-qr">⚡ Update QR</button>
+                  <button id="copyStandeeUrlBtn" type="button" class="scanner-opt-btn btn-copy-link">📋 Copy Link</button>
+                </div>
               </div>
             </div>
           </div>
