@@ -179,6 +179,8 @@ class StoreOwnerApp {
           } else {
             const current = this.users[idx];
             let userChanged = false;
+            if (rem.name && rem.name !== current.name) { current.name = rem.name; userChanged = true; }
+            if (rem.memberId && rem.memberId !== current.memberId) { current.memberId = rem.memberId; userChanged = true; }
             if (rem.stamps !== current.stamps) { current.stamps = rem.stamps; userChanged = true; }
             if (rem.giftsEarned !== current.giftsEarned) { current.giftsEarned = rem.giftsEarned; userChanged = true; }
             if (rem.appVersion && rem.appVersion !== current.appVersion) { current.appVersion = rem.appVersion; userChanged = true; }
@@ -203,8 +205,13 @@ class StoreOwnerApp {
   startLiveSync() {
     if (this.syncTimer) clearInterval(this.syncTimer);
 
-    // Setup Supabase Realtime Stream for Instant Push
+    // Setup Supabase Realtime Stream for Instant Push of Customers & Requests
     if (window.loyaltyDb && window.loyaltyDb.isReady) {
+      window.loyaltyDb.subscribeToAllCustomers((cust, eventType) => {
+        console.log("⚡ Owner Realtime Customer Sync:", eventType, cust ? cust.phone : '');
+        this.fetchRemoteCustomers();
+      });
+
       window.loyaltyDb.subscribeToPendingRequests((req, eventType) => {
         if (this.isLoggedIn) {
           this.fetchPendingApprovalRequests();
@@ -218,7 +225,7 @@ class StoreOwnerApp {
       if (this.isLoggedIn) {
         this.fetchPendingApprovalRequests();
       }
-    }, 3500);
+    }, 2000);
   }
 
   async fetchPendingApprovalRequests() {
@@ -497,6 +504,8 @@ class StoreOwnerApp {
       manualSyncBtn.addEventListener('click', async () => {
         manualSyncBtn.innerText = "⏳ Syncing...";
         await this.fetchRemoteCustomers();
+        this.renderCustomerList();
+        this.renderMetrics();
         manualSyncBtn.innerText = "✓ Synced";
         this.showToast("☁️ Customer directory refreshed from server!", "success");
         setTimeout(() => { manualSyncBtn.innerText = "🔄 Refresh Now"; }, 1500);

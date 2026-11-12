@@ -65,8 +65,6 @@ class LoyaltySupabaseRepository {
     };
     if (u.deviceName) row.device_name = u.deviceName;
     if (u.deviceId) row.device_id = u.deviceId;
-    if (u.appVersion) row.app_version = u.appVersion;
-    if (u.versionCode) row.version_code = u.versionCode;
     return row;
   }
 
@@ -178,17 +176,22 @@ class LoyaltySupabaseRepository {
     if (!this.isReady || !customer || !customer.phone) return false;
     try {
       const row = this.toDbCustomer(customer);
+      // Clean out any transient fields not in Supabase customers schema
+      delete row.app_version;
+      delete row.version_code;
+
       let { error } = await this.client
         .from('customers')
         .upsert(row, { onConflict: 'phone' });
 
-      // If device_name, app_version or version_code column isn't created in Supabase yet, retry without them
-      if (error && error.message && (error.message.includes('device_name') || error.message.includes('app_version') || error.message.includes('version_code'))) {
-        if (error.message.includes('device_name')) delete row.device_name;
-        if (error.message.includes('app_version')) delete row.app_version;
-        if (error.message.includes('version_code')) delete row.version_code;
-        const res = await this.client.from('customers').upsert(row, { onConflict: 'phone' });
-        error = res.error;
+      // If unmapped column error occurs, extract the column name, strip it, and retry
+      if (error && error.message) {
+        const matches = error.message.match(/Could not find the '([^']+)' column/);
+        if (matches && matches[1]) {
+          delete row[matches[1]];
+          const res = await this.client.from('customers').upsert(row, { onConflict: 'phone' });
+          error = res.error;
+        }
       }
 
       if (error) {
@@ -205,21 +208,26 @@ class LoyaltySupabaseRepository {
   async upsertCustomers(customersList) {
     if (!this.isReady || !Array.isArray(customersList) || customersList.length === 0) return false;
     try {
-      let rows = customersList.map(c => this.toDbCustomer(c)).filter(Boolean);
+      let rows = customersList.map(c => {
+        const r = this.toDbCustomer(c);
+        if (r) {
+          delete r.app_version;
+          delete r.version_code;
+        }
+        return r;
+      }).filter(Boolean);
+
       let { error } = await this.client
         .from('customers')
         .upsert(rows, { onConflict: 'phone' });
 
-      if (error && error.message && (error.message.includes('device_name') || error.message.includes('app_version') || error.message.includes('version_code'))) {
-        rows = rows.map(r => {
-          const c = { ...r };
-          if (error.message.includes('device_name')) delete c.device_name;
-          if (error.message.includes('app_version')) delete c.app_version;
-          if (error.message.includes('version_code')) delete c.version_code;
-          return c;
-        });
-        const res = await this.client.from('customers').upsert(rows, { onConflict: 'phone' });
-        error = res.error;
+      if (error && error.message) {
+        const matches = error.message.match(/Could not find the '([^']+)' column/);
+        if (matches && matches[1]) {
+          rows.forEach(r => delete r[matches[1]]);
+          const res = await this.client.from('customers').upsert(rows, { onConflict: 'phone' });
+          error = res.error;
+        }
       }
 
       if (error) {
@@ -431,6 +439,38 @@ class LoyaltySupabaseRepository {
         (payload) => {
           if (payload.new) {
             onUpdate(this.toLocalCustomer(payload.new));
+          }
+        }
+      )
+      .subscribe();
+
+    this.activeChannels.set(channelName, channel);
+    return channel;
+  }
+
+  subscribeToAllCustomers(onCustomerChange) {
+    if (!this.isReady) return null;
+    const channelName = 'all_customers_stream';
+
+    if (this.activeChannels.has(channelName)) {
+      this.unsubscribe(channelName);
+    }
+
+    const channel = this.client
+      .channel(channelName)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'customers'
+        },
+        (payload) => {
+          if (payload.new) {
+            const cust = this.toLocalCustomer(payload.new);
+            onCustomerChange(cust, payload.eventType);
+          } else if (payload.eventType === 'DELETE' && payload.old) {
+            onCustomerChange({ phone: payload.old.phone }, 'DELETE');
           }
         }
       )
