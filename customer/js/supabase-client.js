@@ -46,6 +46,12 @@ class LoyaltySupabaseRepository {
   // --- Data Mappers ---
   toDbCustomer(u) {
     if (!u) return null;
+    let history = Array.isArray(u.history) ? [...u.history] : [];
+    if (u.appVersion && history.length > 0) {
+      if (!history[0].appVersion) {
+        history[0] = { ...history[0], appVersion: u.appVersion, versionCode: u.versionCode || 12 };
+      }
+    }
     const row = {
       phone: String(u.phone).trim(),
       name: u.name || '',
@@ -53,7 +59,7 @@ class LoyaltySupabaseRepository {
       stamps: parseInt(u.stamps, 10) || 0,
       gifts_earned: parseInt(u.giftsEarned, 10) || 0,
       member_id: u.memberId || '',
-      history: Array.isArray(u.history) ? u.history : [],
+      history: history,
       last_stamp_date: u.lastStampDate || null,
       last_updated: u.lastUpdated || Date.now()
     };

@@ -2612,25 +2612,17 @@ body.store-mode-active .app-container {
 
   .customer-update-box-actions {
     display: flex;
-    flex-wrap: wrap;
     width: 100%;
     gap: 8px;
   }
 
   .btn-push-update-alert,
   .btn-whatsapp-update {
-    flex: 1 1 calc(50% - 4px);
-    width: auto;
+    flex: 1 1 0;
+    width: 50%;
     min-width: 0;
     height: 38px;
     padding: 0 8px;
-    font-size: 0.74rem;
-  }
-
-  .btn-mark-updated {
-    flex: 1 1 100%;
-    width: 100%;
-    height: 36px;
     font-size: 0.74rem;
   }
 }
