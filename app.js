@@ -14,6 +14,7 @@ const MILESTONE_FREE_GIFT = 11;
 // --- Storage Keys ---
 const APP_STORAGE_KEY_USERS = 'golden_loyalty_users_v3_6ticks';
 const APP_STORAGE_KEY_CURRENT = 'golden_loyalty_current_user_v3';
+const APP_STORAGE_KEY_PROFILE = 'golden_loyalty_active_session_profile_v3';
 const APP_STORAGE_KEY_OWNER = 'golden_loyalty_owner_session_v3';
 const APP_STORAGE_KEY_STORE = 'golden_loyalty_store_config_v3';
 
@@ -71,6 +72,36 @@ class LoyaltyApp {
     this.setupRealtimeCustomerSync();
     this.setupOfflineSync();
     this.checkForAppUpdates(false);
+
+    // Ensure native bridge persistent session is restored if bridge attached slightly after sync
+    if (!this.currentUser && typeof window !== 'undefined') {
+      setTimeout(() => {
+        if (!this.currentUser && window.AndroidBridge && window.AndroidBridge.getPersistentSessionPhone) {
+          try {
+            const bPhone = window.AndroidBridge.getPersistentSessionPhone();
+            const bProf = window.AndroidBridge.getPersistentSessionProfile();
+            if (bPhone && !MOCK_DEMO_PHONES.includes(bPhone)) {
+              if (bProf) {
+                try { this.currentUser = JSON.parse(bProf); } catch (e) {}
+              }
+              if (!this.currentUser) {
+                this.currentUser = this.users.find(u => u.phone === bPhone) || {
+                  phone: bPhone,
+                  name: 'Valued Customer',
+                  stamps: 0,
+                  giftsEarned: 0,
+                  memberId: 'GP-' + Math.floor(10000 + Math.random() * 90000),
+                  history: []
+                };
+              }
+              localStorage.setItem(APP_STORAGE_KEY_CURRENT, this.currentUser.phone);
+              localStorage.setItem(APP_STORAGE_KEY_PROFILE, JSON.stringify(this.currentUser));
+              this.render();
+            }
+          } catch (e) {}
+        }
+      }, 250);
+    }
 
     // Auto-detect and record device name if not already saved
     if (this.currentUser && (!this.currentUser.deviceName || this.currentUser.deviceName === 'Mobile Device')) {
@@ -140,7 +171,6 @@ class LoyaltyApp {
     } else {
       this.users = [];
     }
-    this.saveUsers();
 
     const storedStore = localStorage.getItem(APP_STORAGE_KEY_STORE);
     if (storedStore) {
@@ -151,12 +181,81 @@ class LoyaltyApp {
       }
     }
 
-    const currentPhone = localStorage.getItem(APP_STORAGE_KEY_CURRENT);
-    if (currentPhone && !MOCK_DEMO_PHONES.includes(currentPhone)) {
-      this.currentUser = this.users.find(u => u.phone === currentPhone) || null;
+    // --- Permanent Customer Login Session Persistence ---
+    // The customer stays logged in permanently across app restarts, APK updates, and cache clears.
+    // The customer should ONLY be logged out if they explicitly tap the "Sign Out" button.
+    let currentPhone = localStorage.getItem(APP_STORAGE_KEY_CURRENT);
+    let storedProfile = null;
+
+    try {
+      const rawProf = localStorage.getItem(APP_STORAGE_KEY_PROFILE);
+      if (rawProf) storedProfile = JSON.parse(rawProf);
+    } catch (e) {
+      storedProfile = null;
+    }
+
+    // Recover from native Android SharedPreferences if web storage was cleared or reloaded
+    if (window.AndroidBridge) {
+      try {
+        if (!currentPhone && window.AndroidBridge.getPersistentSessionPhone) {
+          const nativePhone = window.AndroidBridge.getPersistentSessionPhone();
+          if (nativePhone && nativePhone.trim().length > 0) {
+            currentPhone = nativePhone.trim();
+          }
+        }
+        if (!storedProfile && window.AndroidBridge.getPersistentSessionProfile) {
+          const nativeProf = window.AndroidBridge.getPersistentSessionProfile();
+          if (nativeProf && nativeProf.trim().length > 0) {
+            try {
+              storedProfile = JSON.parse(nativeProf);
+            } catch (err) {}
+          }
+        }
+      } catch (err) {
+        console.warn("Native bridge session recovery check:", err);
+      }
+    }
+
+    if (currentPhone && MOCK_DEMO_PHONES.includes(currentPhone)) currentPhone = null;
+    if (storedProfile && MOCK_DEMO_PHONES.includes(storedProfile.phone)) storedProfile = null;
+
+    const sessionPhone = currentPhone || (storedProfile ? storedProfile.phone : null);
+
+    if (sessionPhone) {
+      let matchedUser = this.users.find(u => u.phone === sessionPhone);
+      if (matchedUser && storedProfile) {
+        this.currentUser = { ...storedProfile, ...matchedUser };
+      } else if (matchedUser) {
+        this.currentUser = matchedUser;
+      } else if (storedProfile) {
+        this.currentUser = storedProfile;
+        this.users.push(this.currentUser);
+      } else {
+        // Fallback user object until cloud sync completes in background
+        this.currentUser = {
+          phone: sessionPhone,
+          name: 'Valued Customer',
+          stamps: 0,
+          giftsEarned: 0,
+          memberId: 'GP-' + Math.floor(10000 + Math.random() * 90000),
+          history: [],
+          lastStampDate: new Date().toISOString().slice(0, 10),
+          createdAt: new Date().toLocaleDateString('en-GB')
+        };
+        this.users.push(this.currentUser);
+      }
+
+      // Reinforce session in all storage backends (NEVER remove it in loadState)
+      try {
+        localStorage.setItem(APP_STORAGE_KEY_CURRENT, this.currentUser.phone);
+        localStorage.setItem(APP_STORAGE_KEY_PROFILE, JSON.stringify(this.currentUser));
+        localStorage.setItem('golden_loyalty_is_logged_in', 'true');
+        if (window.AndroidBridge && window.AndroidBridge.savePersistentSession) {
+          window.AndroidBridge.savePersistentSession(this.currentUser.phone, JSON.stringify(this.currentUser));
+        }
+      } catch (e) {}
     } else {
       this.currentUser = null;
-      localStorage.removeItem(APP_STORAGE_KEY_CURRENT);
     }
   }
 
@@ -174,6 +273,18 @@ class LoyaltyApp {
       } else {
         this.users.push(this.currentUser);
         this.saveUsers();
+      }
+
+      // Permanent Customer Session Persistence across Web Storage and Android Native SharedPreferences
+      try {
+        localStorage.setItem(APP_STORAGE_KEY_CURRENT, this.currentUser.phone);
+        localStorage.setItem(APP_STORAGE_KEY_PROFILE, JSON.stringify(this.currentUser));
+        localStorage.setItem('golden_loyalty_is_logged_in', 'true');
+        if (window.AndroidBridge && window.AndroidBridge.savePersistentSession) {
+          window.AndroidBridge.savePersistentSession(this.currentUser.phone, JSON.stringify(this.currentUser));
+        }
+      } catch (e) {
+        console.warn("Session save warning:", e);
       }
     }
   }
@@ -234,6 +345,14 @@ class LoyaltyApp {
   applyRemoteUserUpdate(remoteMe) {
     if (!remoteMe || !this.currentUser) return;
     let changed = false;
+    if (remoteMe.name && (this.currentUser.name === 'Valued Customer' || this.currentUser.name !== remoteMe.name)) {
+      this.currentUser.name = remoteMe.name;
+      changed = true;
+    }
+    if (remoteMe.memberId && (!this.currentUser.memberId || this.currentUser.memberId !== remoteMe.memberId)) {
+      this.currentUser.memberId = remoteMe.memberId;
+      changed = true;
+    }
     if (remoteMe.lastStampDate && remoteMe.lastStampDate !== this.currentUser.lastStampDate) {
       this.currentUser.lastStampDate = remoteMe.lastStampDate;
       changed = true;
@@ -251,8 +370,11 @@ class LoyaltyApp {
       const idx = this.users.findIndex(u => u.phone === this.currentUser.phone);
       if (idx !== -1) {
         this.users[idx] = this.currentUser;
+      } else {
+        this.users.push(this.currentUser);
       }
       localStorage.setItem(APP_STORAGE_KEY_USERS, JSON.stringify(this.users));
+      this.saveCurrentUser();
       this.render();
     }
   }
@@ -292,8 +414,7 @@ class LoyaltyApp {
     // Customer Logout
     const logoutBtn = document.getElementById('logoutBtn');
     if (logoutBtn) {
-      logoutBtn.addEventListener('click', () => this.customerLogout());
-      logoutBtn.addEventListener('touchend', (e) => {
+      logoutBtn.addEventListener('click', (e) => {
         e.preventDefault();
         this.customerLogout();
       });
@@ -803,9 +924,8 @@ class LoyaltyApp {
     };
 
     this.users.push(newUser);
-    this.saveUsers();
     this.currentUser = newUser;
-    localStorage.setItem(APP_STORAGE_KEY_CURRENT, phone);
+    this.saveCurrentUser();
 
     if (window.soundEngine) window.soundEngine.playStampSound();
     this.triggerConfetti(false);
@@ -814,9 +934,21 @@ class LoyaltyApp {
   }
 
   customerLogout() {
+    if (!confirm("Are you sure you want to sign out of your Customer Pass?")) {
+      return;
+    }
     this.closeAllModals();
     this.currentUser = null;
     localStorage.removeItem(APP_STORAGE_KEY_CURRENT);
+    localStorage.removeItem(APP_STORAGE_KEY_PROFILE);
+    localStorage.removeItem('golden_loyalty_is_logged_in');
+    if (window.AndroidBridge && window.AndroidBridge.clearPersistentSession) {
+      try {
+        window.AndroidBridge.clearPersistentSession();
+      } catch (e) {
+        console.warn("Native bridge clear session error:", e);
+      }
+    }
     if (window.soundEngine) window.soundEngine.playClick();
     this.showToast("Logged out from Customer Pass.", "gold");
     this.render();

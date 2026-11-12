@@ -398,5 +398,37 @@ class MainActivity : AppCompatActivity() {
         fun getAndroidVersion(): String {
             return "Android ${android.os.Build.VERSION.RELEASE}"
         }
+
+        @JavascriptInterface
+        fun savePersistentSession(phone: String, userJson: String) {
+            try {
+                val prefs = context.getSharedPreferences("loyalty_app_prefs", android.content.Context.MODE_PRIVATE)
+                prefs.edit().putString("saved_customer_phone", phone).putString("saved_customer_profile", userJson).apply()
+            } catch (e: Exception) {}
+        }
+
+        @JavascriptInterface
+        fun getPersistentSessionPhone(): String {
+            return try {
+                val prefs = context.getSharedPreferences("loyalty_app_prefs", android.content.Context.MODE_PRIVATE)
+                prefs.getString("saved_customer_phone", "") ?: ""
+            } catch (e: Exception) { "" }
+        }
+
+        @JavascriptInterface
+        fun getPersistentSessionProfile(): String {
+            return try {
+                val prefs = context.getSharedPreferences("loyalty_app_prefs", android.content.Context.MODE_PRIVATE)
+                prefs.getString("saved_customer_profile", "") ?: ""
+            } catch (e: Exception) { "" }
+        }
+
+        @JavascriptInterface
+        fun clearPersistentSession() {
+            try {
+                val prefs = context.getSharedPreferences("loyalty_app_prefs", android.content.Context.MODE_PRIVATE)
+                prefs.edit().remove("saved_customer_phone").remove("saved_customer_profile").apply()
+            } catch (e: Exception) {}
+        }
     }
 }
