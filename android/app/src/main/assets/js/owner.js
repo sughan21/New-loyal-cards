@@ -699,21 +699,14 @@ class StoreOwnerApp {
       }
     };
 
+    updateBodyLock();
+
     if (typeof MutationObserver !== 'undefined') {
       const observer = new MutationObserver(() => updateBodyLock());
       document.querySelectorAll('.modal-backdrop').forEach(modal => {
         observer.observe(modal, { attributes: true, attributeFilter: ['class'] });
       });
     }
-
-    // Only prevent scroll when dragging the empty backdrop, never inside the dialog
-    document.querySelectorAll('.modal-backdrop').forEach(modal => {
-      modal.addEventListener('touchmove', (e) => {
-        if (e.target === modal) {
-          e.preventDefault();
-        }
-      }, { passive: false });
-    });
   }
 
   closeModals() {
