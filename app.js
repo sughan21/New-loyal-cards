@@ -2117,12 +2117,17 @@ class LoyaltyApp {
     if (!this.currentUser) {
       if (authView) authView.style.display = 'block';
       if (customerDashboard) customerDashboard.style.display = 'none';
+      const headerSub = document.getElementById('appHeaderSubtitle');
+      if (headerSub) headerSub.innerText = 'Digital Store Pass (11-Tick Rewards)';
       return;
     }
 
     // Customer Logged In -> Show 11-Tick Loyalty Pass
     if (authView) authView.style.display = 'none';
     if (customerDashboard) customerDashboard.style.display = 'flex';
+
+    const headerSub = document.getElementById('appHeaderSubtitle');
+    if (headerSub) headerSub.innerText = `Digital Loyalty Member • ${this.currentUser.name}`;
 
     const greetingName = document.getElementById('customerGreetingName');
     if (greetingName) greetingName.innerText = this.currentUser.name;

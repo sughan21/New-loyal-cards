@@ -118,7 +118,7 @@ body::before {
   -webkit-backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--border-subtle);
   box-shadow: 0 1px 4px rgba(35, 20, 10, 0.05);
-  padding: 14px 20px;
+  padding: max(12px, env(safe-area-inset-top)) 20px 12px 20px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -3901,14 +3901,38 @@ body.modal-open {
     box-sizing: border-box;
   }
 
-  /* 3. Hide Top Header on Mobile Only (as requested by user) */
+  /* 3. Responsive Top Header on Mobile (iPhone 17 & Android) */
   .app-header {
-    display: none !important;
+    display: flex !important;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    padding: max(10px, env(safe-area-inset-top)) 14px 10px 14px;
+    background: rgba(255, 255, 255, 0.96);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border-subtle);
+    box-shadow: 0 1px 4px rgba(35, 20, 10, 0.05);
+    width: 100%;
+    box-sizing: border-box;
   }
 
-  /* Customer App: Profile & Loyalty Card */
+  .brand-logo-img {
+    width: 36px;
+    height: 36px;
+  }
+
+  .brand-title {
+    font-size: 0.95rem;
+  }
+
+  .brand-subtitle {
+    font-size: 0.68rem;
+  }
+
+  /* Hide duplicate non-sticky greeting on mobile so single sticky top header stays clean */
   .customer-header-bar {
-    padding: 10px 12px;
+    display: none !important;
   }
 
   .loyalty-card {
@@ -4435,7 +4459,7 @@ body.modal-open {
   }
 
   .app-header {
-    padding: 8px 10px;
+    padding: max(8px, env(safe-area-inset-top)) 10px 8px 10px;
   }
 
   .brand-title {
