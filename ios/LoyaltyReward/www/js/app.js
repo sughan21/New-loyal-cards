@@ -35,7 +35,15 @@ const DEFAULT_STORE = {
 };
 
 // Known mock demo customer phone numbers & automation accounts to purge
-const MOCK_DEMO_PHONES = ["test_check_cols"];
+const MOCK_DEMO_PHONES = [
+  "9876543211",
+  "9999988888",
+  "9990001111",
+  "9840112233",
+  "9840123456",
+  "6369095106",
+  "test_check_cols"
+];
 const DEFAULT_USERS = [];
 
 const API_BASE_URL = (function() {
@@ -59,8 +67,8 @@ class LoyaltyApp {
     this.customerResetOtp = '';
     this.customerResetPhone = '';
     this.repeatApprovalPollTimer = null;
-    this.appVersion = "1.6.11";
-    this.versionCode = 19;
+    this.appVersion = "1.6.13";
+    this.versionCode = 21;
     this.latestUpdateInfo = null;
 
     this.init();
@@ -2162,11 +2170,19 @@ class LoyaltyApp {
     if (!modal) return;
     const title = document.getElementById('ownerUpdateModalTitle');
     const desc = document.getElementById('ownerUpdateModalDesc');
-    const actionBtn = document.getElementById('ownerUpdateModalActionBtn');
-    const target = targetVer || (this.latestUpdateInfo && (this.latestUpdateInfo.customerVersion || this.latestUpdateInfo.version)) || this.appVersion;
-    if (title) title.textContent = `Update Available (v${target})`;
+    const actionBtn = document.getElementById('ownerUpdateModalActionBtn') ||
+                      modal.querySelector('.btn-update-now') ||
+                      modal.querySelector('button[onclick*="handleApplyUpdate"]');
+    let target = targetVer;
+    if (!target && this.latestUpdateInfo) {
+      target = this.latestUpdateInfo.customerVersion || this.latestUpdateInfo.version;
+    }
+    if (!target || !this.isNewerVersion(target, this.appVersion)) {
+      target = "1.6.13";
+    }
+    if (title) title.textContent = `New Update Available (v${target})`;
     if (desc && note) desc.textContent = note;
-    if (actionBtn) actionBtn.innerHTML = `🚀 Update Now (v${target})`;
+    if (actionBtn) actionBtn.innerHTML = `🚀 Update & Install Now (v${target})`;
     modal.classList.add('active');
     modal.style.setProperty('display', 'flex', 'important');
     document.body.classList.add('modal-open');

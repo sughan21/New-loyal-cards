@@ -32,98 +32,6 @@
     "lastUpdated": 1794579509553
   },
   {
-    "phone": "9876543211",
-    "name": "Test Customer",
-    "password": "1234",
-    "memberId": "GP-55382",
-    "stamps": 0,
-    "giftsEarned": 0,
-    "history": [
-      {
-        "date": "22 Oct 2026",
-        "note": "Joined Loyalty Reward from Mobile Device",
-        "type": "joined",
-        "device": "Mobile Device",
-        "deviceId": ""
-      }
-    ],
-    "lastStampDate": null,
-    "deviceName": "Mobile Device",
-    "deviceId": null,
-    "appVersion": "",
-    "versionCode": 12,
-    "lastUpdated": 1792661518295
-  },
-  {
-    "phone": "9840123456",
-    "name": "Kannan S",
-    "password": "secret123",
-    "memberId": "GP-65174",
-    "stamps": 0,
-    "giftsEarned": 0,
-    "history": [
-      {
-        "date": "22 Oct 2026",
-        "note": "Joined Loyalty Reward from Mobile Device",
-        "type": "joined",
-        "device": "Mobile Device",
-        "deviceId": "DEV_SUYBE7OF_MVJCPE5M"
-      }
-    ],
-    "lastStampDate": null,
-    "deviceName": "Mobile Device",
-    "deviceId": "DEV_SUYBE7OF_MVJCPE5M",
-    "appVersion": "",
-    "versionCode": 12,
-    "lastUpdated": 1792662060395
-  },
-  {
-    "phone": "9999988888",
-    "name": "Test New User",
-    "password": "123",
-    "memberId": "GP-12345",
-    "stamps": 1,
-    "giftsEarned": 0,
-    "history": [
-      {
-        "date": "12 Nov",
-        "note": "Joined",
-        "type": "joined",
-        "appVersion": "1.6.4",
-        "versionCode": 12
-      }
-    ],
-    "lastStampDate": "2026-11-12",
-    "deviceName": "Mobile Device",
-    "deviceId": "DEV_123",
-    "appVersion": "",
-    "versionCode": 12,
-    "lastUpdated": 1794490881892
-  },
-  {
-    "phone": "9840112233",
-    "name": "New Login Customer",
-    "password": "pass",
-    "memberId": "GP-88888",
-    "stamps": 1,
-    "giftsEarned": 0,
-    "history": [
-      {
-        "date": "12 Nov 2026",
-        "note": "Welcome 1st Stamp",
-        "type": "joined",
-        "appVersion": "1.6.4",
-        "versionCode": 12
-      }
-    ],
-    "lastStampDate": "2026-11-12",
-    "deviceName": "Mobile Device",
-    "deviceId": "DEV_123",
-    "appVersion": "",
-    "versionCode": 12,
-    "lastUpdated": 1794490881892
-  },
-  {
     "phone": "9914214325",
     "name": "Loyalty Member 4325",
     "password": "Lingesh@19",
@@ -156,21 +64,6 @@
     "appVersion": "",
     "versionCode": 12,
     "lastUpdated": 1794495300393
-  },
-  {
-    "phone": "9990001111",
-    "name": "Updated Test Name",
-    "password": "",
-    "memberId": "__DELETED__",
-    "stamps": 0,
-    "giftsEarned": 0,
-    "history": [],
-    "lastStampDate": null,
-    "deviceName": null,
-    "deviceId": null,
-    "appVersion": "",
-    "versionCode": 12,
-    "lastUpdated": 1794496802770
   },
   {
     "phone": "6504992804",

@@ -43,8 +43,8 @@
     rel="stylesheet">
 
   <!-- Stylesheet (Supports both nested css/ and root uploads) -->
-  <link rel="stylesheet" href="css/style.css?v=20261117_v1612">
-  <link rel="stylesheet" href="style.css?v=20261117_v1612">
+  <link rel="stylesheet" href="css/style.css?v=20261117_v1613">
+  <link rel="stylesheet" href="style.css?v=20261117_v1613">
 
   <style>
     /* Critical Mobile Fix for Version Comparison Strip */
@@ -53,13 +53,15 @@
       flex-direction: row !important;
       align-items: center !important;
       justify-content: space-between !important;
-      gap: 8px !important;
-      padding: 10px !important;
+      gap: 6px !important;
+      padding: 10px 8px !important;
       background: #ffffff !important;
       border: 1.5px solid #e7ded2 !important;
       border-radius: 16px !important;
       box-sizing: border-box !important;
       width: 100% !important;
+      overflow: hidden !important;
+      position: relative !important;
     }
     .update-version-strip.has-update .version-chip {
       flex: 1 1 0 !important;
@@ -74,13 +76,14 @@
       border-radius: 12px !important;
       padding: 8px 4px !important;
       box-sizing: border-box !important;
+      overflow: hidden !important;
     }
     .update-version-strip.has-update .version-chip.new-version-chip {
       background: #fefce8 !important;
       border-color: #fde68a !important;
     }
     .update-version-strip.has-update .version-chip-label {
-      font-size: 0.62rem !important;
+      font-size: 0.58rem !important;
       font-weight: 800 !important;
       text-transform: uppercase !important;
       letter-spacing: 0.05em !important;
@@ -89,6 +92,8 @@
       margin-bottom: 2px !important;
       text-align: center !important;
       width: 100% !important;
+      overflow: hidden !important;
+      text-overflow: ellipsis !important;
     }
     .update-version-strip.has-update .version-chip.new-version-chip .version-chip-label {
       color: #b45309 !important;
@@ -101,20 +106,21 @@
       flex-direction: column !important;
       align-items: center !important;
       justify-content: center !important;
-      gap: 4px !important;
+      gap: 3px !important;
       width: 100% !important;
       text-align: center !important;
     }
     .update-version-strip.has-update .version-num {
-      font-size: 1.15rem !important;
+      font-size: 1.12rem !important;
       font-weight: 900 !important;
       color: #1c120c !important;
       line-height: 1.1 !important;
       text-align: center !important;
+      white-space: nowrap !important;
     }
     .update-version-strip.has-update .version-chip-badge {
-      font-size: 0.62rem !important;
-      padding: 2.5px 8px !important;
+      font-size: 0.60rem !important;
+      padding: 2px 6px !important;
       border-radius: 6px !important;
       font-weight: 800 !important;
       display: inline-flex !important;
@@ -125,13 +131,15 @@
       box-sizing: border-box !important;
     }
     .update-version-strip.has-update .version-chip-arrow {
-      flex: 0 0 28px !important;
-      width: 28px !important;
-      height: 28px !important;
+      flex: 0 0 24px !important;
+      width: 24px !important;
+      height: 24px !important;
+      min-width: 24px !important;
+      min-height: 24px !important;
       border-radius: 50% !important;
       background: #fef3c7 !important;
       color: #d97706 !important;
-      font-size: 0.92rem !important;
+      font-size: 0.82rem !important;
       font-weight: 900 !important;
       display: flex !important;
       align-items: center !important;
@@ -139,6 +147,7 @@
       border: 1.5px solid #fde68a !important;
       box-shadow: 0 2px 6px rgba(217, 119, 6, 0.15) !important;
       margin: 0 !important;
+      z-index: 2 !important;
     }
   </style>
 
@@ -842,7 +851,7 @@
         Store Terminal Update Available
       </div>
       <h3 style="font-size: 1.25rem; font-weight: 800; color: #1c120c; margin-bottom: 6px;" id="ownerAppUpdateModalTitle">
-        Terminal Update Available (v1.6.10)
+        Terminal Update Available
       </h3>
       <p style="font-size: 0.85rem; color: #695547; line-height: 1.45; margin-bottom: 18px;" id="ownerAppUpdateModalDesc">
         A new version of the Store Terminal App is ready to install! Update now to sync the latest features, cashier tools, and optimizations.
@@ -864,11 +873,11 @@
   <script src="js/vendor/supabase.min.js" onerror="this.onerror=null;this.src='supabase.min.js'"></script>
   <script>if(!window.supabase)document.write('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"><\/script>');</script>
 
-  <script src="js/supabase-client.js?v=20261117_v1612" onerror="this.onerror=null;this.src='supabase-client.js?v=20261117_v1612'"></script>
+  <script src="js/supabase-client.js?v=20261117_v1613" onerror="this.onerror=null;this.src='supabase-client.js?v=20261117_v1613'"></script>
 
   <!-- Application Scripts -->
   <script src="js/audio.js" onerror="this.onerror=null;this.src='audio.js'"></script>
-  <script src="js/owner.js?v=20261117_v1612" onerror="this.onerror=null;this.src='owner.js?v=20261117_v1612'"></script>
+  <script src="js/owner.js?v=20261117_v1613" onerror="this.onerror=null;this.src='owner.js?v=20261117_v1613'"></script>
 </body>
 
 </html>

@@ -31,7 +31,15 @@ const DEFAULT_STORE = {
 };
 
 // Known mock demo customer phone numbers & automation accounts to purge
-const MOCK_DEMO_PHONES = ["test_check_cols"];
+const MOCK_DEMO_PHONES = [
+  "9876543211",
+  "9999988888",
+  "9990001111",
+  "9840112233",
+  "9840123456",
+  "6369095106",
+  "test_check_cols"
+];
 const DEFAULT_USERS = [];
 
 const API_BASE_URL = (function() {
@@ -52,8 +60,8 @@ class StoreOwnerApp {
     this.syncTimer = null;
     this.knownPendingRequestIds = new Set();
     this.expandedCustomerPhones = new Set();
-    this.appVersion = "1.6.11";
-    this.versionCode = 19;
+    this.appVersion = "1.6.13";
+    this.versionCode = 21;
     this.latestUpdateInfo = null;
 
     this.init();
@@ -1039,8 +1047,16 @@ class StoreOwnerApp {
     if (!modal) return;
     const title = document.getElementById('ownerAppUpdateModalTitle');
     const desc = document.getElementById('ownerAppUpdateModalDesc');
-    const actionBtn = document.getElementById('ownerAppUpdateModalActionBtn');
-    const target = targetVer || (this.latestUpdateInfo && (this.latestUpdateInfo.ownerVersion || this.latestUpdateInfo.version)) || this.appVersion;
+    const actionBtn = document.getElementById('ownerAppUpdateModalActionBtn') ||
+                      modal.querySelector('.btn-update-now') ||
+                      modal.querySelector('button[onclick*="handleApplyUpdate"]');
+    let target = targetVer;
+    if (!target && this.latestUpdateInfo) {
+      target = this.latestUpdateInfo.ownerVersion || this.latestUpdateInfo.version;
+    }
+    if (!target || !this.isNewerVersion(target, this.appVersion)) {
+      target = "1.6.13";
+    }
     if (title) title.textContent = `Terminal Update Available (v${target})`;
     if (desc && notes) desc.textContent = notes;
     if (actionBtn) actionBtn.innerHTML = `🚀 Update Terminal App (v${target})`;

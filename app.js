@@ -67,8 +67,8 @@ class LoyaltyApp {
     this.customerResetOtp = '';
     this.customerResetPhone = '';
     this.repeatApprovalPollTimer = null;
-    this.appVersion = "1.6.12";
-    this.versionCode = 20;
+    this.appVersion = "1.6.13";
+    this.versionCode = 21;
     this.latestUpdateInfo = null;
 
     this.init();
@@ -2170,11 +2170,19 @@ class LoyaltyApp {
     if (!modal) return;
     const title = document.getElementById('ownerUpdateModalTitle');
     const desc = document.getElementById('ownerUpdateModalDesc');
-    const actionBtn = document.getElementById('ownerUpdateModalActionBtn');
-    const target = targetVer || (this.latestUpdateInfo && (this.latestUpdateInfo.customerVersion || this.latestUpdateInfo.version)) || this.appVersion;
-    if (title) title.textContent = `Update Available (v${target})`;
+    const actionBtn = document.getElementById('ownerUpdateModalActionBtn') ||
+                      modal.querySelector('.btn-update-now') ||
+                      modal.querySelector('button[onclick*="handleApplyUpdate"]');
+    let target = targetVer;
+    if (!target && this.latestUpdateInfo) {
+      target = this.latestUpdateInfo.customerVersion || this.latestUpdateInfo.version;
+    }
+    if (!target || !this.isNewerVersion(target, this.appVersion)) {
+      target = "1.6.13";
+    }
+    if (title) title.textContent = `New Update Available (v${target})`;
     if (desc && note) desc.textContent = note;
-    if (actionBtn) actionBtn.innerHTML = `🚀 Update Now (v${target})`;
+    if (actionBtn) actionBtn.innerHTML = `🚀 Update & Install Now (v${target})`;
     modal.classList.add('active');
     modal.style.setProperty('display', 'flex', 'important');
     document.body.classList.add('modal-open');

@@ -60,8 +60,8 @@ class StoreOwnerApp {
     this.syncTimer = null;
     this.knownPendingRequestIds = new Set();
     this.expandedCustomerPhones = new Set();
-    this.appVersion = "1.6.12";
-    this.versionCode = 20;
+    this.appVersion = "1.6.13";
+    this.versionCode = 21;
     this.latestUpdateInfo = null;
 
     this.init();
@@ -1047,8 +1047,16 @@ class StoreOwnerApp {
     if (!modal) return;
     const title = document.getElementById('ownerAppUpdateModalTitle');
     const desc = document.getElementById('ownerAppUpdateModalDesc');
-    const actionBtn = document.getElementById('ownerAppUpdateModalActionBtn');
-    const target = targetVer || (this.latestUpdateInfo && (this.latestUpdateInfo.ownerVersion || this.latestUpdateInfo.version)) || this.appVersion;
+    const actionBtn = document.getElementById('ownerAppUpdateModalActionBtn') ||
+                      modal.querySelector('.btn-update-now') ||
+                      modal.querySelector('button[onclick*="handleApplyUpdate"]');
+    let target = targetVer;
+    if (!target && this.latestUpdateInfo) {
+      target = this.latestUpdateInfo.ownerVersion || this.latestUpdateInfo.version;
+    }
+    if (!target || !this.isNewerVersion(target, this.appVersion)) {
+      target = "1.6.13";
+    }
     if (title) title.textContent = `Terminal Update Available (v${target})`;
     if (desc && notes) desc.textContent = notes;
     if (actionBtn) actionBtn.innerHTML = `🚀 Update Terminal App (v${target})`;

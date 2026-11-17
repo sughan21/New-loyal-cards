@@ -35,7 +35,15 @@ const DEFAULT_STORE = {
 };
 
 // Known mock demo customer phone numbers & automation accounts to purge
-const MOCK_DEMO_PHONES = ["test_check_cols"];
+const MOCK_DEMO_PHONES = [
+  "9876543211",
+  "9999988888",
+  "9990001111",
+  "9840112233",
+  "9840123456",
+  "6369095106",
+  "test_check_cols"
+];
 const DEFAULT_USERS = [];
 
 const API_BASE_URL = (function() {
@@ -59,8 +67,8 @@ class LoyaltyApp {
     this.customerResetOtp = '';
     this.customerResetPhone = '';
     this.repeatApprovalPollTimer = null;
-    this.appVersion = "1.6.9";
-    this.versionCode = 17;
+    this.appVersion = "1.6.13";
+    this.versionCode = 21;
     this.latestUpdateInfo = null;
 
     this.init();
@@ -81,6 +89,8 @@ class LoyaltyApp {
     this.setupRealtimeCustomerSync();
     this.setupOfflineSync();
     this.checkForAppUpdates(false);
+    setTimeout(() => this.checkForAppUpdates(false), 1200);
+    setTimeout(() => this.checkForAppUpdates(false), 3000);
 
     // Ensure native bridge persistent session is restored if bridge attached slightly after sync
     if (!this.currentUser && typeof window !== 'undefined') {
@@ -169,8 +179,8 @@ class LoyaltyApp {
     if (storedUsers) {
       try {
         let loaded = JSON.parse(storedUsers);
-        // Only keep real registered/login customers, purge default demo mock names
-        this.users = Array.isArray(loaded) ? loaded.filter(u => !MOCK_DEMO_PHONES.includes(u.phone)) : [];
+        // Only keep real registered/login customers, strictly exclude system records and mock demo names
+        this.users = Array.isArray(loaded) ? loaded.filter(u => u && u.phone && !String(u.phone).startsWith('__') && String(u.phone).trim() !== '__APP_CONFIG_VERSION__' && !MOCK_DEMO_PHONES.includes(u.phone)) : [];
         // Purge any repeated login audit records from stamp history & sanitize legacy strings
         this.users.forEach(u => {
           if (Array.isArray(u.history)) {
@@ -1965,39 +1975,47 @@ class LoyaltyApp {
 
     let updateData = null;
 
-    // 1. Try local server or tunnel REST API (with short timeout so mobile doesn't stall)
+    // 1. Primary priority: Live GitHub Pages cloud version (always available on mobile & web)
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 1200);
-      const resp = await fetch(`${API_BASE_URL}/api/version?_t=${Date.now()}`, { cache: 'no-cache', signal: controller.signal });
-      clearTimeout(timeoutId);
-      if (resp.ok) {
-        updateData = await resp.json();
+      const respCloud = await fetch(`https://sughan21.github.io/New-loyal-cards/data/version.json?_t=${Date.now()}`, {
+        cache: 'no-store',
+        headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' }
+      });
+      if (respCloud.ok) {
+        updateData = await respCloud.json();
       }
     } catch (e) {}
 
-    // 2. Fallback to Supabase Realtime Cloud (instant cross-device sync)
+    // 2. Second priority: Supabase Realtime Cloud (instant cross-device sync)
     if (!updateData && window.loyaltyDb && window.loyaltyDb.isReady) {
       try {
         updateData = await window.loyaltyDb.fetchAppVersion();
       } catch (e) {}
     }
 
-    // 3. Fallback to direct static JSON file
+    // 3. Third priority: Local server or tunnel REST API (when testing with local node server)
     if (!updateData) {
       try {
-        const resp2 = await fetch(`./data/version.json?_t=${Date.now()}`, { cache: 'no-cache' });
-        if (resp2.ok) {
-          updateData = await resp2.json();
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 1200);
+        const resp = await fetch(`${API_BASE_URL}/api/version?_t=${Date.now()}`, { cache: 'no-cache', signal: controller.signal });
+        clearTimeout(timeoutId);
+        if (resp.ok) {
+          updateData = await resp.json();
         }
       } catch (e) {}
     }
 
-    // 4. Fallback to GitHub Pages live cloud version
+    // 4. Last resort fallback: local static JSON, but ONLY if newer than appVersion
     if (!updateData) {
       try {
-        const resp3 = await fetch(`https://sughan21.github.io/New-loyal-cards/data/version.json?_t=${Date.now()}`, { cache: 'no-cache' });
-        if (resp3.ok) updateData = await resp3.json();
+        const resp2 = await fetch(`./data/version.json?_t=${Date.now()}`, { cache: 'no-cache' });
+        if (resp2.ok) {
+          const localJson = await resp2.json();
+          if (localJson && this.isNewerVersion(localJson.customerVersion || localJson.version, this.appVersion)) {
+            updateData = localJson;
+          }
+        }
       } catch (e) {}
     }
 
@@ -2108,15 +2126,14 @@ class LoyaltyApp {
       }
 
       // Auto show Update Modal on app open with Update button and Remind Me Later
-      const remindUntil = parseInt(localStorage.getItem('loyalty_update_remind_later_until') || '0', 10);
-      const isRemindedLater = sessionStorage.getItem('loyalty_update_remind_later') === 'true' || Date.now() < remindUntil;
-      if (!isRemindedLater && !isManual) {
+      const isSnoozedSession = sessionStorage.getItem('customer_update_snooze_session') === 'true';
+      if (!isSnoozedSession || isManual) {
         setTimeout(() => {
           this.showOwnerUpdateAlertModal(
             updateData.notes || `Version ${targetCustomerVer} is ready to install! Update now to enjoy the latest rewards and features.`,
             targetCustomerVer
           );
-        }, 700);
+        }, 500);
       }
 
       if (isManual) {
@@ -2153,11 +2170,19 @@ class LoyaltyApp {
     if (!modal) return;
     const title = document.getElementById('ownerUpdateModalTitle');
     const desc = document.getElementById('ownerUpdateModalDesc');
-    const actionBtn = document.getElementById('ownerUpdateModalActionBtn');
-    const target = targetVer || (this.latestUpdateInfo && (this.latestUpdateInfo.customerVersion || this.latestUpdateInfo.version)) || this.appVersion;
-    if (title) title.textContent = `Update Available (v${target})`;
+    const actionBtn = document.getElementById('ownerUpdateModalActionBtn') ||
+                      modal.querySelector('.btn-update-now') ||
+                      modal.querySelector('button[onclick*="handleApplyUpdate"]');
+    let target = targetVer;
+    if (!target && this.latestUpdateInfo) {
+      target = this.latestUpdateInfo.customerVersion || this.latestUpdateInfo.version;
+    }
+    if (!target || !this.isNewerVersion(target, this.appVersion)) {
+      target = "1.6.13";
+    }
+    if (title) title.textContent = `New Update Available (v${target})`;
     if (desc && note) desc.textContent = note;
-    if (actionBtn) actionBtn.innerHTML = `🚀 Update Now (v${target})`;
+    if (actionBtn) actionBtn.innerHTML = `🚀 Update & Install Now (v${target})`;
     modal.classList.add('active');
     modal.style.setProperty('display', 'flex', 'important');
     document.body.classList.add('modal-open');
@@ -2166,8 +2191,10 @@ class LoyaltyApp {
 
   remindLaterUpdate() {
     try {
-      sessionStorage.setItem('loyalty_update_remind_later', 'true');
-      localStorage.setItem('loyalty_update_remind_later_until', String(Date.now() + 2 * 60 * 60 * 1000));
+      sessionStorage.setItem('customer_update_snooze_session', 'true');
+      localStorage.removeItem('customer_update_snooze_version');
+      localStorage.removeItem('loyalty_update_remind_later_until');
+      localStorage.removeItem('loyalty_update_remind_later');
     } catch (_) {}
     this.closeOwnerUpdateModal();
     this.showToast("🕒 We'll remind you about the update later.", "info");
