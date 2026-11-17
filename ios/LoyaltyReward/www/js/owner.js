@@ -60,8 +60,8 @@ class StoreOwnerApp {
     this.syncTimer = null;
     this.knownPendingRequestIds = new Set();
     this.expandedCustomerPhones = new Set();
-    this.appVersion = "1.6.15";
-    this.versionCode = 23;
+    this.appVersion = "1.6.16";
+    this.versionCode = 24;
     this.latestUpdateInfo = null;
 
     if (typeof window !== 'undefined') {
@@ -754,7 +754,7 @@ class StoreOwnerApp {
           this.closeOwnerUpdateModal();
         });
       }
-      const remindBtn = ownerUpdateAlertModal.querySelector('button[onclick*="remindLaterUpdate"]');
+      const remindBtn = ownerUpdateAlertModal.querySelector('button[onclick*="remindLaterUpdate"], [data-action="remind-later"]');
       if (remindBtn) {
         remindBtn.addEventListener('click', (e) => {
           e.preventDefault();
@@ -762,6 +762,33 @@ class StoreOwnerApp {
         });
       }
     }
+
+    // Capture-Phase Global Delegation for Terminal Update Modal
+    document.addEventListener('click', (e) => {
+      const updateBtn = e.target.closest('#ownerAppUpdateModalActionBtn, .btn-update-now, [data-action="apply-update"]');
+      if (updateBtn && updateBtn.closest('#ownerUpdateAlertModal')) {
+        e.preventDefault();
+        e.stopPropagation();
+        this.handleApplyUpdate();
+        return;
+      }
+      const remindBtn = e.target.closest('#ownerUpdateAlertModal button[onclick*="remindLater"], [data-action="remind-later"]');
+      if (remindBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        this.remindLaterUpdate();
+        return;
+      }
+      const closeBtn = e.target.closest('#ownerUpdateAlertModal .modal-close-btn, [data-action="close-update-modal"]');
+      if (closeBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        this.closeOwnerUpdateModal();
+        return;
+      }
+    }, true);
+
+    this.setupApkDownloadHooks();
 
     const ownerClearCacheReloadBtn = document.getElementById('ownerClearCacheReloadBtn');
     if (ownerClearCacheReloadBtn) {
@@ -1179,6 +1206,62 @@ class StoreOwnerApp {
     }
   }
 
+  setupApkDownloadHooks() {
+    window.onApkDownloadStart = () => {
+      const actionBtn = document.getElementById('ownerAppUpdateModalActionBtn');
+      const progressBox = document.getElementById('ownerAppUpdateProgressBox');
+      const progressBar = document.getElementById('ownerAppUpdateProgressBar');
+      const progressStatus = document.getElementById('ownerAppUpdateProgressStatus');
+      if (actionBtn) {
+        actionBtn.innerHTML = '⏳ Downloading Terminal Update...';
+        actionBtn.style.opacity = '0.85';
+        actionBtn.style.pointerEvents = 'none';
+      }
+      if (progressBox) progressBox.style.display = 'block';
+      if (progressBar) progressBar.style.width = '10%';
+      if (progressStatus) progressStatus.textContent = 'Connecting & downloading update package (10.3 MB)...';
+    };
+
+    window.onApkDownloadProgress = (percent) => {
+      const actionBtn = document.getElementById('ownerAppUpdateModalActionBtn');
+      const progressBox = document.getElementById('ownerAppUpdateProgressBox');
+      const progressBar = document.getElementById('ownerAppUpdateProgressBar');
+      const progressStatus = document.getElementById('ownerAppUpdateProgressStatus');
+      if (progressBox) progressBox.style.display = 'block';
+      if (actionBtn) actionBtn.innerHTML = `⏳ Downloading... ${percent}%`;
+      if (progressBar) progressBar.style.width = `${percent}%`;
+      if (progressStatus) progressStatus.textContent = `Downloading update: ${percent}% (10.3 MB)`;
+    };
+
+    window.onApkDownloadComplete = () => {
+      const actionBtn = document.getElementById('ownerAppUpdateModalActionBtn');
+      const progressBar = document.getElementById('ownerAppUpdateProgressBar');
+      const progressStatus = document.getElementById('ownerAppUpdateProgressStatus');
+      if (actionBtn) actionBtn.innerHTML = '✅ Ready! Launching Installer...';
+      if (progressBar) progressBar.style.width = '100%';
+      if (progressStatus) progressStatus.textContent = 'Download complete! Opening Android installer...';
+      setTimeout(() => {
+        this.closeOwnerUpdateModal();
+      }, 3500);
+    };
+
+    window.onApkDownloadError = (errMsg) => {
+      const actionBtn = document.getElementById('ownerAppUpdateModalActionBtn');
+      const progressStatus = document.getElementById('ownerAppUpdateProgressStatus');
+      if (actionBtn) {
+        actionBtn.innerHTML = '⚠️ Tap to Download in Browser';
+        actionBtn.style.opacity = '1';
+        actionBtn.style.pointerEvents = 'auto';
+        actionBtn.onclick = () => {
+          window.location.href = 'https://raw.githubusercontent.com/sughan21/New-loyal-cards/main/StoreTerminal-Owner.apk';
+        };
+      }
+      if (progressStatus) {
+        progressStatus.innerHTML = '<span style="color:#ef4444; font-weight:700;">Download interrupted. Tap button above to download directly in browser.</span>';
+      }
+    };
+  }
+
   showOwnerUpdateAlertModal(targetVer, notes) {
     const modal = document.getElementById('ownerUpdateAlertModal');
     if (!modal) return;
@@ -1187,16 +1270,25 @@ class StoreOwnerApp {
     const actionBtn = document.getElementById('ownerAppUpdateModalActionBtn') ||
                       modal.querySelector('.btn-update-now') ||
                       modal.querySelector('button[onclick*="handleApplyUpdate"]');
+    const progressBox = document.getElementById('ownerAppUpdateProgressBox');
+    const progressBar = document.getElementById('ownerAppUpdateProgressBar');
+    if (progressBox) progressBox.style.display = 'none';
+    if (progressBar) progressBar.style.width = '0%';
+
     let target = targetVer;
     if (!target && this.latestUpdateInfo) {
       target = this.latestUpdateInfo.ownerVersion || this.latestUpdateInfo.version;
     }
     if (!target) {
-      target = "1.6.15";
+      target = "1.6.16";
     }
     if (title) title.textContent = `Terminal Update Available (v${target})`;
     if (desc && notes) desc.textContent = notes;
-    if (actionBtn) actionBtn.innerHTML = `🚀 Update Terminal App (v${target})`;
+    if (actionBtn) {
+      actionBtn.innerHTML = `🚀 Update Terminal App (v${target})`;
+      actionBtn.style.opacity = '1';
+      actionBtn.style.pointerEvents = 'auto';
+    }
     this.pushBackHistory('ownerUpdateAlertModal');
     modal.classList.add('active');
     modal.style.setProperty('display', 'flex', 'important');
@@ -1226,9 +1318,20 @@ class StoreOwnerApp {
   }
 
   handleApplyUpdate() {
-    this.closeOwnerUpdateModal();
     const isAndroid = !!window.AndroidBridge || /android/i.test(navigator.userAgent);
     const ownerApkUrl = 'https://raw.githubusercontent.com/sughan21/New-loyal-cards/main/StoreTerminal-Owner.apk';
+    const actionBtn = document.getElementById('ownerAppUpdateModalActionBtn');
+    const progressBox = document.getElementById('ownerAppUpdateProgressBox');
+    const progressBar = document.getElementById('ownerAppUpdateProgressBar');
+    const progressStatus = document.getElementById('ownerAppUpdateProgressStatus');
+
+    if (actionBtn) {
+      actionBtn.innerHTML = '⏳ Downloading Terminal Update...';
+      actionBtn.style.opacity = '0.85';
+      actionBtn.style.pointerEvents = 'none';
+    }
+    if (progressBox) progressBox.style.display = 'block';
+    if (progressBar) progressBar.style.width = '8%';
 
     if (isAndroid) {
       this.showToast("⚡ Downloading Store Terminal APK...", "gold");
@@ -1238,14 +1341,10 @@ class StoreOwnerApp {
         return;
       }
 
-      const link = document.createElement('a');
-      link.href = ownerApkUrl;
-      link.download = 'StoreTerminal-Owner.apk';
-      link.target = '_blank';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      // Browser fallback: direct navigation triggers browser download manager
+      window.location.href = ownerApkUrl;
     } else {
+      this.closeOwnerUpdateModal();
       this.handleClearCache();
     }
   }
@@ -1914,7 +2013,7 @@ class StoreOwnerApp {
   getTargetCustomerVersion() {
     const broadcastVer = localStorage.getItem('loyalty_owner_broadcast_version');
     const remoteVer = this.latestUpdateInfo ? (this.latestUpdateInfo.customerVersion || this.latestUpdateInfo.version) : null;
-    let highest = this.appVersion || "1.6.15";
+    let highest = this.appVersion || "1.6.16";
     if (broadcastVer && this.isNewerVersion(broadcastVer, highest)) {
       highest = broadcastVer;
     }

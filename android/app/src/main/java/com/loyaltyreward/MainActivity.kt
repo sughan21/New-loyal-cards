@@ -365,6 +365,16 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    fun postJsToWebView(script: String) {
+        runOnUiThread {
+            try {
+                webView.evaluateJavascript(script, null)
+            } catch (e: Exception) {
+                // Ignore
+            }
+        }
+    }
+
     class WebAppInterface(private val context: android.content.Context) {
         @JavascriptInterface
         fun clearAppCache() {
@@ -377,21 +387,56 @@ class MainActivity : AppCompatActivity() {
             act.runOnUiThread {
                 Toast.makeText(context, "⬇️ Downloading update in-place...", Toast.LENGTH_SHORT).show()
             }
+            act.postJsToWebView("if(window.onApkDownloadStart) window.onApkDownloadStart();")
             Thread {
                 try {
-                    val u = URL(url)
-                    val conn = u.openConnection() as HttpURLConnection
-                    conn.instanceFollowRedirects = true
-                    conn.connectTimeout = 15000
-                    conn.readTimeout = 30000
-                    conn.connect()
+                    var downloadUrl = url
+                    var conn: HttpURLConnection
+                    var redirectCount = 0
+                    while (true) {
+                        val u = URL(downloadUrl)
+                        conn = u.openConnection() as HttpURLConnection
+                        conn.instanceFollowRedirects = true
+                        conn.connectTimeout = 15000
+                        conn.readTimeout = 30000
+                        val status = conn.responseCode
+                        if ((status == HttpURLConnection.HTTP_MOVED_TEMP ||
+                             status == HttpURLConnection.HTTP_MOVED_PERM ||
+                             status == HttpURLConnection.HTTP_SEE_OTHER ||
+                             status == 307 || status == 308) && redirectCount < 5) {
+                            val newUrl = conn.getHeaderField("Location")
+                            if (!newUrl.isNullOrEmpty()) {
+                                downloadUrl = newUrl
+                                redirectCount++
+                                continue
+                            }
+                        }
+                        break
+                    }
 
+                    val fileLength = conn.contentLength
                     val apkFile = File(context.cacheDir, "update.apk")
                     conn.inputStream.use { input ->
                         FileOutputStream(apkFile).use { output ->
-                            input.copyTo(output)
+                            val buffer = ByteArray(8192)
+                            var bytesRead: Int
+                            var totalRead = 0L
+                            var lastPercent = 0
+                            while (input.read(buffer).also { bytesRead = it } != -1) {
+                                output.write(buffer, 0, bytesRead)
+                                totalRead += bytesRead
+                                if (fileLength > 0) {
+                                    val percent = ((totalRead * 100) / fileLength).toInt()
+                                    if (percent >= lastPercent + 5 || percent == 100) {
+                                        lastPercent = percent
+                                        act.postJsToWebView("if(window.onApkDownloadProgress) window.onApkDownloadProgress($percent);")
+                                    }
+                                }
+                            }
                         }
                     }
+
+                    act.postJsToWebView("if(window.onApkDownloadComplete) window.onApkDownloadComplete();")
 
                     act.runOnUiThread {
                         try {
@@ -432,13 +477,14 @@ class MainActivity : AppCompatActivity() {
                         }
                     }
                 } catch (e: Exception) {
+                    act.postJsToWebView("if(window.onApkDownloadError) window.onApkDownloadError('${e.message?.replace("'", "\\'")}');")
                     act.runOnUiThread {
                         try {
                             val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
                             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                             context.startActivity(intent)
                         } catch (err: Exception) {
-                            Toast.makeText(context, "Failed to download update", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, "Failed to download update: ${e.message}", Toast.LENGTH_SHORT).show()
                         }
                     }
                 }

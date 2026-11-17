@@ -33,6 +33,50 @@
         document.head.appendChild(link);
       } catch (e) { }
     })();
+
+    // Bulletproof Customer Update Handlers (Available immediately before any scripts load)
+    window.triggerCustomerAppUpdate = function() {
+      var app = window.customerApp || window.loyaltyApp;
+      if (app && typeof app.handleApplyUpdate === 'function') {
+        app.handleApplyUpdate();
+      } else if (window.AndroidBridge && typeof window.AndroidBridge.downloadApk === 'function') {
+        var actionBtn = document.getElementById('ownerUpdateModalActionBtn');
+        var progressBox = document.getElementById('ownerUpdateProgressBox');
+        if (actionBtn) {
+          actionBtn.innerHTML = '⏳ Downloading Update...';
+          actionBtn.style.opacity = '0.85';
+          actionBtn.style.pointerEvents = 'none';
+        }
+        if (progressBox) progressBox.style.display = 'block';
+        window.AndroidBridge.downloadApk('https://raw.githubusercontent.com/sughan21/New-loyal-cards/main/LoyaltyPass-Customer.apk');
+      } else {
+        window.location.href = 'https://raw.githubusercontent.com/sughan21/New-loyal-cards/main/LoyaltyPass-Customer.apk';
+      }
+    };
+    window.triggerCustomerRemindLater = function() {
+      var app = window.customerApp || window.loyaltyApp;
+      if (app && typeof app.remindLaterUpdate === 'function') {
+        app.remindLaterUpdate();
+      } else {
+        var m = document.getElementById('customerOwnerUpdateModal');
+        if (m) {
+          m.classList.remove('active');
+          m.style.setProperty('display', 'none', 'important');
+        }
+      }
+    };
+    window.triggerCustomerCloseUpdateModal = function() {
+      var app = window.customerApp || window.loyaltyApp;
+      if (app && typeof app.closeOwnerUpdateModal === 'function') {
+        app.closeOwnerUpdateModal();
+      } else {
+        var m = document.getElementById('customerOwnerUpdateModal');
+        if (m) {
+          m.classList.remove('active');
+          m.style.setProperty('display', 'none', 'important');
+        }
+      }
+    };
   </script>
 
   <!-- Google Fonts: Plus Jakarta Sans & Inter -->
@@ -43,8 +87,8 @@
     rel="stylesheet">
 
   <!-- Stylesheet (Supports both nested css/ and root uploads) -->
-  <link rel="stylesheet" href="css/style.css?v=20261117_v1615">
-  <link rel="stylesheet" href="style.css?v=20261117_v1615">
+  <link rel="stylesheet" href="css/style.css?v=20261117_v1616">
+  <link rel="stylesheet" href="style.css?v=20261117_v1616">
 
   <style>
     /* Critical Mobile Fix for Version Comparison Strip */
@@ -996,12 +1040,12 @@
         <div class="update-version-strip" id="updateVersionStrip">
           <div class="version-chip current-version-chip">
             <span class="version-chip-label">Current Version</span>
-            <span class="version-chip-val" id="currentVerDisplay"><span class="version-num">v1.6.15</span> <span class="version-chip-badge latest" id="currentVerBadge">Latest ✅</span></span>
+            <span class="version-chip-val" id="currentVerDisplay"><span class="version-num">v1.6.16</span> <span class="version-chip-badge latest" id="currentVerBadge">Latest ✅</span></span>
           </div>
           <div class="version-chip-arrow" id="versionChipArrow" style="display: none;">➔</div>
           <div class="version-chip new-version-chip" id="newVersionChip" style="display: none;">
             <span class="version-chip-label">New Version</span>
-            <span class="version-chip-val" id="newVerDisplay"><span class="version-num">v1.6.15</span> <span class="version-chip-badge update">⚡ New</span></span>
+            <span class="version-chip-val" id="newVerDisplay"><span class="version-num">v1.6.16</span> <span class="version-chip-badge update">⚡ New</span></span>
           </div>
         </div>
 
@@ -1108,7 +1152,7 @@
   <!-- Dedicated Store Owner Update Alert Modal Backdrop -->
   <div id="customerOwnerUpdateModal" class="modal-backdrop" style="display: none;">
     <div class="modal-dialog update-alert-dialog">
-      <button type="button" class="modal-close-btn" onclick="(window.customerApp||window.loyaltyApp)?.closeOwnerUpdateModal()" title="Close">&times;</button>
+      <button type="button" class="modal-close-btn" data-action="close-update-modal" onclick="window.triggerCustomerCloseUpdateModal ? window.triggerCustomerCloseUpdateModal() : (window.customerApp||window.loyaltyApp)?.closeOwnerUpdateModal()" title="Close">&times;</button>
       <div style="width: 58px; height: 58px; border-radius: 50%; background: rgba(245, 158, 11, 0.15); border: 2px solid #f59e0b; display: inline-flex; align-items: center; justify-content: center; font-size: 1.8rem; margin-bottom: 12px;">
         ⚡
       </div>
@@ -1122,12 +1166,25 @@
         The store owner has pushed an update alert. Please update your Loyalty Pass to stay in sync with store purchases, rewards, and stamps!
       </p>
       <div style="display: flex; flex-direction: column; gap: 10px;">
-        <button type="button" class="btn-update-now" id="ownerUpdateModalActionBtn" onclick="(window.customerApp||window.loyaltyApp)?.handleApplyUpdate()" style="width: 100%; padding: 13px; font-size: 0.95rem; font-weight: 700; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #ffffff; border: none; border-radius: 12px; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+        <button type="button" class="btn-update-now" id="ownerUpdateModalActionBtn" data-action="apply-update" onclick="window.triggerCustomerAppUpdate ? window.triggerCustomerAppUpdate() : (window.customerApp||window.loyaltyApp)?.handleApplyUpdate()" style="width: 100%; padding: 13px; font-size: 0.95rem; font-weight: 700; font-family: -apple-system, BlinkMacSystemFont, 'Plus Jakarta Sans', 'Inter', sans-serif !important; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #ffffff; border: none; border-radius: 12px; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
           🚀 Update &amp; Install Now
         </button>
-        <button type="button" onclick="(window.customerApp||window.loyaltyApp)?.remindLaterUpdate()" style="width: 100%; padding: 11px; font-size: 0.85rem; font-weight: 600; background: transparent; color: #78716c; border: 1.5px solid #e7e5e4; border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
+        <button type="button" data-action="remind-later" onclick="window.triggerCustomerRemindLater ? window.triggerCustomerRemindLater() : (window.customerApp||window.loyaltyApp)?.remindLaterUpdate()" style="width: 100%; padding: 11px; font-size: 0.85rem; font-weight: 600; font-family: -apple-system, BlinkMacSystemFont, 'Plus Jakarta Sans', 'Inter', sans-serif !important; background: transparent; color: #78716c; border: 1.5px solid #e7e5e4; border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
           🕒 Remind Me Later
         </button>
+      </div>
+
+      <!-- In-Place Download Progress / Status Indicator -->
+      <div id="ownerUpdateProgressBox" style="display: none; margin-top: 14px; text-align: left; background: #fdfaf6; border: 1px solid #fed7aa; border-radius: 10px; padding: 10px 12px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+          <span id="ownerUpdateProgressStatus" style="font-size: 0.78rem; font-weight: 700; color: #9a3412;">Downloading update package (10.3 MB)...</span>
+        </div>
+        <div style="width: 100%; height: 8px; background: #ffedd5; border-radius: 999px; overflow: hidden;">
+          <div id="ownerUpdateProgressBar" style="width: 0%; height: 100%; background: linear-gradient(90deg, #f59e0b, #10b981); transition: width 0.25s ease; border-radius: 999px;"></div>
+        </div>
+        <div style="margin-top: 8px; text-align: center;">
+          <a href="https://raw.githubusercontent.com/sughan21/New-loyal-cards/main/LoyaltyPass-Customer.apk" download="LoyaltyPass-Customer.apk" style="font-size: 0.74rem; color: #b45309; text-decoration: underline; font-weight: 600;">Direct APK Download Link (if prompt doesn't open)</a>
+        </div>
       </div>
     </div>
   </div>
@@ -1139,11 +1196,11 @@
   <script src="js/vendor/supabase.min.js" onerror="this.onerror=null;this.src='supabase.min.js'"></script>
   <script>if(!window.supabase)document.write('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"><\/script>');</script>
 
-  <script src="js/supabase-client.js?v=20261117_v1615" onerror="this.onerror=null;this.src='supabase-client.js?v=20261117_v1615'"></script>
+  <script src="js/supabase-client.js?v=20261117_v1616" onerror="this.onerror=null;this.src='supabase-client.js?v=20261117_v1616'"></script>
 
   <!-- Application Scripts -->
   <script src="js/audio.js" onerror="this.onerror=null;this.src='audio.js'"></script>
-  <script src="js/app.js?v=20261117_v1615" onerror="this.onerror=null;this.src='app.js?v=20261117_v1615'"></script>
+  <script src="js/app.js?v=20261117_v1616" onerror="this.onerror=null;this.src='app.js?v=20261117_v1616'"></script>
 </body>
 
 </html>
