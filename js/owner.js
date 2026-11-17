@@ -31,7 +31,15 @@ const DEFAULT_STORE = {
 };
 
 // Known mock demo customer phone numbers & automation accounts to purge
-const MOCK_DEMO_PHONES = ["test_check_cols"];
+const MOCK_DEMO_PHONES = [
+  "9876543211",
+  "9999988888",
+  "9990001111",
+  "9840112233",
+  "9840123456",
+  "6369095106",
+  "test_check_cols"
+];
 const DEFAULT_USERS = [];
 
 const API_BASE_URL = (function() {
@@ -52,8 +60,8 @@ class StoreOwnerApp {
     this.syncTimer = null;
     this.knownPendingRequestIds = new Set();
     this.expandedCustomerPhones = new Set();
-    this.appVersion = "1.6.11";
-    this.versionCode = 19;
+    this.appVersion = "1.6.12";
+    this.versionCode = 20;
     this.latestUpdateInfo = null;
 
     this.init();
