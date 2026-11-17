@@ -559,10 +559,16 @@ class LoyaltySupabaseRepository {
               onCustomerChange({ phone: payload.new.phone }, 'DELETE');
               return;
             }
+            // Strict filter: exclude system config records from customer events
+            if (payload.new.phone && (payload.new.phone.startsWith('__') || payload.new.phone === '__APP_CONFIG_VERSION__')) {
+              return;
+            }
             const cust = this.toLocalCustomer(payload.new);
             onCustomerChange(cust, payload.eventType);
           } else if (payload.eventType === 'DELETE' && payload.old) {
-            onCustomerChange({ phone: payload.old.phone }, 'DELETE');
+            if (payload.old.phone && !payload.old.phone.startsWith('__')) {
+              onCustomerChange({ phone: payload.old.phone }, 'DELETE');
+            }
           }
         }
       )
@@ -578,9 +584,9 @@ class LoyaltySupabaseRepository {
     try {
       const row = {
         phone: '__APP_CONFIG_VERSION__',
-        name: versionData.version || '1.6.3',
+        name: versionData.version || '1.6.10',
         password: '',
-        stamps: versionData.versionCode || 9,
+        stamps: 0, // CRITICAL: Always 0 so it never counts as active offers or ready for gift
         gifts_earned: 0,
         member_id: 'APP-CONFIG',
         history: [versionData],

@@ -59,8 +59,8 @@ class LoyaltyApp {
     this.customerResetOtp = '';
     this.customerResetPhone = '';
     this.repeatApprovalPollTimer = null;
-    this.appVersion = "1.6.9";
-    this.versionCode = 17;
+    this.appVersion = "1.6.10";
+    this.versionCode = 18;
     this.latestUpdateInfo = null;
 
     this.init();
@@ -169,8 +169,8 @@ class LoyaltyApp {
     if (storedUsers) {
       try {
         let loaded = JSON.parse(storedUsers);
-        // Only keep real registered/login customers, purge default demo mock names
-        this.users = Array.isArray(loaded) ? loaded.filter(u => !MOCK_DEMO_PHONES.includes(u.phone)) : [];
+        // Only keep real registered/login customers, strictly exclude system records and mock demo names
+        this.users = Array.isArray(loaded) ? loaded.filter(u => u && u.phone && !String(u.phone).startsWith('__') && String(u.phone).trim() !== '__APP_CONFIG_VERSION__' && !MOCK_DEMO_PHONES.includes(u.phone)) : [];
         // Purge any repeated login audit records from stamp history & sanitize legacy strings
         this.users.forEach(u => {
           if (Array.isArray(u.history)) {
@@ -2108,15 +2108,14 @@ class LoyaltyApp {
       }
 
       // Auto show Update Modal on app open with Update button and Remind Me Later
-      const remindUntil = parseInt(localStorage.getItem('loyalty_update_remind_later_until') || '0', 10);
-      const isRemindedLater = sessionStorage.getItem('loyalty_update_remind_later') === 'true' || Date.now() < remindUntil;
-      if (!isRemindedLater && !isManual) {
+      const snoozedVer = sessionStorage.getItem('customer_update_snooze_version') || localStorage.getItem('customer_update_snooze_version');
+      if (snoozedVer !== targetCustomerVer && !isManual) {
         setTimeout(() => {
           this.showOwnerUpdateAlertModal(
             updateData.notes || `Version ${targetCustomerVer} is ready to install! Update now to enjoy the latest rewards and features.`,
             targetCustomerVer
           );
-        }, 700);
+        }, 650);
       }
 
       if (isManual) {
@@ -2165,9 +2164,10 @@ class LoyaltyApp {
   }
 
   remindLaterUpdate() {
+    const target = (this.latestUpdateInfo && (this.latestUpdateInfo.customerVersion || this.latestUpdateInfo.version)) || this.appVersion;
     try {
-      sessionStorage.setItem('loyalty_update_remind_later', 'true');
-      localStorage.setItem('loyalty_update_remind_later_until', String(Date.now() + 2 * 60 * 60 * 1000));
+      sessionStorage.setItem('customer_update_snooze_version', target);
+      localStorage.setItem('customer_update_snooze_version', target);
     } catch (_) {}
     this.closeOwnerUpdateModal();
     this.showToast("🕒 We'll remind you about the update later.", "info");

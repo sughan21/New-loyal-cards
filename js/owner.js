@@ -52,8 +52,8 @@ class StoreOwnerApp {
     this.syncTimer = null;
     this.knownPendingRequestIds = new Set();
     this.expandedCustomerPhones = new Set();
-    this.appVersion = "1.6.9";
-    this.versionCode = 17;
+    this.appVersion = "1.6.10";
+    this.versionCode = 18;
     this.latestUpdateInfo = null;
 
     this.init();
@@ -119,8 +119,8 @@ class StoreOwnerApp {
     if (storedUsers) {
       try {
         let loaded = JSON.parse(storedUsers);
-        // Retain only active real customers, exclude deleted and demo entries
-        this.users = Array.isArray(loaded) ? loaded.filter(u => u && u.phone && !MOCK_DEMO_PHONES.includes(u.phone) && !deletedSet.has(String(u.phone).trim()) && u.name !== '__DELETED__') : [];
+        // Retain only active real customers, strictly exclude system records, deleted and demo entries
+        this.users = Array.isArray(loaded) ? loaded.filter(u => u && u.phone && !String(u.phone).startsWith('__') && String(u.phone).trim() !== '__APP_CONFIG_VERSION__' && !MOCK_DEMO_PHONES.includes(u.phone) && !deletedSet.has(String(u.phone).trim()) && u.name !== '__DELETED__') : [];
       } catch (e) {
         this.users = [];
       }
@@ -180,7 +180,7 @@ class StoreOwnerApp {
 
         // Reconcile: if a customer still exists in Supabase (not __DELETED__), remove from tombstone
         // This ensures previously deleted-locally customers reappear if they re-registered or were never actually deleted from cloud
-        const remotePhoneSet = new Set(remoteUsers.filter(r => r.name !== '__DELETED__').map(r => String(r.phone || '').trim()).filter(Boolean));
+        const remotePhoneSet = new Set(remoteUsers.filter(r => r && r.phone && !String(r.phone).startsWith('__') && String(r.phone).trim() !== '__APP_CONFIG_VERSION__' && r.name !== '__DELETED__').map(r => String(r.phone || '').trim()).filter(Boolean));
         let tombstoneChanged = false;
         for (const dp of deletedSet) {
           if (remotePhoneSet.has(dp)) {
@@ -192,14 +192,14 @@ class StoreOwnerApp {
           localStorage.setItem('loyalty_deleted_customers', JSON.stringify(Array.from(deletedSet)));
         }
 
-        // Purge any locally present customers that were marked deleted (and confirmed not in cloud)
+        // Purge any locally present customers that were marked deleted or system config
         const countBefore = this.users.length;
-        this.users = this.users.filter(u => u && u.phone && !deletedSet.has(String(u.phone).trim()) && u.name !== '__DELETED__');
+        this.users = this.users.filter(u => u && u.phone && !String(u.phone).startsWith('__') && String(u.phone).trim() !== '__APP_CONFIG_VERSION__' && !deletedSet.has(String(u.phone).trim()) && u.name !== '__DELETED__');
         if (this.users.length !== countBefore) changed = true;
 
         remoteUsers.forEach(rem => {
           const remPhone = String(rem.phone || '').trim();
-          if (!remPhone || MOCK_DEMO_PHONES.includes(remPhone) || deletedSet.has(remPhone) || rem.name === '__DELETED__') return;
+          if (!remPhone || remPhone.startsWith('__') || remPhone === '__APP_CONFIG_VERSION__' || MOCK_DEMO_PHONES.includes(remPhone) || deletedSet.has(remPhone) || rem.name === '__DELETED__') return;
           const idx = this.users.findIndex(u => String(u.phone).trim() === remPhone);
           if (idx === -1) {
             this.users.unshift(rem);
@@ -239,6 +239,7 @@ class StoreOwnerApp {
         console.log("⚡ Owner Realtime Customer Sync:", eventType, cust ? cust.phone : '');
         if (!cust || !cust.phone) return;
         const p = String(cust.phone).trim();
+        if (p.startsWith('__') || p === '__APP_CONFIG_VERSION__') return;
         const deletedSet = new Set(JSON.parse(localStorage.getItem('loyalty_deleted_customers') || '[]'));
         if ((eventType === 'DELETE' || cust.name === '__DELETED__') || deletedSet.has(p)) {
           this.users = this.users.filter(u => String(u.phone).trim() !== p);
@@ -986,6 +987,19 @@ class StoreOwnerApp {
           ownerFeatureListEl.appendChild(itemEl);
         });
       }
+
+      // Auto show Update Modal on app open with Update button and Remind Me Later
+      const targetTerminalVer = remoteOwnerVer || updateData.version;
+      const snoozedVer = sessionStorage.getItem('owner_update_snooze_version') || localStorage.getItem('owner_update_snooze_version');
+      if (snoozedVer !== targetTerminalVer && !isManual) {
+        setTimeout(() => {
+          this.showOwnerUpdateAlertModal(
+            targetTerminalVer,
+            updateData.notes || `Version ${targetTerminalVer} is ready to install! Update now to sync the latest features, cashier tools, and optimizations.`
+          );
+        }, 650);
+      }
+
       if (isManual) this.showToast(`⚡ New version ${remoteOwnerVer || updateData.version} is available!`, "gold");
     } else {
       if (ownerUpdateVersionStrip) ownerUpdateVersionStrip.classList.remove('has-update');
@@ -1008,7 +1022,45 @@ class StoreOwnerApp {
     }
   }
 
+  showOwnerUpdateAlertModal(targetVer, notes) {
+    const modal = document.getElementById('ownerUpdateAlertModal');
+    if (!modal) return;
+    const title = document.getElementById('ownerAppUpdateModalTitle');
+    const desc = document.getElementById('ownerAppUpdateModalDesc');
+    const actionBtn = document.getElementById('ownerAppUpdateModalActionBtn');
+    const target = targetVer || (this.latestUpdateInfo && (this.latestUpdateInfo.ownerVersion || this.latestUpdateInfo.version)) || this.appVersion;
+    if (title) title.textContent = `Terminal Update Available (v${target})`;
+    if (desc && notes) desc.textContent = notes;
+    if (actionBtn) actionBtn.innerHTML = `🚀 Update Terminal App (v${target})`;
+    modal.classList.add('active');
+    modal.style.setProperty('display', 'flex', 'important');
+    document.body.classList.add('modal-open');
+    if (window.soundEngine && typeof window.soundEngine.playSuccessTone === 'function') {
+      window.soundEngine.playSuccessTone();
+    }
+  }
+
+  remindLaterUpdate() {
+    const target = (this.latestUpdateInfo && (this.latestUpdateInfo.ownerVersion || this.latestUpdateInfo.version)) || this.appVersion;
+    try {
+      sessionStorage.setItem('owner_update_snooze_version', target);
+      localStorage.setItem('owner_update_snooze_version', target);
+    } catch (_) {}
+    this.closeOwnerUpdateModal();
+    this.showToast("🕒 We'll remind you about the update later.", "info");
+  }
+
+  closeOwnerUpdateModal() {
+    const modal = document.getElementById('ownerUpdateAlertModal');
+    if (modal) {
+      modal.classList.remove('active');
+      modal.style.setProperty('display', 'none', 'important');
+      document.body.classList.remove('modal-open');
+    }
+  }
+
   handleApplyUpdate() {
+    this.closeOwnerUpdateModal();
     const isAndroid = !!window.AndroidBridge || /android/i.test(navigator.userAgent);
     const ownerApkUrl = 'https://raw.githubusercontent.com/sughan21/New-loyal-cards/main/StoreTerminal-Owner.apk';
 
@@ -1831,13 +1883,14 @@ class StoreOwnerApp {
 
   // --- Metrics and Pill Badge Counters ---
   renderMetrics() {
-    const totalCust = this.users.length;
-    const readyForGift = this.users.filter(u => Number(u.stamps || 0) >= MAX_STAMPS).length;
-    const activeOffers = this.users.filter(u => Number(u.stamps || 0) >= MILESTONE_20_OFF && Number(u.stamps || 0) < MAX_STAMPS).length;
-    const inProgress = this.users.filter(u => Number(u.stamps || 0) >= 1 && Number(u.stamps || 0) < MAX_STAMPS).length;
-    const newCust = this.users.filter(u => Number(u.stamps || 0) === 0).length;
-    const outdatedCust = this.users.filter(u => this.isCustomerOutdated(u)).length;
-    const totalGiftsRedeemed = this.users.reduce((acc, u) => acc + (Number(u.giftsEarned) || 0), 0);
+    const activeUsers = this.users.filter(u => u && u.phone && !String(u.phone).startsWith('__') && String(u.phone).trim() !== '__APP_CONFIG_VERSION__' && u.name !== '__DELETED__');
+    const totalCust = activeUsers.length;
+    const readyForGift = activeUsers.filter(u => Number(u.stamps || 0) >= MAX_STAMPS).length;
+    const activeOffers = activeUsers.filter(u => Number(u.stamps || 0) >= MILESTONE_20_OFF && Number(u.stamps || 0) < MAX_STAMPS).length;
+    const inProgress = activeUsers.filter(u => Number(u.stamps || 0) >= 1 && Number(u.stamps || 0) < MAX_STAMPS).length;
+    const newCust = activeUsers.filter(u => Number(u.stamps || 0) === 0).length;
+    const outdatedCust = activeUsers.filter(u => this.isCustomerOutdated(u)).length;
+    const totalGiftsRedeemed = activeUsers.reduce((acc, u) => acc + (Number(u.giftsEarned) || 0), 0);
 
     const elTotal = document.getElementById('ownerTotalCustomers');
     if (elTotal) elTotal.innerText = totalCust;
@@ -1881,7 +1934,7 @@ class StoreOwnerApp {
 
     this.sanitizeCustomerNotes(this.users);
 
-    let filtered = [...this.users];
+    let filtered = this.users.filter(u => u && u.phone && !String(u.phone).startsWith('__') && String(u.phone).trim() !== '__APP_CONFIG_VERSION__' && u.name !== '__DELETED__');
 
     if (this.ownerFilter === 'ready') {
       filtered = filtered.filter(u => Number(u.stamps || 0) >= MAX_STAMPS);

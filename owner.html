@@ -43,8 +43,8 @@
     rel="stylesheet">
 
   <!-- Stylesheet (Supports both nested css/ and root uploads) -->
-  <link rel="stylesheet" href="css/style.css?v=20261117_v169">
-  <link rel="stylesheet" href="style.css?v=20261117_v169">
+  <link rel="stylesheet" href="css/style.css?v=20261117_v1610">
+  <link rel="stylesheet" href="style.css?v=20261117_v1610">
 
   <style>
     /* Critical Mobile Fix for Version Comparison Strip */
@@ -831,17 +831,44 @@
     </div>
   </div>
 
+  <!-- Owner Terminal Auto Update Popup Modal (App Open Alert) -->
+  <div id="ownerUpdateAlertModal" class="modal-backdrop" style="display: none;">
+    <div class="modal-dialog update-alert-dialog">
+      <button type="button" class="modal-close-btn" onclick="window.ownerApp.closeOwnerUpdateModal()" title="Close">&times;</button>
+      <div style="width: 58px; height: 58px; border-radius: 50%; background: rgba(245, 158, 11, 0.15); border: 2px solid #f59e0b; display: inline-flex; align-items: center; justify-content: center; font-size: 1.8rem; margin: 0 auto 12px auto;">
+        ⚡
+      </div>
+      <div style="display: inline-block; padding: 4px 12px; background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.4); border-radius: 999px; font-size: 0.72rem; font-weight: 700; color: #b45309; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">
+        Store Terminal Update Available
+      </div>
+      <h3 style="font-size: 1.25rem; font-weight: 800; color: #1c120c; margin-bottom: 6px;" id="ownerAppUpdateModalTitle">
+        Terminal Update Available (v1.6.10)
+      </h3>
+      <p style="font-size: 0.85rem; color: #695547; line-height: 1.45; margin-bottom: 18px;" id="ownerAppUpdateModalDesc">
+        A new version of the Store Terminal App is ready to install! Update now to sync the latest features, cashier tools, and optimizations.
+      </p>
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <button type="button" class="btn-update-now" id="ownerAppUpdateModalActionBtn" onclick="window.ownerApp.handleApplyUpdate()" style="width: 100%; padding: 13px; font-size: 0.95rem; font-weight: 700; background: linear-gradient(135deg, #d97706 0%, #b45309 100%); color: #ffffff; border: none; border-radius: 12px; box-shadow: 0 4px 14px rgba(217, 119, 6, 0.35); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+          🚀 Update Terminal App
+        </button>
+        <button type="button" onclick="window.ownerApp.remindLaterUpdate()" style="width: 100%; padding: 11px; font-size: 0.85rem; font-weight: 600; background: transparent; color: #78716c; border: 1.5px solid #e7e5e4; border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
+          🕒 Remind Me Later
+        </button>
+      </div>
+    </div>
+  </div>
+
   <div id="toastContainer" class="toast-container"></div>
 
   <!-- Cloud Database Scripts (Single script load with fallback) -->
   <script src="js/vendor/supabase.min.js" onerror="this.onerror=null;this.src='supabase.min.js'"></script>
   <script>if(!window.supabase)document.write('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"><\/script>');</script>
 
-  <script src="js/supabase-client.js" onerror="this.onerror=null;this.src='supabase-client.js'"></script>
+  <script src="js/supabase-client.js?v=20261117_v1610" onerror="this.onerror=null;this.src='supabase-client.js?v=20261117_v1610'"></script>
 
   <!-- Application Scripts -->
   <script src="js/audio.js" onerror="this.onerror=null;this.src='audio.js'"></script>
-  <script src="js/owner.js?v=20261117_v169" onerror="this.onerror=null;this.src='owner.js?v=20261117_v169'"></script>
+  <script src="js/owner.js?v=20261117_v1610" onerror="this.onerror=null;this.src='owner.js?v=20261117_v1610'"></script>
 </body>
 
 </html>
