@@ -1651,6 +1651,13 @@ class StoreOwnerApp {
   }
 
   // --- Customer Version Helpers ---
+  isCustomerIosOrWeb(customer) {
+    if (!customer) return false;
+    const history = Array.isArray(customer.history) ? customer.history : [];
+    const dev = String(customer.deviceName || (history.find(h => h && h.device) ? history.find(h => h && h.device).device : '') || '').toLowerCase();
+    return dev.includes('iphone') || dev.includes('ipad') || dev.includes('ios') || dev.includes('apple') || dev.includes('safari') || dev.includes('web browser');
+  }
+
   getTargetCustomerVersion() {
     if (this.latestUpdateInfo && (this.latestUpdateInfo.customerVersion || this.latestUpdateInfo.version)) {
       return this.latestUpdateInfo.customerVersion || this.latestUpdateInfo.version;
@@ -1662,6 +1669,10 @@ class StoreOwnerApp {
 
   isCustomerOutdated(customer) {
     if (!customer) return false;
+    // iOS and Safari Web Pass users automatically run the latest web code on reload - no APK install required!
+    if (this.isCustomerIosOrWeb(customer)) {
+      return false;
+    }
     const targetVer = this.getTargetCustomerVersion();
     const custVer = customer.appVersion;
     if (!custVer) return true;
@@ -1674,18 +1685,29 @@ class StoreOwnerApp {
     const cleanPhone = String(phone).replace(/\D/g, '');
     const intlPhone = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
     const downloadUrl = 'https://sughan21.github.io/New-loyal-cards/LoyaltyPass-Customer.apk';
+    const webPassUrl = 'https://sughan21.github.io/New-loyal-cards/';
 
     const cust = this.users.find(u => u.phone === phone);
     const stamps = cust ? (cust.stamps || 0) : 0;
+    const isIos = this.isCustomerIosOrWeb(cust);
 
-    const message = `Hello ${name}! 👋\n\n` +
-      `A new update (*v${targetVer}*) is ready for your *Sugar Cubes Loyalty Pass* app! 🎁✨\n\n` +
-      `⚠️ *IMPORTANT UPDATE STEPS:*\n` +
-      `1️⃣ Please *uninstall the older version* of the Loyalty Pass app from your phone first.\n` +
-      `2️⃣ Download and install the new version from this official link:\n` +
-      `👉 ${downloadUrl}\n\n` +
-      `💡 *Don't worry:* All your loyalty stamps (${stamps}/11 ticks), rewards, and free gift progress are safely saved in the cloud and will restore automatically when you sign in with your mobile number (*${phone}*)!\n\n` +
-      `Thank you! 🌟\n- Sugar Cubes Store`;
+    let message = '';
+    if (isIos) {
+      message = `Hello ${name}! 👋\n\n` +
+        `Here is the direct link to your *Sugar Cubes Loyalty Pass*:\n` +
+        `👉 ${webPassUrl}\n\n` +
+        `💡 *iPhone Tip:* Open the link in Safari, tap the Share button (⎋), and select *"Add to Home Screen"* (➕) for instant 1-tap pass access on your iPhone!\n\n` +
+        `All your loyalty stamps (${stamps}/11 ticks) and rewards are safely saved in the cloud. See you soon! 🌟\n- Sugar Cubes Store`;
+    } else {
+      message = `Hello ${name}! 👋\n\n` +
+        `A new update (*v${targetVer}*) is ready for your *Sugar Cubes Loyalty Pass* app! 🎁✨\n\n` +
+        `⚠️ *IMPORTANT UPDATE STEPS:*\n` +
+        `1️⃣ Please *uninstall the older version* of the Loyalty Pass app from your phone first.\n` +
+        `2️⃣ Download and install the new version from this official link:\n` +
+        `👉 ${downloadUrl}\n\n` +
+        `💡 *Don't worry:* All your loyalty stamps (${stamps}/11 ticks), rewards, and free gift progress are safely saved in the cloud and will restore automatically when you sign in with your mobile number (*${phone}*)!\n\n` +
+        `Thank you! 🌟\n- Sugar Cubes Store`;
+    }
 
     const waUrl = `https://wa.me/${intlPhone}?text=${encodeURIComponent(message)}`;
 
@@ -1695,7 +1717,7 @@ class StoreOwnerApp {
       window.open(waUrl, '_blank');
     }
 
-    this.showToast(`💬 Opening WhatsApp to send update instructions to ${name}...`, "success");
+    this.showToast(`💬 Opening WhatsApp to send pass details to ${name}...`, "success");
   }
 
   async pushIndividualCustomerUpdate(phone, encodedName) {
@@ -1893,7 +1915,8 @@ class StoreOwnerApp {
       const latestEvent = history.length > 0 ? history[0] : null;
 
       const targetVer = this.getTargetCustomerVersion();
-      const isOutdated = this.isCustomerOutdated(customer);
+      const isIos = this.isCustomerIosOrWeb(customer);
+      const isOutdated = !isIos && this.isCustomerOutdated(customer);
       const customerVer = customer.appVersion;
       const hasAlertSent = (customer.updateAlert && customer.updateAlert.status === 'pending') || (latestEvent && latestEvent.type === 'update_alert');
 
@@ -1988,9 +2011,15 @@ class StoreOwnerApp {
                     📱 ${customer.deviceName || (history.find(h => h.device) && history.find(h => h.device).device)}
                   </span>
                 ` : ''}
-                <span class="customer-ver-tag ${isOutdated ? 'outdated' : 'up-to-date'}" title="${isOutdated ? 'Needs update to latest version v' + targetVer : 'Up to date with version v' + (customerVer || targetVer)}">
-                  ${isOutdated ? `⚠️ Needs v${targetVer}` : `✓ v${customerVer || targetVer}`}
-                </span>
+                ${isIos ? `
+                  <span class="customer-ver-tag up-to-date" style="background:#f0fdf4; color:#166534; border:1px solid #bbf7d0;" title="Apple iPhone Safari Pass: Runs live latest code on reload">
+                    🍏 v${customerVer || targetVer} (Safari Pass)
+                  </span>
+                ` : `
+                  <span class="customer-ver-tag ${isOutdated ? 'outdated' : 'up-to-date'}" title="${isOutdated ? 'Needs update to latest version v' + targetVer : 'Up to date with version v' + (customerVer || targetVer)}">
+                    ${isOutdated ? `⚠️ Needs v${targetVer}` : `✓ v${customerVer || targetVer}`}
+                  </span>
+                `}
               </div>
               ${latestEvent ? `
                 <div class="customer-latest-stamp-hint" onclick="window.ownerApp.toggleCustomerHistory('${customer.phone}')" style="cursor: pointer;" title="${latestEvent.note} (${latestEvent.date})">
