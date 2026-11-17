@@ -1770,7 +1770,7 @@ body.store-mode-active .app-container {
 /* Perfectly Aligned Customer Table Header & Row Cards */
 .customer-table-header {
   display: grid;
-  grid-template-columns: minmax(200px, 1.3fr) 215px minmax(180px, 1fr) 280px;
+  grid-template-columns: minmax(190px, 1.2fr) 210px minmax(215px, 1.1fr) 275px;
   align-items: center;
   gap: 16px;
   padding: 10px 18px;
@@ -1820,7 +1820,7 @@ body.store-mode-active .app-container {
   border-radius: var(--radius-lg, 16px);
   padding: 14px 18px;
   display: grid;
-  grid-template-columns: minmax(200px, 1.3fr) 215px minmax(180px, 1fr) 280px;
+  grid-template-columns: minmax(190px, 1.2fr) 210px minmax(215px, 1.1fr) 275px;
   align-items: center;
   gap: 16px;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -1917,7 +1917,8 @@ body.store-mode-active .app-container {
   gap: 5px;
   width: 100%;
   min-width: 0;
-  max-width: 215px;
+  max-width: 200px;
+  padding-right: 6px;
   box-sizing: border-box;
   overflow: hidden;
 }
@@ -2014,34 +2015,37 @@ body.store-mode-active .app-container {
   transform: scale(1.04);
 }
 
-/* Column 3: Remaining Status Badge (Half Size) & -1 Stamp (Half Side) */
+/* Column 3: Remaining Status Badge & -1 Stamp Button */
 .customer-status-col {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
   width: 100%;
+  min-width: 0;
   box-sizing: border-box;
 }
 
 .customer-status-col .remaining-badge {
-  flex: 1;
-  width: 50%;
+  flex: 1 1 auto;
   min-width: 0;
-  height: 34px;
+  height: 32px;
   box-sizing: border-box;
 }
 
 .customer-status-col .remaining-badge:only-child {
-  flex: 1 1 100%;
+  flex: 0 1 auto;
+  max-width: 180px;
   width: 100%;
+  margin: 0 auto;
 }
 
 .customer-status-col .btn-tick-remove {
-  flex: 1;
-  width: 50%;
-  min-width: 0;
-  height: 34px;
+  flex: 0 0 auto;
+  min-width: max-content;
+  height: 32px;
+  padding: 0 10px;
+  font-size: 0.72rem;
   box-sizing: border-box;
 }
 
@@ -2050,9 +2054,9 @@ body.store-mode-active .app-container {
   align-items: center;
   justify-content: center;
   gap: 4px;
-  font-size: 0.70rem;
+  font-size: 0.69rem;
   font-weight: 700;
-  padding: 5px 9px;
+  padding: 4px 10px;
   border-radius: var(--radius-full, 9999px);
   white-space: nowrap;
   letter-spacing: 0.02em;
@@ -2791,8 +2795,7 @@ body.store-mode-active .app-container {
   }
 
   .customer-status-col .remaining-badge {
-    flex: 1;
-    width: 50%;
+    flex: 1 1 auto;
     min-width: 0;
     height: 36px;
     justify-content: center;
@@ -2807,11 +2810,10 @@ body.store-mode-active .app-container {
   }
 
   .customer-status-col .btn-tick-remove {
-    flex: 1;
-    width: 50%;
-    min-width: 0;
+    flex: 0 0 auto;
+    min-width: max-content;
     height: 36px;
-    padding: 0 10px;
+    padding: 0 12px;
     justify-content: center;
     font-size: 0.74rem;
     box-sizing: border-box;
@@ -4544,8 +4546,7 @@ body.modal-open {
   }
 
   .customer-status-col .remaining-badge {
-    flex: 1;
-    width: 50%;
+    flex: 1 1 auto;
     min-width: 0;
     height: 36px;
     justify-content: center;
@@ -4561,11 +4562,10 @@ body.modal-open {
   }
 
   .customer-status-col .btn-tick-remove {
-    flex: 1;
-    width: 50%;
-    min-width: 0;
+    flex: 0 0 auto;
+    min-width: max-content;
     height: 36px;
-    padding: 0 8px;
+    padding: 0 10px;
     justify-content: center;
     font-size: 0.72rem;
     box-sizing: border-box;
