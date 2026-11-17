@@ -59,8 +59,8 @@ class LoyaltyApp {
     this.customerResetOtp = '';
     this.customerResetPhone = '';
     this.repeatApprovalPollTimer = null;
-    this.appVersion = "1.6.5";
-    this.versionCode = 13;
+    this.appVersion = "1.6.6";
+    this.versionCode = 14;
     this.latestUpdateInfo = null;
 
     this.init();
@@ -449,7 +449,7 @@ class LoyaltyApp {
     const isUpdateAlert = latestEvent && latestEvent.type === 'update_alert';
     const targetVer = (isUpdateAlert && latestEvent.targetVersion)
       ? latestEvent.targetVersion
-      : (remoteMe.updateAlert ? remoteMe.updateAlert.targetVersion : "1.6.5");
+      : (remoteMe.updateAlert ? remoteMe.updateAlert.targetVersion : "1.6.6");
     const isOutdated = this.isNewerVersion(targetVer, this.appVersion);
 
     if (isOutdated && (isUpdateAlert || remoteMe.updateAlert)) {
@@ -2085,6 +2085,18 @@ class LoyaltyApp {
         } catch (_) {}
       }
 
+      // Auto show Update Modal on app open with Update button and Remind Me Later
+      const remindUntil = parseInt(localStorage.getItem('loyalty_update_remind_later_until') || '0', 10);
+      const isRemindedLater = sessionStorage.getItem('loyalty_update_remind_later') === 'true' || Date.now() < remindUntil;
+      if (!isRemindedLater && !isManual) {
+        setTimeout(() => {
+          this.showOwnerUpdateAlertModal(
+            updateData.notes || `Version ${targetCustomerVer} is ready to install! Update now to enjoy the latest rewards and features.`,
+            targetCustomerVer
+          );
+        }, 700);
+      }
+
       if (isManual) {
         this.showToast(`⚡ New version ${updateData.version} is available!`, "gold");
       }
@@ -2119,13 +2131,24 @@ class LoyaltyApp {
     if (!modal) return;
     const title = document.getElementById('ownerUpdateModalTitle');
     const desc = document.getElementById('ownerUpdateModalDesc');
+    const actionBtn = document.getElementById('ownerUpdateModalActionBtn');
     const target = targetVer || (this.latestUpdateInfo && (this.latestUpdateInfo.customerVersion || this.latestUpdateInfo.version)) || this.appVersion;
-    if (title) title.textContent = `New Update Available (v${target})`;
+    if (title) title.textContent = `Update Available (v${target})`;
     if (desc && note) desc.textContent = note;
+    if (actionBtn) actionBtn.innerHTML = `🚀 Update Now (v${target})`;
     modal.classList.add('active');
     modal.style.setProperty('display', 'flex', 'important');
     document.body.classList.add('modal-open');
     if (window.soundEngine) window.soundEngine.playSuccessTone();
+  }
+
+  remindLaterUpdate() {
+    try {
+      sessionStorage.setItem('loyalty_update_remind_later', 'true');
+      localStorage.setItem('loyalty_update_remind_later_until', String(Date.now() + 2 * 60 * 60 * 1000));
+    } catch (_) {}
+    this.closeOwnerUpdateModal();
+    this.showToast("🕒 We'll remind you about the update later.", "info");
   }
 
   closeOwnerUpdateModal() {
@@ -2144,7 +2167,7 @@ class LoyaltyApp {
       banner.style.setProperty('display', 'flex', 'important');
       const textEl = banner.querySelector('.banner-text');
       if (textEl) {
-        textEl.innerHTML = `Store Owner sent an update alert! <strong>Tap to update to v${targetVer || '1.6.5'}</strong>`;
+        textEl.innerHTML = `Store Owner sent an update alert! <strong>Tap to update to v${targetVer || '1.6.6'}</strong>`;
       }
     } else {
       banner.style.setProperty('display', 'none', 'important');
@@ -2152,6 +2175,7 @@ class LoyaltyApp {
   }
 
   handleApplyUpdate() {
+    this.closeOwnerUpdateModal();
     const isAndroid = !!window.AndroidBridge || /android/i.test(navigator.userAgent);
     const customerApkUrl = 'https://raw.githubusercontent.com/sughan21/New-loyal-cards/main/LoyaltyPass-Customer.apk';
 
@@ -2377,7 +2401,7 @@ class LoyaltyApp {
     const history = Array.isArray(this.currentUser.history) ? this.currentUser.history : [];
     const latestEvent = history.length > 0 ? history[0] : null;
     const hasPendingAlert = latestEvent && latestEvent.type === 'update_alert';
-    const targetVer = (hasPendingAlert && latestEvent.targetVersion) || (this.latestUpdateInfo && (this.latestUpdateInfo.customerVersion || this.latestUpdateInfo.version)) || "1.6.5";
+    const targetVer = (hasPendingAlert && latestEvent.targetVersion) || (this.latestUpdateInfo && (this.latestUpdateInfo.customerVersion || this.latestUpdateInfo.version)) || "1.6.6";
     const isOutdated = this.isNewerVersion(targetVer, this.appVersion);
     this.renderUpdateTopBanner(isOutdated && hasPendingAlert, targetVer);
 

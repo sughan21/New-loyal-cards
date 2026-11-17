@@ -59,8 +59,8 @@ class LoyaltyApp {
     this.customerResetOtp = '';
     this.customerResetPhone = '';
     this.repeatApprovalPollTimer = null;
-    this.appVersion = "1.6.5";
-    this.versionCode = 13;
+    this.appVersion = "1.6.6";
+    this.versionCode = 14;
     this.latestUpdateInfo = null;
 
     this.init();
@@ -449,7 +449,7 @@ class LoyaltyApp {
     const isUpdateAlert = latestEvent && latestEvent.type === 'update_alert';
     const targetVer = (isUpdateAlert && latestEvent.targetVersion)
       ? latestEvent.targetVersion
-      : (remoteMe.updateAlert ? remoteMe.updateAlert.targetVersion : "1.6.5");
+      : (remoteMe.updateAlert ? remoteMe.updateAlert.targetVersion : "1.6.6");
     const isOutdated = this.isNewerVersion(targetVer, this.appVersion);
 
     if (isOutdated && (isUpdateAlert || remoteMe.updateAlert)) {
@@ -2167,7 +2167,7 @@ class LoyaltyApp {
       banner.style.setProperty('display', 'flex', 'important');
       const textEl = banner.querySelector('.banner-text');
       if (textEl) {
-        textEl.innerHTML = `Store Owner sent an update alert! <strong>Tap to update to v${targetVer || '1.6.5'}</strong>`;
+        textEl.innerHTML = `Store Owner sent an update alert! <strong>Tap to update to v${targetVer || '1.6.6'}</strong>`;
       }
     } else {
       banner.style.setProperty('display', 'none', 'important');
@@ -2401,7 +2401,7 @@ class LoyaltyApp {
     const history = Array.isArray(this.currentUser.history) ? this.currentUser.history : [];
     const latestEvent = history.length > 0 ? history[0] : null;
     const hasPendingAlert = latestEvent && latestEvent.type === 'update_alert';
-    const targetVer = (hasPendingAlert && latestEvent.targetVersion) || (this.latestUpdateInfo && (this.latestUpdateInfo.customerVersion || this.latestUpdateInfo.version)) || "1.6.5";
+    const targetVer = (hasPendingAlert && latestEvent.targetVersion) || (this.latestUpdateInfo && (this.latestUpdateInfo.customerVersion || this.latestUpdateInfo.version)) || "1.6.6";
     const isOutdated = this.isNewerVersion(targetVer, this.appVersion);
     this.renderUpdateTopBanner(isOutdated && hasPendingAlert, targetVer);
 

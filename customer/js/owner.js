@@ -52,8 +52,8 @@ class StoreOwnerApp {
     this.syncTimer = null;
     this.knownPendingRequestIds = new Set();
     this.expandedCustomerPhones = new Set();
-    this.appVersion = "1.6.5";
-    this.versionCode = 13;
+    this.appVersion = "1.6.6";
+    this.versionCode = 14;
     this.latestUpdateInfo = null;
 
     this.init();
@@ -178,7 +178,21 @@ class StoreOwnerApp {
         let changed = false;
         const deletedSet = new Set(JSON.parse(localStorage.getItem('loyalty_deleted_customers') || '[]'));
 
-        // Purge any locally present customers that were marked deleted
+        // Reconcile: if a customer still exists in Supabase (not __DELETED__), remove from tombstone
+        // This ensures previously deleted-locally customers reappear if they re-registered or were never actually deleted from cloud
+        const remotePhoneSet = new Set(remoteUsers.filter(r => r.name !== '__DELETED__').map(r => String(r.phone || '').trim()).filter(Boolean));
+        let tombstoneChanged = false;
+        for (const dp of deletedSet) {
+          if (remotePhoneSet.has(dp)) {
+            deletedSet.delete(dp);
+            tombstoneChanged = true;
+          }
+        }
+        if (tombstoneChanged) {
+          localStorage.setItem('loyalty_deleted_customers', JSON.stringify(Array.from(deletedSet)));
+        }
+
+        // Purge any locally present customers that were marked deleted (and confirmed not in cloud)
         const countBefore = this.users.length;
         this.users = this.users.filter(u => u && u.phone && !deletedSet.has(String(u.phone).trim()) && u.name !== '__DELETED__');
         if (this.users.length !== countBefore) changed = true;
@@ -1047,7 +1061,7 @@ class StoreOwnerApp {
     const notesInput = document.getElementById('broadcastNotesInput');
     const newVer = input ? input.value.trim() : '';
     if (!newVer) {
-      this.showToast("Please enter a version number (e.g. 1.6.5)", "error");
+      this.showToast("Please enter a version number (e.g. 1.6.6)", "error");
       return;
     }
 
@@ -1637,17 +1651,28 @@ class StoreOwnerApp {
   }
 
   // --- Customer Version Helpers ---
+  isCustomerIosOrWeb(customer) {
+    if (!customer) return false;
+    const history = Array.isArray(customer.history) ? customer.history : [];
+    const dev = String(customer.deviceName || (history.find(h => h && h.device) ? history.find(h => h && h.device).device : '') || '').toLowerCase();
+    return dev.includes('iphone') || dev.includes('ipad') || dev.includes('ios') || dev.includes('apple') || dev.includes('safari') || dev.includes('web browser');
+  }
+
   getTargetCustomerVersion() {
     if (this.latestUpdateInfo && (this.latestUpdateInfo.customerVersion || this.latestUpdateInfo.version)) {
       return this.latestUpdateInfo.customerVersion || this.latestUpdateInfo.version;
     }
     const broadcastVer = localStorage.getItem('loyalty_owner_broadcast_version');
     if (broadcastVer) return broadcastVer;
-    return this.appVersion || "1.6.5";
+    return this.appVersion || "1.6.6";
   }
 
   isCustomerOutdated(customer) {
     if (!customer) return false;
+    // iOS and Safari Web Pass users automatically run the latest web code on reload - no APK install required!
+    if (this.isCustomerIosOrWeb(customer)) {
+      return false;
+    }
     const targetVer = this.getTargetCustomerVersion();
     const custVer = customer.appVersion;
     if (!custVer) return true;
@@ -1660,18 +1685,29 @@ class StoreOwnerApp {
     const cleanPhone = String(phone).replace(/\D/g, '');
     const intlPhone = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
     const downloadUrl = 'https://sughan21.github.io/New-loyal-cards/LoyaltyPass-Customer.apk';
+    const webPassUrl = 'https://sughan21.github.io/New-loyal-cards/';
 
     const cust = this.users.find(u => u.phone === phone);
     const stamps = cust ? (cust.stamps || 0) : 0;
+    const isIos = this.isCustomerIosOrWeb(cust);
 
-    const message = `Hello ${name}! 👋\n\n` +
-      `A new update (*v${targetVer}*) is ready for your *Sugar Cubes Loyalty Pass* app! 🎁✨\n\n` +
-      `⚠️ *IMPORTANT UPDATE STEPS:*\n` +
-      `1️⃣ Please *uninstall the older version* of the Loyalty Pass app from your phone first.\n` +
-      `2️⃣ Download and install the new version from this official link:\n` +
-      `👉 ${downloadUrl}\n\n` +
-      `💡 *Don't worry:* All your loyalty stamps (${stamps}/11 ticks), rewards, and free gift progress are safely saved in the cloud and will restore automatically when you sign in with your mobile number (*${phone}*)!\n\n` +
-      `Thank you! 🌟\n- Sugar Cubes Store`;
+    let message = '';
+    if (isIos) {
+      message = `Hello ${name}! 👋\n\n` +
+        `Here is the direct link to your *Sugar Cubes Loyalty Pass*:\n` +
+        `👉 ${webPassUrl}\n\n` +
+        `💡 *iPhone Tip:* Open the link in Safari, tap the Share button (⎋), and select *"Add to Home Screen"* (➕) for instant 1-tap pass access on your iPhone!\n\n` +
+        `All your loyalty stamps (${stamps}/11 ticks) and rewards are safely saved in the cloud. See you soon! 🌟\n- Sugar Cubes Store`;
+    } else {
+      message = `Hello ${name}! 👋\n\n` +
+        `A new update (*v${targetVer}*) is ready for your *Sugar Cubes Loyalty Pass* app! 🎁✨\n\n` +
+        `⚠️ *IMPORTANT UPDATE STEPS:*\n` +
+        `1️⃣ Please *uninstall the older version* of the Loyalty Pass app from your phone first.\n` +
+        `2️⃣ Download and install the new version from this official link:\n` +
+        `👉 ${downloadUrl}\n\n` +
+        `💡 *Don't worry:* All your loyalty stamps (${stamps}/11 ticks), rewards, and free gift progress are safely saved in the cloud and will restore automatically when you sign in with your mobile number (*${phone}*)!\n\n` +
+        `Thank you! 🌟\n- Sugar Cubes Store`;
+    }
 
     const waUrl = `https://wa.me/${intlPhone}?text=${encodeURIComponent(message)}`;
 
@@ -1681,7 +1717,7 @@ class StoreOwnerApp {
       window.open(waUrl, '_blank');
     }
 
-    this.showToast(`💬 Opening WhatsApp to send update instructions to ${name}...`, "success");
+    this.showToast(`💬 Opening WhatsApp to send pass details to ${name}...`, "success");
   }
 
   async pushIndividualCustomerUpdate(phone, encodedName) {
@@ -1879,7 +1915,8 @@ class StoreOwnerApp {
       const latestEvent = history.length > 0 ? history[0] : null;
 
       const targetVer = this.getTargetCustomerVersion();
-      const isOutdated = this.isCustomerOutdated(customer);
+      const isIos = this.isCustomerIosOrWeb(customer);
+      const isOutdated = !isIos && this.isCustomerOutdated(customer);
       const customerVer = customer.appVersion;
       const hasAlertSent = (customer.updateAlert && customer.updateAlert.status === 'pending') || (latestEvent && latestEvent.type === 'update_alert');
 
@@ -1974,9 +2011,15 @@ class StoreOwnerApp {
                     📱 ${customer.deviceName || (history.find(h => h.device) && history.find(h => h.device).device)}
                   </span>
                 ` : ''}
-                <span class="customer-ver-tag ${isOutdated ? 'outdated' : 'up-to-date'}" title="${isOutdated ? 'Needs update to latest version v' + targetVer : 'Up to date with version v' + (customerVer || targetVer)}">
-                  ${isOutdated ? `⚠️ Needs v${targetVer}` : `✓ v${customerVer || targetVer}`}
-                </span>
+                ${isIos ? `
+                  <span class="customer-ver-tag up-to-date" style="background:#f0fdf4; color:#166534; border:1px solid #bbf7d0;" title="Apple iPhone Safari Pass: Runs live latest code on reload">
+                    🍏 v${customerVer || targetVer} (Safari Pass)
+                  </span>
+                ` : `
+                  <span class="customer-ver-tag ${isOutdated ? 'outdated' : 'up-to-date'}" title="${isOutdated ? 'Needs update to latest version v' + targetVer : 'Up to date with version v' + (customerVer || targetVer)}">
+                    ${isOutdated ? `⚠️ Needs v${targetVer}` : `✓ v${customerVer || targetVer}`}
+                  </span>
+                `}
               </div>
               ${latestEvent ? `
                 <div class="customer-latest-stamp-hint" onclick="window.ownerApp.toggleCustomerHistory('${customer.phone}')" style="cursor: pointer;" title="${latestEvent.note} (${latestEvent.date})">
@@ -1995,15 +2038,13 @@ class StoreOwnerApp {
             </div>
           </div>
 
-          <!-- Column 3: Remaining Ticks / Milestone Badge (Half Size) & Remove 1 Stamp (Half Side) -->
+          <!-- Column 3: Remaining Ticks / Milestone Badge & Remove 1 Stamp Button -->
           <div class="customer-status-col">
             ${badgeHtml}
-            ${stamps > 0 ? `
-              <button type="button" class="btn-tick-remove" onclick="window.ownerApp.ownerRemoveTickFromCustomer('${customer.phone}')" title="Delete 1 stamp (Undo mistake)">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                <span>1 Stamp</span>
-              </button>
-            ` : ''}
+            <button type="button" class="btn-tick-remove ${stamps === 0 ? 'zero-stamps' : ''}" onclick="window.ownerApp.ownerRemoveTickFromCustomer('${customer.phone}')" title="${stamps > 0 ? 'Delete 1 stamp (Undo mistake)' : 'Customer already has 0 stamps'}">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+              <span>1 Stamp</span>
+            </button>
           </div>
 
           <!-- Column 4: Instant Cashier Action & Card Stamp History Button -->

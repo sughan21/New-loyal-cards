@@ -52,8 +52,8 @@ class StoreOwnerApp {
     this.syncTimer = null;
     this.knownPendingRequestIds = new Set();
     this.expandedCustomerPhones = new Set();
-    this.appVersion = "1.6.5";
-    this.versionCode = 13;
+    this.appVersion = "1.6.6";
+    this.versionCode = 14;
     this.latestUpdateInfo = null;
 
     this.init();
@@ -1061,7 +1061,7 @@ class StoreOwnerApp {
     const notesInput = document.getElementById('broadcastNotesInput');
     const newVer = input ? input.value.trim() : '';
     if (!newVer) {
-      this.showToast("Please enter a version number (e.g. 1.6.5)", "error");
+      this.showToast("Please enter a version number (e.g. 1.6.6)", "error");
       return;
     }
 
@@ -1664,7 +1664,7 @@ class StoreOwnerApp {
     }
     const broadcastVer = localStorage.getItem('loyalty_owner_broadcast_version');
     if (broadcastVer) return broadcastVer;
-    return this.appVersion || "1.6.5";
+    return this.appVersion || "1.6.6";
   }
 
   isCustomerOutdated(customer) {
