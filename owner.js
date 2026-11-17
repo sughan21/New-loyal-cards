@@ -52,8 +52,8 @@ class StoreOwnerApp {
     this.syncTimer = null;
     this.knownPendingRequestIds = new Set();
     this.expandedCustomerPhones = new Set();
-    this.appVersion = "1.6.6";
-    this.versionCode = 14;
+    this.appVersion = "1.6.7";
+    this.versionCode = 15;
     this.latestUpdateInfo = null;
 
     this.init();
@@ -932,7 +932,7 @@ class StoreOwnerApp {
     const ownerNewVerDisplay = document.getElementById('ownerNewVerDisplay');
 
     if (ownerCurrentVerDisplay) {
-      ownerCurrentVerDisplay.innerHTML = `v${this.appVersion} <span class="version-chip-badge ${hasNewVersion ? 'installed' : 'latest'}">${hasNewVersion ? 'Installed' : 'Latest ✅'}</span>`;
+      ownerCurrentVerDisplay.innerHTML = `<span>v${this.appVersion}</span> <span class="version-chip-badge ${hasNewVersion ? 'installed' : 'latest'}">${hasNewVersion ? 'Installed' : 'Latest ✅'}</span>`;
     }
 
     if (hasNewVersion) {
@@ -940,7 +940,7 @@ class StoreOwnerApp {
       if (ownerVersionChipArrow) ownerVersionChipArrow.style.setProperty('display', 'flex', 'important');
       if (ownerNewVersionChip) ownerNewVersionChip.style.setProperty('display', 'flex', 'important');
       if (ownerNewVerDisplay) {
-        ownerNewVerDisplay.innerHTML = `v${remoteOwnerVer || updateData.version} <span class="version-chip-badge update">⚡ New</span>`;
+        ownerNewVerDisplay.innerHTML = `<span>v${remoteOwnerVer || updateData.version}</span> <span class="version-chip-badge update">⚡ New</span>`;
       }
 
       ownerBadgeIds.forEach(id => {
@@ -1061,7 +1061,7 @@ class StoreOwnerApp {
     const notesInput = document.getElementById('broadcastNotesInput');
     const newVer = input ? input.value.trim() : '';
     if (!newVer) {
-      this.showToast("Please enter a version number (e.g. 1.6.6)", "error");
+      this.showToast("Please enter a version number (e.g. 1.6.7)", "error");
       return;
     }
 
@@ -1664,7 +1664,7 @@ class StoreOwnerApp {
     }
     const broadcastVer = localStorage.getItem('loyalty_owner_broadcast_version');
     if (broadcastVer) return broadcastVer;
-    return this.appVersion || "1.6.6";
+    return this.appVersion || "1.6.7";
   }
 
   isCustomerOutdated(customer) {
