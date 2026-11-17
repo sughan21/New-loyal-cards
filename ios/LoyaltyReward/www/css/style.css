@@ -2193,6 +2193,18 @@ body.store-mode-active .app-container {
   transform: translateY(-1px);
 }
 
+.btn-tick-remove.zero-stamps {
+  opacity: 0.65;
+  background: #fbf5f5;
+  border-color: #fca5a5;
+  color: #b91c1c;
+}
+
+.btn-tick-remove.zero-stamps:hover {
+  opacity: 0.9;
+  background: #fee2e2;
+}
+
 .btn-offer-redeem {
   height: 34px;
   padding: 0 8px;

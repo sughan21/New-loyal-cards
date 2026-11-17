@@ -2038,15 +2038,13 @@ class StoreOwnerApp {
             </div>
           </div>
 
-          <!-- Column 3: Remaining Ticks / Milestone Badge (Half Size) & Remove 1 Stamp (Half Side) -->
+          <!-- Column 3: Remaining Ticks / Milestone Badge & Remove 1 Stamp Button -->
           <div class="customer-status-col">
             ${badgeHtml}
-            ${stamps > 0 ? `
-              <button type="button" class="btn-tick-remove" onclick="window.ownerApp.ownerRemoveTickFromCustomer('${customer.phone}')" title="Delete 1 stamp (Undo mistake)">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                <span>1 Stamp</span>
-              </button>
-            ` : ''}
+            <button type="button" class="btn-tick-remove ${stamps === 0 ? 'zero-stamps' : ''}" onclick="window.ownerApp.ownerRemoveTickFromCustomer('${customer.phone}')" title="${stamps > 0 ? 'Delete 1 stamp (Undo mistake)' : 'Customer already has 0 stamps'}">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+              <span>1 Stamp</span>
+            </button>
           </div>
 
           <!-- Column 4: Instant Cashier Action & Card Stamp History Button -->
