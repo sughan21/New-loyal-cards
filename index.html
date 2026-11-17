@@ -1016,11 +1016,11 @@
         The store owner has pushed an update alert. Please update your Loyalty Pass to stay in sync with store purchases, rewards, and stamps!
       </p>
       <div style="display: flex; flex-direction: column; gap: 10px;">
-        <button type="button" class="btn-update-now" onclick="window.customerApp.handleApplyUpdate()" style="width: 100%; padding: 13px; font-size: 0.95rem; font-weight: 700; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #ffffff; border: none; border-radius: 12px; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4); cursor: pointer;">
-          🚀 Update &amp; Install Now (v1.6.5)
+        <button type="button" class="btn-update-now" id="ownerUpdateModalActionBtn" onclick="window.customerApp.handleApplyUpdate()" style="width: 100%; padding: 13px; font-size: 0.95rem; font-weight: 700; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #ffffff; border: none; border-radius: 12px; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+          🚀 Update Now
         </button>
-        <button type="button" onclick="window.customerApp.closeOwnerUpdateModal()" style="width: 100%; padding: 10px; font-size: 0.82rem; font-weight: 600; background: transparent; color: #78716c; border: 1px solid #e7e5e4; border-radius: 10px; cursor: pointer;">
-          Dismiss &amp; Remind Later
+        <button type="button" onclick="window.customerApp.remindLaterUpdate()" style="width: 100%; padding: 11px; font-size: 0.85rem; font-weight: 600; background: transparent; color: #78716c; border: 1.5px solid #e7e5e4; border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
+          🕒 Remind Me Later
         </button>
       </div>
     </div>

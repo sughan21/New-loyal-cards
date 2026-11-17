@@ -2085,6 +2085,18 @@ class LoyaltyApp {
         } catch (_) {}
       }
 
+      // Auto show Update Modal on app open with Update button and Remind Me Later
+      const remindUntil = parseInt(localStorage.getItem('loyalty_update_remind_later_until') || '0', 10);
+      const isRemindedLater = sessionStorage.getItem('loyalty_update_remind_later') === 'true' || Date.now() < remindUntil;
+      if (!isRemindedLater && !isManual) {
+        setTimeout(() => {
+          this.showOwnerUpdateAlertModal(
+            updateData.notes || `Version ${targetCustomerVer} is ready to install! Update now to enjoy the latest rewards and features.`,
+            targetCustomerVer
+          );
+        }, 700);
+      }
+
       if (isManual) {
         this.showToast(`⚡ New version ${updateData.version} is available!`, "gold");
       }
@@ -2119,13 +2131,24 @@ class LoyaltyApp {
     if (!modal) return;
     const title = document.getElementById('ownerUpdateModalTitle');
     const desc = document.getElementById('ownerUpdateModalDesc');
+    const actionBtn = document.getElementById('ownerUpdateModalActionBtn');
     const target = targetVer || (this.latestUpdateInfo && (this.latestUpdateInfo.customerVersion || this.latestUpdateInfo.version)) || this.appVersion;
-    if (title) title.textContent = `New Update Available (v${target})`;
+    if (title) title.textContent = `Update Available (v${target})`;
     if (desc && note) desc.textContent = note;
+    if (actionBtn) actionBtn.innerHTML = `🚀 Update Now (v${target})`;
     modal.classList.add('active');
     modal.style.setProperty('display', 'flex', 'important');
     document.body.classList.add('modal-open');
     if (window.soundEngine) window.soundEngine.playSuccessTone();
+  }
+
+  remindLaterUpdate() {
+    try {
+      sessionStorage.setItem('loyalty_update_remind_later', 'true');
+      localStorage.setItem('loyalty_update_remind_later_until', String(Date.now() + 2 * 60 * 60 * 1000));
+    } catch (_) {}
+    this.closeOwnerUpdateModal();
+    this.showToast("🕒 We'll remind you about the update later.", "info");
   }
 
   closeOwnerUpdateModal() {
@@ -2152,6 +2175,7 @@ class LoyaltyApp {
   }
 
   handleApplyUpdate() {
+    this.closeOwnerUpdateModal();
     const isAndroid = !!window.AndroidBridge || /android/i.test(navigator.userAgent);
     const customerApkUrl = 'https://raw.githubusercontent.com/sughan21/New-loyal-cards/main/LoyaltyPass-Customer.apk';
 
