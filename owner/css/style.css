@@ -220,7 +220,7 @@ body::before {
 }
 
 body.store-mode-active .app-container {
-  max-width: 1040px;
+  max-width: min(1200px, 96vw);
 }
 
 /* PWA Banner */
@@ -1770,7 +1770,7 @@ body.store-mode-active .app-container {
 /* Perfectly Aligned Customer Table Header & Row Cards */
 .customer-table-header {
   display: grid;
-  grid-template-columns: minmax(180px, 1.1fr) 215px minmax(240px, 280px) auto;
+  grid-template-columns: minmax(200px, 1.3fr) 215px minmax(180px, 1fr) 280px;
   align-items: center;
   gap: 16px;
   padding: 10px 18px;
@@ -1780,7 +1780,7 @@ body.store-mode-active .app-container {
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--text-muted);
-  border: 1px solid transparent;
+  border: 1.5px solid transparent;
   box-sizing: border-box;
   width: 100%;
 }
@@ -1803,7 +1803,7 @@ body.store-mode-active .app-container {
 
 .customer-table-header .th-action {
   text-align: right;
-  padding-right: 4px;
+  padding-right: 2px;
 }
 
 /* Customer Directory Rows List */
@@ -1820,7 +1820,7 @@ body.store-mode-active .app-container {
   border-radius: var(--radius-lg, 16px);
   padding: 14px 18px;
   display: grid;
-  grid-template-columns: minmax(180px, 1.1fr) 215px minmax(240px, 280px) auto;
+  grid-template-columns: minmax(200px, 1.3fr) 215px minmax(180px, 1fr) 280px;
   align-items: center;
   gap: 16px;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -1915,8 +1915,8 @@ body.store-mode-active .app-container {
   flex-direction: column;
   justify-content: center;
   gap: 5px;
-  width: 215px;
-  min-width: 215px;
+  width: 100%;
+  min-width: 0;
   max-width: 215px;
   box-sizing: border-box;
   overflow: hidden;
@@ -2111,9 +2111,9 @@ body.store-mode-active .app-container {
   justify-content: flex-end;
   align-items: center;
   gap: 6px;
-  width: 320px;
-  min-width: 320px;
-  max-width: 320px;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
   flex-wrap: nowrap;
   box-sizing: border-box;
 }

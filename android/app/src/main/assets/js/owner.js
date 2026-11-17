@@ -178,7 +178,21 @@ class StoreOwnerApp {
         let changed = false;
         const deletedSet = new Set(JSON.parse(localStorage.getItem('loyalty_deleted_customers') || '[]'));
 
-        // Purge any locally present customers that were marked deleted
+        // Reconcile: if a customer still exists in Supabase (not __DELETED__), remove from tombstone
+        // This ensures previously deleted-locally customers reappear if they re-registered or were never actually deleted from cloud
+        const remotePhoneSet = new Set(remoteUsers.filter(r => r.name !== '__DELETED__').map(r => String(r.phone || '').trim()).filter(Boolean));
+        let tombstoneChanged = false;
+        for (const dp of deletedSet) {
+          if (remotePhoneSet.has(dp)) {
+            deletedSet.delete(dp);
+            tombstoneChanged = true;
+          }
+        }
+        if (tombstoneChanged) {
+          localStorage.setItem('loyalty_deleted_customers', JSON.stringify(Array.from(deletedSet)));
+        }
+
+        // Purge any locally present customers that were marked deleted (and confirmed not in cloud)
         const countBefore = this.users.length;
         this.users = this.users.filter(u => u && u.phone && !deletedSet.has(String(u.phone).trim()) && u.name !== '__DELETED__');
         if (this.users.length !== countBefore) changed = true;
