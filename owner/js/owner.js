@@ -52,8 +52,8 @@ class StoreOwnerApp {
     this.syncTimer = null;
     this.knownPendingRequestIds = new Set();
     this.expandedCustomerPhones = new Set();
-    this.appVersion = "1.6.8";
-    this.versionCode = 16;
+    this.appVersion = "1.6.9";
+    this.versionCode = 17;
     this.latestUpdateInfo = null;
 
     this.init();
@@ -932,7 +932,7 @@ class StoreOwnerApp {
     const ownerNewVerDisplay = document.getElementById('ownerNewVerDisplay');
 
     if (ownerCurrentVerDisplay) {
-      ownerCurrentVerDisplay.innerHTML = `<span>v${this.appVersion}</span> <span class="version-chip-badge ${hasNewVersion ? 'installed' : 'latest'}">${hasNewVersion ? 'Installed' : 'Latest ✅'}</span>`;
+      ownerCurrentVerDisplay.innerHTML = `<span class="version-num">v${this.appVersion}</span><span class="version-chip-badge ${hasNewVersion ? 'installed' : 'latest'}">${hasNewVersion ? 'Installed' : 'Latest ✅'}</span>`;
     }
 
     if (hasNewVersion) {
@@ -940,7 +940,7 @@ class StoreOwnerApp {
       if (ownerVersionChipArrow) ownerVersionChipArrow.style.setProperty('display', 'flex', 'important');
       if (ownerNewVersionChip) ownerNewVersionChip.style.setProperty('display', 'flex', 'important');
       if (ownerNewVerDisplay) {
-        ownerNewVerDisplay.innerHTML = `<span>v${remoteOwnerVer || updateData.version}</span> <span class="version-chip-badge update">⚡ New</span>`;
+        ownerNewVerDisplay.innerHTML = `<span class="version-num">v${remoteOwnerVer || updateData.version}</span><span class="version-chip-badge update">⚡ New</span>`;
       }
 
       ownerBadgeIds.forEach(id => {
@@ -1061,7 +1061,7 @@ class StoreOwnerApp {
     const notesInput = document.getElementById('broadcastNotesInput');
     const newVer = input ? input.value.trim() : '';
     if (!newVer) {
-      this.showToast("Please enter a version number (e.g. 1.6.8)", "error");
+      this.showToast("Please enter a version number (e.g. 1.6.9)", "error");
       return;
     }
 
@@ -1691,7 +1691,7 @@ class StoreOwnerApp {
   getTargetCustomerVersion() {
     const broadcastVer = localStorage.getItem('loyalty_owner_broadcast_version');
     const remoteVer = this.latestUpdateInfo ? (this.latestUpdateInfo.customerVersion || this.latestUpdateInfo.version) : null;
-    let highest = this.appVersion || "1.6.8";
+    let highest = this.appVersion || "1.6.9";
     if (broadcastVer && this.isNewerVersion(broadcastVer, highest)) {
       highest = broadcastVer;
     }

@@ -5270,13 +5270,19 @@ body.modal-open {
   box-shadow: 0 2px 6px rgba(35, 20, 10, 0.04) !important;
 }
 
+/* Dual Mini-Cards Comparison Mode */
 .update-version-strip.has-update {
-  display: grid !important;
-  grid-template-columns: 1fr auto 1fr !important;
+  display: flex !important;
+  flex-direction: row !important;
   align-items: center !important;
-  gap: 10px !important;
-  padding: 14px 14px !important;
-  background: linear-gradient(180deg, #ffffff 0%, #faf6f0 100%) !important;
+  justify-content: space-between !important;
+  gap: 8px !important;
+  padding: 10px !important;
+  background: #ffffff !important;
+  border: 1.5px solid #e7ded2 !important;
+  border-radius: 16px !important;
+  box-sizing: border-box !important;
+  width: 100% !important;
 }
 
 .version-chip {
@@ -5286,14 +5292,24 @@ body.modal-open {
   gap: 3px !important;
 }
 
-.version-chip.current-version-chip {
-  align-items: flex-start !important;
-  text-align: left !important;
+.update-version-strip.has-update .version-chip {
+  flex: 1 1 0 !important;
+  min-width: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+  background: #fbf9f6 !important;
+  border: 1.5px solid #ebd9c8 !important;
+  border-radius: 12px !important;
+  padding: 8px 6px !important;
+  box-sizing: border-box !important;
 }
 
-.version-chip.new-version-chip {
-  align-items: flex-end !important;
-  text-align: right !important;
+.update-version-strip.has-update .version-chip.new-version-chip {
+  background: #fefce8 !important;
+  border-color: #fde68a !important;
 }
 
 .version-chip-label {
@@ -5304,6 +5320,22 @@ body.modal-open {
   color: #8c7260 !important;
   white-space: nowrap !important;
   line-height: 1.2 !important;
+}
+
+.update-version-strip.has-update .version-chip-label {
+  font-size: 0.62rem !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  color: #8c7260 !important;
+  white-space: nowrap !important;
+  margin-bottom: 2px !important;
+  text-align: center !important;
+  width: 100% !important;
+}
+
+.update-version-strip.has-update .version-chip.new-version-chip .version-chip-label {
+  color: #b45309 !important;
 }
 
 .version-chip-val {
@@ -5318,20 +5350,23 @@ body.modal-open {
   line-height: 1.2 !important;
 }
 
-/* In update comparison mode, stack version number and badge vertically to eliminate any overflow */
+/* In update comparison mode, stack version number and badge vertically inside centered card */
 .update-version-strip.has-update .version-chip-val {
   display: flex !important;
   flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
   gap: 4px !important;
   width: 100% !important;
+  text-align: center !important;
 }
 
-.update-version-strip.has-update .version-chip.current-version-chip .version-chip-val {
-  align-items: flex-start !important;
-}
-
-.update-version-strip.has-update .version-chip.new-version-chip .version-chip-val {
-  align-items: flex-end !important;
+.version-num {
+  font-size: 1.15rem !important;
+  font-weight: 900 !important;
+  color: #1c120c !important;
+  line-height: 1.1 !important;
+  text-align: center !important;
 }
 
 .version-chip-badge {
@@ -5368,6 +5403,22 @@ body.modal-open {
 }
 
 .version-chip-arrow {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 28px !important;
+  height: 28px !important;
+  border-radius: 50% !important;
+  background: #fef3c7 !important;
+  color: #d97706 !important;
+  font-size: 0.92rem !important;
+  font-weight: 900 !important;
+  line-height: 1 !important;
+  border: 1.5px solid #fde68a !important;
+  box-shadow: 0 2px 6px rgba(217, 119, 6, 0.15) !important;
+  flex: 0 0 28px !important;
+  margin: 0 !important;
+}
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;

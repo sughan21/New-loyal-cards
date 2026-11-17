@@ -43,8 +43,104 @@
     rel="stylesheet">
 
   <!-- Stylesheet (Supports both nested css/ and root uploads) -->
-  <link rel="stylesheet" href="css/style.css?v=20261117_v168">
-  <link rel="stylesheet" href="style.css?v=20261117_v168">
+  <link rel="stylesheet" href="css/style.css?v=20261117_v169">
+  <link rel="stylesheet" href="style.css?v=20261117_v169">
+
+  <style>
+    /* Critical Mobile Fix for Version Comparison Strip */
+    .update-version-strip.has-update {
+      display: flex !important;
+      flex-direction: row !important;
+      align-items: center !important;
+      justify-content: space-between !important;
+      gap: 8px !important;
+      padding: 10px !important;
+      background: #ffffff !important;
+      border: 1.5px solid #e7ded2 !important;
+      border-radius: 16px !important;
+      box-sizing: border-box !important;
+      width: 100% !important;
+    }
+    .update-version-strip.has-update .version-chip {
+      flex: 1 1 0 !important;
+      min-width: 0 !important;
+      display: flex !important;
+      flex-direction: column !important;
+      align-items: center !important;
+      justify-content: center !important;
+      text-align: center !important;
+      background: #fbf9f6 !important;
+      border: 1.5px solid #ebd9c8 !important;
+      border-radius: 12px !important;
+      padding: 8px 4px !important;
+      box-sizing: border-box !important;
+    }
+    .update-version-strip.has-update .version-chip.new-version-chip {
+      background: #fefce8 !important;
+      border-color: #fde68a !important;
+    }
+    .update-version-strip.has-update .version-chip-label {
+      font-size: 0.62rem !important;
+      font-weight: 800 !important;
+      text-transform: uppercase !important;
+      letter-spacing: 0.05em !important;
+      color: #8c7260 !important;
+      white-space: nowrap !important;
+      margin-bottom: 2px !important;
+      text-align: center !important;
+      width: 100% !important;
+    }
+    .update-version-strip.has-update .version-chip.new-version-chip .version-chip-label {
+      color: #b45309 !important;
+    }
+    .update-version-strip.has-update .version-chip-val {
+      font-size: 1.15rem !important;
+      font-weight: 900 !important;
+      color: #1c120c !important;
+      display: flex !important;
+      flex-direction: column !important;
+      align-items: center !important;
+      justify-content: center !important;
+      gap: 4px !important;
+      width: 100% !important;
+      text-align: center !important;
+    }
+    .update-version-strip.has-update .version-num {
+      font-size: 1.15rem !important;
+      font-weight: 900 !important;
+      color: #1c120c !important;
+      line-height: 1.1 !important;
+      text-align: center !important;
+    }
+    .update-version-strip.has-update .version-chip-badge {
+      font-size: 0.62rem !important;
+      padding: 2.5px 8px !important;
+      border-radius: 6px !important;
+      font-weight: 800 !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      white-space: nowrap !important;
+      line-height: 1.2 !important;
+      box-sizing: border-box !important;
+    }
+    .update-version-strip.has-update .version-chip-arrow {
+      flex: 0 0 28px !important;
+      width: 28px !important;
+      height: 28px !important;
+      border-radius: 50% !important;
+      background: #fef3c7 !important;
+      color: #d97706 !important;
+      font-size: 0.92rem !important;
+      font-weight: 900 !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      border: 1.5px solid #fde68a !important;
+      box-shadow: 0 2px 6px rgba(217, 119, 6, 0.15) !important;
+      margin: 0 !important;
+    }
+  </style>
 
   <!-- External Libraries with Local + CDN Fallbacks -->
   <script src="js/vendor/qrcode.min.js" onerror="this.onerror=null;this.src='qrcode.min.js'"></script>
@@ -607,12 +703,12 @@
         <div class="update-version-strip" id="ownerUpdateVersionStrip">
           <div class="version-chip current-version-chip">
             <span class="version-chip-label">Current Version</span>
-            <span class="version-chip-val" id="ownerCurrentVerDisplay"><span>v1.6.8</span> <span class="version-chip-badge latest" id="ownerCurrentVerBadge">Latest ✅</span></span>
+            <span class="version-chip-val" id="ownerCurrentVerDisplay"><span class="version-num">v1.6.9</span> <span class="version-chip-badge latest" id="ownerCurrentVerBadge">Latest ✅</span></span>
           </div>
           <div class="version-chip-arrow" id="ownerVersionChipArrow" style="display: none;">➔</div>
           <div class="version-chip new-version-chip" id="ownerNewVersionChip" style="display: none;">
             <span class="version-chip-label">New Version</span>
-            <span class="version-chip-val" id="ownerNewVerDisplay"><span>v1.6.8</span> <span class="version-chip-badge update">⚡ New</span></span>
+            <span class="version-chip-val" id="ownerNewVerDisplay"><span class="version-num">v1.6.9</span> <span class="version-chip-badge update">⚡ New</span></span>
           </div>
         </div>
 
@@ -667,7 +763,7 @@
         </p>
         <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px;">
           <div style="display: flex; gap: 8px;">
-            <input type="text" id="broadcastVersionInput" class="custom-input" placeholder="e.g. 1.6.8"
+            <input type="text" id="broadcastVersionInput" class="custom-input" placeholder="e.g. 1.6.9"
               style="flex: 1; font-size: 0.85rem; padding: 8px 10px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); color: #fff; border-radius: 8px;">
             <button id="broadcastVersionBtn" class="primary-btn" style="white-space: nowrap; padding: 8px 14px; margin: 0; font-size: 0.8rem;">
               📢 Broadcast to Customers
@@ -745,7 +841,7 @@
 
   <!-- Application Scripts -->
   <script src="js/audio.js" onerror="this.onerror=null;this.src='audio.js'"></script>
-  <script src="js/owner.js?v=20261117_v168" onerror="this.onerror=null;this.src='owner.js?v=20261117_v168'"></script>
+  <script src="js/owner.js?v=20261117_v169" onerror="this.onerror=null;this.src='owner.js?v=20261117_v169'"></script>
 </body>
 
 </html>

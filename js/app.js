@@ -59,8 +59,8 @@ class LoyaltyApp {
     this.customerResetOtp = '';
     this.customerResetPhone = '';
     this.repeatApprovalPollTimer = null;
-    this.appVersion = "1.6.8";
-    this.versionCode = 16;
+    this.appVersion = "1.6.9";
+    this.versionCode = 17;
     this.latestUpdateInfo = null;
 
     this.init();
@@ -449,7 +449,7 @@ class LoyaltyApp {
     const isUpdateAlert = latestEvent && latestEvent.type === 'update_alert';
     const targetVer = (isUpdateAlert && latestEvent.targetVersion)
       ? latestEvent.targetVersion
-      : (remoteMe.updateAlert ? remoteMe.updateAlert.targetVersion : "1.6.8");
+      : (remoteMe.updateAlert ? remoteMe.updateAlert.targetVersion : "1.6.9");
     const isOutdated = this.isNewerVersion(targetVer, this.appVersion);
 
     if (isOutdated && (isUpdateAlert || remoteMe.updateAlert)) {
@@ -2034,7 +2034,7 @@ class LoyaltyApp {
     const newVerDisplay = document.getElementById('newVerDisplay');
 
     if (currentVerDisplay) {
-      currentVerDisplay.innerHTML = `<span>v${this.appVersion}</span> <span class="version-chip-badge ${hasNewVersion ? 'installed' : 'latest'}">${hasNewVersion ? 'Installed' : 'Latest ✅'}</span>`;
+      currentVerDisplay.innerHTML = `<span class="version-num">v${this.appVersion}</span><span class="version-chip-badge ${hasNewVersion ? 'installed' : 'latest'}">${hasNewVersion ? 'Installed' : 'Latest ✅'}</span>`;
     }
 
     if (hasNewVersion) {
@@ -2042,7 +2042,7 @@ class LoyaltyApp {
       if (versionChipArrow) versionChipArrow.style.setProperty('display', 'flex', 'important');
       if (newVersionChip) newVersionChip.style.setProperty('display', 'flex', 'important');
       if (newVerDisplay) {
-        newVerDisplay.innerHTML = `<span>v${targetCustomerVer}</span> <span class="version-chip-badge update">⚡ New</span>`;
+        newVerDisplay.innerHTML = `<span class="version-num">v${targetCustomerVer}</span><span class="version-chip-badge update">⚡ New</span>`;
       }
 
       // Show glowing red notification badge on all Settings icons
@@ -2189,7 +2189,7 @@ class LoyaltyApp {
       banner.style.setProperty('display', 'flex', 'important');
       const textEl = banner.querySelector('.banner-text');
       if (textEl) {
-        textEl.innerHTML = `Store Owner sent an update alert! <strong>Tap to update to v${targetVer || '1.6.8'}</strong>`;
+        textEl.innerHTML = `Store Owner sent an update alert! <strong>Tap to update to v${targetVer || '1.6.9'}</strong>`;
       }
     } else {
       banner.style.setProperty('display', 'none', 'important');
@@ -2423,7 +2423,7 @@ class LoyaltyApp {
     const history = Array.isArray(this.currentUser.history) ? this.currentUser.history : [];
     const latestEvent = history.length > 0 ? history[0] : null;
     const hasPendingAlert = latestEvent && latestEvent.type === 'update_alert';
-    const targetVer = (hasPendingAlert && latestEvent.targetVersion) || (this.latestUpdateInfo && (this.latestUpdateInfo.customerVersion || this.latestUpdateInfo.version)) || "1.6.8";
+    const targetVer = (hasPendingAlert && latestEvent.targetVersion) || (this.latestUpdateInfo && (this.latestUpdateInfo.customerVersion || this.latestUpdateInfo.version)) || "1.6.9";
     const isOutdated = this.isNewerVersion(targetVer, this.appVersion);
     this.renderUpdateTopBanner(isOutdated && hasPendingAlert, targetVer);
 
