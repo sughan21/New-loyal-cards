@@ -6,6 +6,11 @@
    - Stamp #11: Grand FREE GIFT (Resets card for next cycle)
    ========================================================================== */
 
+if (typeof window !== 'undefined' && window.__STORE_OWNER_APP_CLASS_DEFINED__) {
+  console.log("StoreOwnerApp already defined, skipping duplicate execution.");
+} else {
+  if (typeof window !== 'undefined') window.__STORE_OWNER_APP_CLASS_DEFINED__ = true;
+
 const MAX_STAMPS = 11;
 const MILESTONE_20_OFF = 5;
 const MILESTONE_50_OFF = 8;
@@ -218,13 +223,31 @@ class StoreOwnerApp {
     if (window.loyaltyDb && window.loyaltyDb.isReady) {
       window.loyaltyDb.subscribeToAllCustomers((cust, eventType) => {
         console.log("⚡ Owner Realtime Customer Sync:", eventType, cust ? cust.phone : '');
-        if ((eventType === 'DELETE' || (cust && cust.name === '__DELETED__')) && cust && cust.phone) {
-          const p = String(cust.phone).trim();
+        if (!cust || !cust.phone) return;
+        const p = String(cust.phone).trim();
+        const deletedSet = new Set(JSON.parse(localStorage.getItem('loyalty_deleted_customers') || '[]'));
+        if ((eventType === 'DELETE' || cust.name === '__DELETED__') || deletedSet.has(p)) {
           this.users = this.users.filter(u => String(u.phone).trim() !== p);
           localStorage.setItem(APP_STORAGE_KEY_USERS, JSON.stringify(this.users));
-          this.render();
+          this.renderMetrics();
+          this.renderCustomerList();
           return;
         }
+
+        // Direct instant in-memory merge for immediate UI update
+        const idx = this.users.findIndex(u => String(u.phone).trim() === p);
+        if (idx !== -1) {
+          const current = this.users[idx];
+          if (!current.lastUpdated || !cust.lastUpdated || cust.lastUpdated >= current.lastUpdated) {
+            this.users[idx] = { ...current, ...cust };
+          }
+        } else {
+          this.users.unshift(cust);
+        }
+        localStorage.setItem(APP_STORAGE_KEY_USERS, JSON.stringify(this.users));
+        this.renderMetrics();
+        this.renderCustomerList();
+
         this.fetchRemoteCustomers();
       });
 
@@ -241,7 +264,7 @@ class StoreOwnerApp {
       if (this.isLoggedIn) {
         this.fetchPendingApprovalRequests();
       }
-    }, 2000);
+    }, 2500);
   }
 
   async fetchPendingApprovalRequests() {
@@ -454,6 +477,27 @@ class StoreOwnerApp {
   }
 
   bindEvents() {
+    // Resume & Focus Lifecycle Handlers for Instant Sync
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        this.fetchRemoteCustomers();
+        if (this.isLoggedIn) {
+          this.fetchPendingApprovalRequests();
+        }
+        if (window.loyaltyDb && typeof window.loyaltyDb.reconnectIfNeeded === 'function') {
+          window.loyaltyDb.reconnectIfNeeded();
+        }
+      }
+    });
+    window.addEventListener('focus', () => {
+      this.fetchRemoteCustomers();
+      if (this.isLoggedIn) this.fetchPendingApprovalRequests();
+    });
+    window.addEventListener('online', () => {
+      this.fetchRemoteCustomers();
+      if (this.isLoggedIn) this.fetchPendingApprovalRequests();
+    });
+
     // Password Visibility Toggle (Show / Hide password with eye icon)
     document.addEventListener('click', (e) => {
       const toggleBtn = e.target.closest('.password-toggle-btn');
@@ -2305,5 +2349,8 @@ class StoreOwnerApp {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+  if (window.ownerApp) return;
   window.ownerApp = new StoreOwnerApp();
 });
+
+} // End of __STORE_OWNER_APP_CLASS_DEFINED__ guard

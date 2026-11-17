@@ -6,6 +6,11 @@
    - Stamp #11: Grand FREE GIFT (Resets card for next cycle)
    ========================================================================== */
 
+if (typeof window !== 'undefined' && window.__LOYALTY_APP_CLASS_DEFINED__) {
+  console.log("LoyaltyApp already defined, skipping duplicate execution.");
+} else {
+  if (typeof window !== 'undefined') window.__LOYALTY_APP_CLASS_DEFINED__ = true;
+
 const MAX_STAMPS = 11; // 11 loyalty tick boxes!
 const MILESTONE_20_OFF = 5;
 const MILESTONE_50_OFF = 8;
@@ -340,42 +345,54 @@ class LoyaltyApp {
 
   async syncWithServer() {
     try {
-      if (this.currentUser) {
-        let isNewInstall = false;
-        if (!this.currentUser.appVersion || this.currentUser.appVersion !== this.appVersion) {
-          isNewInstall = true;
-          this.currentUser.appVersion = this.appVersion;
-          this.currentUser.versionCode = this.versionCode;
-          if (!Array.isArray(this.currentUser.history)) this.currentUser.history = [];
-          const time = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-          const date = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-          this.currentUser.history.unshift({
-            date: `${date}, ${time}`,
-            type: "update_installed",
-            note: `✅ App Updated to v${this.appVersion} Successfully`,
-            appVersion: this.appVersion,
-            versionCode: this.versionCode
-          });
-          this.saveCurrentUser();
-        }
-        await this.pushUserToServer(this.currentUser);
-      }
+      if (!this.currentUser) return;
+
       let remoteMe = null;
-      if (window.loyaltyDb && window.loyaltyDb.isReady && this.currentUser) {
+      if (window.loyaltyDb && window.loyaltyDb.isReady) {
         remoteMe = await window.loyaltyDb.fetchCustomer(this.currentUser.phone);
       }
       if (!remoteMe) {
-        const resp = await fetch(`${API_BASE_URL}/api/customers`, { cache: 'no-cache' });
-        if (resp.ok) {
-          const remoteUsers = await resp.json();
-          if (Array.isArray(remoteUsers) && this.currentUser) {
-            remoteMe = remoteUsers.find(u => u.phone === this.currentUser.phone);
+        try {
+          const resp = await fetch(`${API_BASE_URL}/api/customers`, { cache: 'no-cache' });
+          if (resp.ok) {
+            const remoteUsers = await resp.json();
+            if (Array.isArray(remoteUsers)) {
+              remoteMe = remoteUsers.find(u => u.phone === this.currentUser.phone);
+            }
           }
-        }
+        } catch (e) {}
       }
 
-      if (remoteMe && this.currentUser) {
-        this.applyRemoteUserUpdate(remoteMe);
+      let needPush = false;
+
+      // Handle App Version Update Detection
+      if (!this.currentUser.appVersion || this.currentUser.appVersion !== this.appVersion) {
+        this.currentUser.appVersion = this.appVersion;
+        this.currentUser.versionCode = this.versionCode;
+        if (!Array.isArray(this.currentUser.history)) this.currentUser.history = [];
+        const time = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+        const date = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+        this.currentUser.history.unshift({
+          date: `${date}, ${time}`,
+          type: "update_installed",
+          note: `✅ App Updated to v${this.appVersion} Successfully`,
+          appVersion: this.appVersion,
+          versionCode: this.versionCode
+        });
+        needPush = true;
+      }
+
+      if (remoteMe) {
+        const result = this.applyRemoteUserUpdate(remoteMe);
+        if (result && result.needPush) needPush = true;
+      } else {
+        // Customer exists locally but not in cloud DB yet
+        needPush = true;
+      }
+
+      if (needPush) {
+        this.saveCurrentUser();
+        await this.pushUserToServer(this.currentUser);
       }
     } catch (e) {
       console.warn("Server sync check:", e);
@@ -383,8 +400,10 @@ class LoyaltyApp {
   }
 
   applyRemoteUserUpdate(remoteMe) {
-    if (!remoteMe || !this.currentUser) return;
+    if (!remoteMe || !this.currentUser) return { changed: false, needPush: false };
     let changed = false;
+    let needPush = false;
+
     if (remoteMe.name && (this.currentUser.name === 'Valued Customer' || this.currentUser.name !== remoteMe.name)) {
       this.currentUser.name = remoteMe.name;
       changed = true;
@@ -397,16 +416,34 @@ class LoyaltyApp {
       this.currentUser.lastStampDate = remoteMe.lastStampDate;
       changed = true;
     }
-    if (remoteMe.stamps !== this.currentUser.stamps || remoteMe.giftsEarned !== this.currentUser.giftsEarned) {
-      this.currentUser.stamps = remoteMe.stamps;
-      this.currentUser.giftsEarned = remoteMe.giftsEarned;
+
+    const remoteStamps = parseInt(remoteMe.stamps, 10) || 0;
+    const localStamps = parseInt(this.currentUser.stamps, 10) || 0;
+
+    if (remoteStamps > localStamps) {
+      // Remote cashier added stamps
+      this.currentUser.stamps = remoteStamps;
+      if (remoteMe.giftsEarned !== undefined) this.currentUser.giftsEarned = remoteMe.giftsEarned;
+      if (Array.isArray(remoteMe.history) && remoteMe.history.length > 0) {
+        this.currentUser.history = remoteMe.history;
+      }
       changed = true;
+    } else if (localStamps > remoteStamps) {
+      // Customer claimed stamp locally/offline, push to cloud
+      needPush = true;
+    } else {
+      if (remoteMe.giftsEarned !== undefined && remoteMe.giftsEarned !== this.currentUser.giftsEarned) {
+        this.currentUser.giftsEarned = remoteMe.giftsEarned;
+        changed = true;
+      }
+      if (Array.isArray(remoteMe.history) && remoteMe.history.length > 0) {
+        if (!this.currentUser.history || remoteMe.history.length > this.currentUser.history.length) {
+          this.currentUser.history = remoteMe.history;
+          changed = true;
+        }
+      }
     }
-    if (remoteMe.history && remoteMe.history.length > 0) {
-      this.currentUser.history = remoteMe.history;
-      changed = true;
-    }
-    
+
     // Evaluate store owner update alert
     const latestEvent = (remoteMe.history && remoteMe.history.length > 0) ? remoteMe.history[0] : null;
     const isUpdateAlert = latestEvent && latestEvent.type === 'update_alert';
@@ -430,6 +467,7 @@ class LoyaltyApp {
     } else {
       this.renderUpdateTopBanner(false);
     }
+
     if (changed) {
       const idx = this.users.findIndex(u => u.phone === this.currentUser.phone);
       if (idx !== -1) {
@@ -441,6 +479,8 @@ class LoyaltyApp {
       this.saveCurrentUser();
       this.render();
     }
+
+    return { changed, needPush };
   }
 
   setupRealtimeCustomerSync() {
@@ -462,6 +502,23 @@ class LoyaltyApp {
 
   // --- Bind Event Handlers ---
   bindEvents() {
+    // Resume & Focus Lifecycle Handlers for Instant Mobile Sync
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        this.syncWithServer();
+        this.setupRealtimeCustomerSync();
+        if (window.loyaltyDb && typeof window.loyaltyDb.reconnectIfNeeded === 'function') {
+          window.loyaltyDb.reconnectIfNeeded();
+        }
+      }
+    });
+    window.addEventListener('focus', () => {
+      this.syncWithServer();
+    });
+    window.addEventListener('online', () => {
+      this.syncWithServer();
+    });
+
     // Customer Auth tab switching (Login / Register)
     const loginTabBtn = document.getElementById('loginTabBtn');
     const registerTabBtn = document.getElementById('registerTabBtn');
@@ -1561,12 +1618,16 @@ class LoyaltyApp {
     if (window.loyaltyDb && window.loyaltyDb.isReady) {
       sentViaSupabase = await window.loyaltyDb.createStampRequest(reqData);
       if (sentViaSupabase) {
-        window.loyaltyDb.subscribeToRequestStatus(requestId, (status) => {
+        window.loyaltyDb.subscribeToRequestStatus(requestId, async (status) => {
           if (status === 'approved') {
             if (this.repeatApprovalPollTimer) clearInterval(this.repeatApprovalPollTimer);
             this.repeatApprovalPollTimer = null;
             this.closeAllModals();
-            this.grantStampDirect("2nd Visit Cashier Approved");
+            await this.syncWithServer();
+            if (window.soundEngine) window.soundEngine.playStampSound();
+            this.triggerConfetti(this.currentUser && this.currentUser.stamps >= MAX_STAMPS);
+            this.showToast(`🎉 2nd Visit Approved! Stamp added by cashier! (${this.currentUser ? this.currentUser.stamps : ''}/${MAX_STAMPS})`, "success");
+            this.render();
           } else if (status === 'declined') {
             if (this.repeatApprovalPollTimer) clearInterval(this.repeatApprovalPollTimer);
             this.repeatApprovalPollTimer = null;
@@ -1619,7 +1680,11 @@ class LoyaltyApp {
           clearInterval(this.repeatApprovalPollTimer);
           this.repeatApprovalPollTimer = null;
           this.closeAllModals();
-          this.grantStampDirect("2nd Visit Cashier Approved");
+          await this.syncWithServer();
+          if (window.soundEngine) window.soundEngine.playStampSound();
+          this.triggerConfetti(this.currentUser && this.currentUser.stamps >= MAX_STAMPS);
+          this.showToast(`🎉 2nd Visit Approved! Stamp added by cashier! (${this.currentUser ? this.currentUser.stamps : ''}/${MAX_STAMPS})`, "success");
+          this.render();
         } else if (status === 'declined') {
           clearInterval(this.repeatApprovalPollTimer);
           this.repeatApprovalPollTimer = null;
@@ -2548,5 +2613,8 @@ class LoyaltyApp {
 
 // Instantiate on DOM ready
 document.addEventListener('DOMContentLoaded', () => {
+  if (window.loyaltyApp) return;
   window.loyaltyApp = new LoyaltyApp();
 });
+
+} // End of __LOYALTY_APP_CLASS_DEFINED__ guard

@@ -47,16 +47,13 @@
   <link rel="stylesheet" href="style.css?v=20261111b">
 
   <!-- External Libraries with Local + CDN Fallbacks -->
-  <script src="js/vendor/qrcode.min.js"></script>
-  <script src="qrcode.min.js"></script>
+  <script src="js/vendor/qrcode.min.js" onerror="this.onerror=null;this.src='qrcode.min.js'"></script>
   <script>if(!window.QRCode)document.write('<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"><\/script>');</script>
 
-  <script src="js/vendor/html5-qrcode.min.js"></script>
-  <script src="html5-qrcode.min.js"></script>
+  <script src="js/vendor/html5-qrcode.min.js" onerror="this.onerror=null;this.src='html5-qrcode.min.js'"></script>
   <script>if(!window.Html5Qrcode)document.write('<script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"><\/script>');</script>
 
-  <script src="js/vendor/confetti.browser.min.js"></script>
-  <script src="confetti.browser.min.js"></script>
+  <script src="js/vendor/confetti.browser.min.js" onerror="this.onerror=null;this.src='confetti.browser.min.js'"></script>
   <script>if(!window.confetti)document.write('<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"><\/script>');</script>
 </head>
 
@@ -1032,19 +1029,15 @@
   <!-- Toast Container -->
   <div id="toastContainer" class="toast-container"></div>
 
-  <!-- Cloud Database Scripts (Supports both nested js/vendor/ and root uploads) -->
-  <script src="js/vendor/supabase.min.js"></script>
-  <script src="supabase.min.js"></script>
+  <!-- Cloud Database Scripts (Single script load with fallback) -->
+  <script src="js/vendor/supabase.min.js" onerror="this.onerror=null;this.src='supabase.min.js'"></script>
   <script>if(!window.supabase)document.write('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"><\/script>');</script>
 
-  <script src="js/supabase-client.js"></script>
-  <script src="supabase-client.js"></script>
+  <script src="js/supabase-client.js" onerror="this.onerror=null;this.src='supabase-client.js'"></script>
 
-  <!-- Application Scripts (Supports both nested js/ and root uploads) -->
-  <script src="js/audio.js"></script>
-  <script src="audio.js"></script>
-  <script src="js/app.js"></script>
-  <script src="app.js"></script>
+  <!-- Application Scripts -->
+  <script src="js/audio.js" onerror="this.onerror=null;this.src='audio.js'"></script>
+  <script src="js/app.js" onerror="this.onerror=null;this.src='app.js'"></script>
 </body>
 
 </html>

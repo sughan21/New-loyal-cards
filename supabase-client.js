@@ -9,12 +9,31 @@ const SUPABASE_CONFIG = {
   anonKey: "sb_publishable_Jf7gwY9zb3exmw8RD98ERQ_o66Pq2xY"
 };
 
+if (typeof window !== 'undefined' && window.__LOYALTY_SUPABASE_CLIENT_LOADED__) {
+  console.log("⚡ Supabase Client already loaded, skipping duplicate execution.");
+} else {
+  if (typeof window !== 'undefined') window.__LOYALTY_SUPABASE_CLIENT_LOADED__ = true;
+
 class LoyaltySupabaseRepository {
   constructor() {
     this.client = null;
     this.isReady = false;
     this.activeChannels = new Map();
     this.init();
+  }
+
+  reconnectIfNeeded() {
+    if (!this.client) {
+      this.init();
+      return;
+    }
+    try {
+      if (this.client.realtime && typeof this.client.realtime.connect === 'function') {
+        this.client.realtime.connect();
+      }
+    } catch (e) {
+      console.warn("Realtime reconnect attempt:", e);
+    }
   }
 
   init() {
@@ -617,7 +636,9 @@ class LoyaltySupabaseRepository {
 }
 
 // Global Singleton Instance
-window.loyaltyDb = new LoyaltySupabaseRepository();
+if (typeof window !== 'undefined' && !window.loyaltyDb) {
+  window.loyaltyDb = new LoyaltySupabaseRepository();
+}
 
 // --- Universal Device Info & Unique Hardware ID Detector ---
 window.detectDeviceInfo = async function() {
@@ -681,3 +702,5 @@ window.detectDeviceName = async function() {
   const info = await window.detectDeviceInfo();
   return info.deviceName;
 };
+
+} // End of __LOYALTY_SUPABASE_CLIENT_LOADED__ guard
