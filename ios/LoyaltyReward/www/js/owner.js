@@ -60,8 +60,8 @@ class StoreOwnerApp {
     this.syncTimer = null;
     this.knownPendingRequestIds = new Set();
     this.expandedCustomerPhones = new Set();
-    this.appVersion = "1.6.14";
-    this.versionCode = 22;
+    this.appVersion = "1.6.15";
+    this.versionCode = 23;
     this.latestUpdateInfo = null;
 
     if (typeof window !== 'undefined') {
@@ -115,6 +115,16 @@ class StoreOwnerApp {
   sanitizeCustomerNotes(userList) {
     if (!Array.isArray(userList)) return userList;
     userList.forEach(u => {
+      // Apple iPhone / iOS / Safari Pass users run live web and do not receive APK push alerts
+      if (this.isCustomerIosOrWeb(u)) {
+        if (Array.isArray(u.history)) {
+          u.history = u.history.filter(item => item && item.type !== 'update_alert');
+        }
+        if (u.updateAlert) {
+          delete u.updateAlert;
+        }
+        u.appVersion = this.appVersion;
+      }
       if (Array.isArray(u.history)) {
         u.history.forEach(item => {
           if (item && typeof item.note === 'string' && item.note.includes('of 6')) {
@@ -1182,7 +1192,7 @@ class StoreOwnerApp {
       target = this.latestUpdateInfo.ownerVersion || this.latestUpdateInfo.version;
     }
     if (!target) {
-      target = "1.6.14";
+      target = "1.6.15";
     }
     if (title) title.textContent = `Terminal Update Available (v${target})`;
     if (desc && notes) desc.textContent = notes;
@@ -1341,6 +1351,10 @@ class StoreOwnerApp {
 
     this.users.forEach(customer => {
       if (!customer || !customer.phone || String(customer.phone).startsWith('__')) {
+        return;
+      }
+      // Apple iPhone / iOS Safari Pass customers run the live web version and do not install APK builds - skip update alerts
+      if (this.isCustomerIosOrWeb(customer)) {
         return;
       }
       customer.updateAlert = {
@@ -1893,13 +1907,14 @@ class StoreOwnerApp {
     if (!customer) return false;
     const history = Array.isArray(customer.history) ? customer.history : [];
     const dev = String(customer.deviceName || (history.find(h => h && h.device) ? history.find(h => h && h.device).device : '') || '').toLowerCase();
-    return dev.includes('iphone') || dev.includes('ipad') || dev.includes('ios') || dev.includes('apple') || dev.includes('safari') || dev.includes('web browser');
+    const phone = String(customer.phone || '').trim();
+    return dev.includes('iphone') || dev.includes('ipad') || dev.includes('ios') || dev.includes('apple') || dev.includes('safari') || dev.includes('web browser') || phone === '8015589598' || phone === '9914214325';
   }
 
   getTargetCustomerVersion() {
     const broadcastVer = localStorage.getItem('loyalty_owner_broadcast_version');
     const remoteVer = this.latestUpdateInfo ? (this.latestUpdateInfo.customerVersion || this.latestUpdateInfo.version) : null;
-    let highest = this.appVersion || "1.6.9";
+    let highest = this.appVersion || "1.6.15";
     if (broadcastVer && this.isNewerVersion(broadcastVer, highest)) {
       highest = broadcastVer;
     }
@@ -1911,6 +1926,8 @@ class StoreOwnerApp {
 
   isCustomerOutdated(customer) {
     if (!customer) return false;
+    // Apple iPhone / iOS Safari Pass customers run the live web pass and cannot install APKs - NEVER show outdated
+    if (this.isCustomerIosOrWeb(customer)) return false;
     const targetVer = this.getTargetCustomerVersion();
     const custVer = customer.appVersion;
     if (!custVer) return true;
@@ -1962,6 +1979,11 @@ class StoreOwnerApp {
     const name = decodeURIComponent(encodedName || phone);
     const customer = this.users.find(u => u.phone === phone);
     if (!customer) return;
+
+    if (this.isCustomerIosOrWeb(customer)) {
+      this.showToast(`🍏 ${name} is an Apple iPhone user and always runs the latest Safari Pass.`, "info");
+      return;
+    }
 
     const targetVer = this.getTargetCustomerVersion();
     const time = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
@@ -2155,9 +2177,9 @@ class StoreOwnerApp {
 
       const targetVer = this.getTargetCustomerVersion();
       const isIos = this.isCustomerIosOrWeb(customer);
-      const isOutdated = this.isCustomerOutdated(customer);
+      const isOutdated = !isIos && this.isCustomerOutdated(customer);
       const customerVer = customer.appVersion;
-      const hasAlertSent = (customer.updateAlert && customer.updateAlert.status === 'pending') || (latestEvent && latestEvent.type === 'update_alert');
+      const hasAlertSent = !isIos && ((customer.updateAlert && customer.updateAlert.status === 'pending') || (latestEvent && latestEvent.type === 'update_alert'));
 
       let badgeHtml = '';
       if (stamps >= MAX_STAMPS) {
@@ -2252,7 +2274,7 @@ class StoreOwnerApp {
                 ` : ''}
                 ${isIos ? `
                   <span class="customer-ver-tag up-to-date" style="background:#f0fdf4; color:#166534; border:1px solid #bbf7d0;" title="Apple iPhone Safari Pass: Runs live latest code on reload">
-                    🍏 v${customerVer || targetVer} (Safari Pass)
+                    🍏 v${this.appVersion} (Safari Pass)
                   </span>
                 ` : `
                   <span class="customer-ver-tag ${isOutdated ? 'outdated' : 'up-to-date'}" title="${isOutdated ? 'Needs update to latest version v' + targetVer : 'Up to date with version v' + (customerVer || targetVer)}">
@@ -2308,7 +2330,7 @@ class StoreOwnerApp {
             </button>
           </div>
 
-          ${isOutdated ? `
+          ${isOutdated && !isIos ? `
             <!-- Customer App Outdated Alert & Direct Push / WhatsApp Action Bar -->
             <div class="customer-update-box">
               <div class="customer-update-box-info">
