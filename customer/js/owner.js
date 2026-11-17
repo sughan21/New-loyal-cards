@@ -52,8 +52,8 @@ class StoreOwnerApp {
     this.syncTimer = null;
     this.knownPendingRequestIds = new Set();
     this.expandedCustomerPhones = new Set();
-    this.appVersion = "1.6.7";
-    this.versionCode = 15;
+    this.appVersion = "1.6.8";
+    this.versionCode = 16;
     this.latestUpdateInfo = null;
 
     this.init();
@@ -821,8 +821,8 @@ class StoreOwnerApp {
     }
 
     const input = document.getElementById('broadcastVersionInput');
-    if (input && this.latestUpdateInfo) {
-      input.value = this.latestUpdateInfo.version || this.appVersion;
+    if (input) {
+      input.value = this.getTargetCustomerVersion();
     }
 
     modal.classList.add('active');
@@ -1061,7 +1061,7 @@ class StoreOwnerApp {
     const notesInput = document.getElementById('broadcastNotesInput');
     const newVer = input ? input.value.trim() : '';
     if (!newVer) {
-      this.showToast("Please enter a version number (e.g. 1.6.7)", "error");
+      this.showToast("Please enter a version number (e.g. 1.6.8)", "error");
       return;
     }
 
@@ -1126,13 +1126,43 @@ class StoreOwnerApp {
       localStorage.setItem('loyalty_cached_version', JSON.stringify(payload));
     } catch (e) {}
 
-    if (cloudSaved || localSaved) {
-      this.showToast(`📢 Version ${newVer} broadcasted to all customer apps!`, "gold");
-      this.checkForAppUpdates(false);
-    } else {
-      this.showToast(`📢 Version ${newVer} broadcasted to all customer apps!`, "gold");
-      this.checkForAppUpdates(false);
+    // 4. Realtime Push Update Alert to all registered customer cards in cloud
+    const time = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+    const date = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+    const outdatedCustomersToSync = [];
+
+    this.users.forEach(customer => {
+      if (!customer || !customer.phone || String(customer.phone).startsWith('__') || this.isCustomerIosOrWeb(customer)) {
+        return;
+      }
+      customer.updateAlert = {
+        targetVersion: newVer,
+        sentAt: new Date().toISOString(),
+        status: 'pending'
+      };
+      if (!Array.isArray(customer.history)) customer.history = [];
+      if (!customer.history[0] || customer.history[0].type !== 'update_alert' || customer.history[0].targetVersion !== newVer) {
+        customer.history.unshift({
+          date: `${date}, ${time}`,
+          type: "update_alert",
+          note: `⚡ System Update Alert (v${newVer}) pushed by Store Owner: Please install the latest build!`,
+          targetVersion: newVer
+        });
+      }
+      customer.lastUpdated = Date.now();
+      outdatedCustomersToSync.push(customer);
+    });
+
+    this.saveUsers();
+
+    if (outdatedCustomersToSync.length > 0) {
+      await this.pushCustomerToServer(outdatedCustomersToSync);
     }
+
+    this.showToast(`📢 Version ${newVer} broadcasted to all customer apps!`, "gold");
+    this.checkForAppUpdates(false);
+    this.renderCustomerList();
+    this.renderMetrics();
   }
 
   handlePasswordReset(e) {
@@ -1659,12 +1689,16 @@ class StoreOwnerApp {
   }
 
   getTargetCustomerVersion() {
-    if (this.latestUpdateInfo && (this.latestUpdateInfo.customerVersion || this.latestUpdateInfo.version)) {
-      return this.latestUpdateInfo.customerVersion || this.latestUpdateInfo.version;
-    }
     const broadcastVer = localStorage.getItem('loyalty_owner_broadcast_version');
-    if (broadcastVer) return broadcastVer;
-    return this.appVersion || "1.6.7";
+    const remoteVer = this.latestUpdateInfo ? (this.latestUpdateInfo.customerVersion || this.latestUpdateInfo.version) : null;
+    let highest = this.appVersion || "1.6.8";
+    if (broadcastVer && this.isNewerVersion(broadcastVer, highest)) {
+      highest = broadcastVer;
+    }
+    if (remoteVer && this.isNewerVersion(remoteVer, highest)) {
+      highest = remoteVer;
+    }
+    return highest;
   }
 
   isCustomerOutdated(customer) {
