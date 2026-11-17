@@ -43,17 +43,17 @@
     rel="stylesheet">
 
   <!-- Stylesheet (Supports both nested css/ and root uploads) -->
-  <link rel="stylesheet" href="css/style.css?v=20261117_v1613">
-  <link rel="stylesheet" href="style.css?v=20261117_v1613">
+  <link rel="stylesheet" href="css/style.css?v=20261117_v1614">
+  <link rel="stylesheet" href="style.css?v=20261117_v1614">
 
   <style>
     /* Critical Mobile Fix for Version Comparison Strip */
     .update-version-strip.has-update {
-      display: flex !important;
-      flex-direction: row !important;
+      display: grid !important;
+      grid-template-columns: minmax(0, 1fr) 30px minmax(0, 1fr) !important;
       align-items: center !important;
-      justify-content: space-between !important;
-      gap: 6px !important;
+      justify-content: center !important;
+      gap: 8px !important;
       padding: 10px 8px !important;
       background: #ffffff !important;
       border: 1.5px solid #e7ded2 !important;
@@ -64,8 +64,6 @@
       position: relative !important;
     }
     .update-version-strip.has-update .version-chip {
-      flex: 1 1 0 !important;
-      min-width: 0 !important;
       display: flex !important;
       flex-direction: column !important;
       align-items: center !important;
@@ -76,6 +74,8 @@
       border-radius: 12px !important;
       padding: 8px 4px !important;
       box-sizing: border-box !important;
+      width: 100% !important;
+      min-width: 0 !important;
       overflow: hidden !important;
     }
     .update-version-strip.has-update .version-chip.new-version-chip {
@@ -131,11 +131,10 @@
       box-sizing: border-box !important;
     }
     .update-version-strip.has-update .version-chip-arrow {
-      flex: 0 0 24px !important;
-      width: 24px !important;
-      height: 24px !important;
-      min-width: 24px !important;
-      min-height: 24px !important;
+      width: 28px !important;
+      height: 28px !important;
+      min-width: 28px !important;
+      min-height: 28px !important;
       border-radius: 50% !important;
       background: #fef3c7 !important;
       color: #d97706 !important;
@@ -146,8 +145,10 @@
       justify-content: center !important;
       border: 1.5px solid #fde68a !important;
       box-shadow: 0 2px 6px rgba(217, 119, 6, 0.15) !important;
-      margin: 0 !important;
+      grid-column: 2 !important;
+      margin: 0 auto !important;
       z-index: 2 !important;
+      box-sizing: border-box !important;
     }
   </style>
 
@@ -712,12 +713,12 @@
         <div class="update-version-strip" id="ownerUpdateVersionStrip">
           <div class="version-chip current-version-chip">
             <span class="version-chip-label">Current Version</span>
-            <span class="version-chip-val" id="ownerCurrentVerDisplay"><span class="version-num">v1.6.9</span> <span class="version-chip-badge latest" id="ownerCurrentVerBadge">Latest ✅</span></span>
+            <span class="version-chip-val" id="ownerCurrentVerDisplay"><span class="version-num">v1.6.14</span> <span class="version-chip-badge latest" id="ownerCurrentVerBadge">Latest ✅</span></span>
           </div>
           <div class="version-chip-arrow" id="ownerVersionChipArrow" style="display: none;">➔</div>
           <div class="version-chip new-version-chip" id="ownerNewVersionChip" style="display: none;">
             <span class="version-chip-label">New Version</span>
-            <span class="version-chip-val" id="ownerNewVerDisplay"><span class="version-num">v1.6.9</span> <span class="version-chip-badge update">⚡ New</span></span>
+            <span class="version-chip-val" id="ownerNewVerDisplay"><span class="version-num">v1.6.14</span> <span class="version-chip-badge update">⚡ New</span></span>
           </div>
         </div>
 
@@ -843,7 +844,7 @@
   <!-- Owner Terminal Auto Update Popup Modal (App Open Alert) -->
   <div id="ownerUpdateAlertModal" class="modal-backdrop" style="display: none;">
     <div class="modal-dialog update-alert-dialog">
-      <button type="button" class="modal-close-btn" onclick="window.ownerApp.closeOwnerUpdateModal()" title="Close">&times;</button>
+      <button type="button" class="modal-close-btn" onclick="(window.ownerApp||window.loyaltyOwnerApp)?.closeOwnerUpdateModal()" title="Close">&times;</button>
       <div style="width: 58px; height: 58px; border-radius: 50%; background: rgba(245, 158, 11, 0.15); border: 2px solid #f59e0b; display: inline-flex; align-items: center; justify-content: center; font-size: 1.8rem; margin: 0 auto 12px auto;">
         ⚡
       </div>
@@ -857,10 +858,10 @@
         A new version of the Store Terminal App is ready to install! Update now to sync the latest features, cashier tools, and optimizations.
       </p>
       <div style="display: flex; flex-direction: column; gap: 10px;">
-        <button type="button" class="btn-update-now" id="ownerAppUpdateModalActionBtn" onclick="window.ownerApp.handleApplyUpdate()" style="width: 100%; padding: 13px; font-size: 0.95rem; font-weight: 700; background: linear-gradient(135deg, #d97706 0%, #b45309 100%); color: #ffffff; border: none; border-radius: 12px; box-shadow: 0 4px 14px rgba(217, 119, 6, 0.35); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+        <button type="button" class="btn-update-now" id="ownerAppUpdateModalActionBtn" onclick="(window.ownerApp||window.loyaltyOwnerApp)?.handleApplyUpdate()" style="width: 100%; padding: 13px; font-size: 0.95rem; font-weight: 700; background: linear-gradient(135deg, #d97706 0%, #b45309 100%); color: #ffffff; border: none; border-radius: 12px; box-shadow: 0 4px 14px rgba(217, 119, 6, 0.35); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
           🚀 Update Terminal App
         </button>
-        <button type="button" onclick="window.ownerApp.remindLaterUpdate()" style="width: 100%; padding: 11px; font-size: 0.85rem; font-weight: 600; background: transparent; color: #78716c; border: 1.5px solid #e7e5e4; border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
+        <button type="button" onclick="(window.ownerApp||window.loyaltyOwnerApp)?.remindLaterUpdate()" style="width: 100%; padding: 11px; font-size: 0.85rem; font-weight: 600; background: transparent; color: #78716c; border: 1.5px solid #e7e5e4; border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
           🕒 Remind Me Later
         </button>
       </div>
@@ -873,11 +874,11 @@
   <script src="js/vendor/supabase.min.js" onerror="this.onerror=null;this.src='supabase.min.js'"></script>
   <script>if(!window.supabase)document.write('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"><\/script>');</script>
 
-  <script src="js/supabase-client.js?v=20261117_v1613" onerror="this.onerror=null;this.src='supabase-client.js?v=20261117_v1613'"></script>
+  <script src="js/supabase-client.js?v=20261117_v1614" onerror="this.onerror=null;this.src='supabase-client.js?v=20261117_v1614'"></script>
 
   <!-- Application Scripts -->
   <script src="js/audio.js" onerror="this.onerror=null;this.src='audio.js'"></script>
-  <script src="js/owner.js?v=20261117_v1613" onerror="this.onerror=null;this.src='owner.js?v=20261117_v1613'"></script>
+  <script src="js/owner.js?v=20261117_v1614" onerror="this.onerror=null;this.src='owner.js?v=20261117_v1614'"></script>
 </body>
 
 </html>

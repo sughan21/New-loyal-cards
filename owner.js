@@ -60,9 +60,14 @@ class StoreOwnerApp {
     this.syncTimer = null;
     this.knownPendingRequestIds = new Set();
     this.expandedCustomerPhones = new Set();
-    this.appVersion = "1.6.13";
-    this.versionCode = 21;
+    this.appVersion = "1.6.14";
+    this.versionCode = 22;
     this.latestUpdateInfo = null;
+
+    if (typeof window !== 'undefined') {
+      window.ownerApp = this;
+      window.loyaltyOwnerApp = this;
+    }
 
     this.init();
   }
@@ -70,6 +75,7 @@ class StoreOwnerApp {
   init() {
     this.loadState();
     this.bindEvents();
+    this.setupBackNavigation();
     this.setupPWA();
     this.render();
     this.fetchRemoteCustomers();
@@ -418,6 +424,7 @@ class StoreOwnerApp {
       };
     }
 
+    this.pushBackHistory('ownerApprovalModal');
     modal.classList.add('active');
   }
 
@@ -719,6 +726,33 @@ class StoreOwnerApp {
       ownerApplyUpdateBtn.addEventListener('click', () => this.handleApplyUpdate());
     }
 
+    // Owner Terminal Auto Update Popup Modal (App Open Alert) Buttons
+    const ownerAppUpdateModalActionBtn = document.getElementById('ownerAppUpdateModalActionBtn');
+    if (ownerAppUpdateModalActionBtn) {
+      ownerAppUpdateModalActionBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        this.handleApplyUpdate();
+      });
+    }
+
+    const ownerUpdateAlertModal = document.getElementById('ownerUpdateAlertModal');
+    if (ownerUpdateAlertModal) {
+      const closeBtn = ownerUpdateAlertModal.querySelector('.modal-close-btn');
+      if (closeBtn) {
+        closeBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          this.closeOwnerUpdateModal();
+        });
+      }
+      const remindBtn = ownerUpdateAlertModal.querySelector('button[onclick*="remindLaterUpdate"]');
+      if (remindBtn) {
+        remindBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          this.remindLaterUpdate();
+        });
+      }
+    }
+
     const ownerClearCacheReloadBtn = document.getElementById('ownerClearCacheReloadBtn');
     if (ownerClearCacheReloadBtn) {
       ownerClearCacheReloadBtn.addEventListener('click', () => this.handleClearCache());
@@ -791,6 +825,7 @@ class StoreOwnerApp {
       if (keyInput) keyInput.value = '';
       if (newPassInput) newPassInput.value = '';
       if (confPassInput) confPassInput.value = '';
+      this.pushBackHistory('forgotPasswordModal');
       modal.classList.add('active');
     }
   }
@@ -820,6 +855,97 @@ class StoreOwnerApp {
     document.body.classList.remove('modal-open');
   }
 
+  // --- Step-by-Step Back Navigation & History Controller ---
+  setupBackNavigation() {
+    window.handleAppBack = () => this.handleBack();
+
+    // Listen for mobile browser & iOS Safari back gestures / popstate
+    window.addEventListener('popstate', () => {
+      this.handleBack(true);
+    });
+
+    // Support ESC key on desktop/laptop keyboards
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' || e.key === 'Esc') {
+        this.handleBack();
+      }
+    });
+  }
+
+  pushBackHistory(modalId) {
+    if (typeof window !== 'undefined' && window.history && window.history.pushState) {
+      try {
+        window.history.pushState({ ownerBackModal: modalId || 'modal' }, '');
+      } catch (_) {}
+    }
+  }
+
+  handleBack(fromPopstate = false) {
+    // 1. Check for any active modals in reverse DOM order
+    const activeModals = Array.from(document.querySelectorAll('.modal-backdrop.active, .modal-backdrop[style*="display: flex"], .modal-backdrop[style*="display:flex"], .modal-backdrop[style*="display: block"], .modal-backdrop[style*="display:block"]'))
+      .filter(m => {
+        const style = window.getComputedStyle(m);
+        return style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0';
+      });
+
+    if (activeModals.length > 0) {
+      const topModal = activeModals[activeModals.length - 1];
+      const modalId = topModal.id;
+
+      if (modalId === 'ownerUpdateAlertModal') {
+        this.closeOwnerUpdateModal();
+      } else {
+        topModal.classList.remove('active');
+        topModal.style.setProperty('display', 'none', 'important');
+      }
+
+      const remaining = Array.from(document.querySelectorAll('.modal-backdrop.active, .modal-backdrop[style*="display: flex"], .modal-backdrop[style*="display:flex"], .modal-backdrop[style*="display: block"], .modal-backdrop[style*="display:block"]'))
+        .filter(m => {
+          const style = window.getComputedStyle(m);
+          return style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0';
+        });
+
+      if (!remaining || remaining.length === 0) {
+        document.body.classList.remove('modal-open');
+      }
+
+      if (!fromPopstate && window.history && window.history.state && window.history.state.ownerBackModal) {
+        try { window.history.back(); } catch (_) {}
+      }
+      return true;
+    }
+
+    // 2. Check if any customer card has expanded details/history
+    if (this.expandedCustomerPhones && this.expandedCustomerPhones.size > 0) {
+      this.expandedCustomerPhones.clear();
+      this.renderCustomerList();
+      return true;
+    }
+
+    // 3. Check if search input has text
+    const searchInput = document.getElementById('ownerCustomerSearch');
+    if (searchInput && searchInput.value && searchInput.value.trim() !== '') {
+      searchInput.value = '';
+      this.ownerSearchQuery = '';
+      this.renderCustomerList();
+      return true;
+    }
+
+    // 4. Check if filter tab is not 'all'
+    if (this.ownerFilter && this.ownerFilter !== 'all') {
+      this.setFilter('all');
+      return true;
+    }
+
+    // 5. Blur any focused input
+    if (document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA')) {
+      document.activeElement.blur();
+      return true;
+    }
+
+    return false;
+  }
+
   // --- Owner In-App Version & Update System ---
   openSettingsModal() {
     this.closeModals();
@@ -836,6 +962,7 @@ class StoreOwnerApp {
       input.value = this.getTargetCustomerVersion();
     }
 
+    this.pushBackHistory('ownerSettingsModal');
     modal.classList.add('active');
     this.checkForAppUpdates(false);
   }
@@ -1054,12 +1181,13 @@ class StoreOwnerApp {
     if (!target && this.latestUpdateInfo) {
       target = this.latestUpdateInfo.ownerVersion || this.latestUpdateInfo.version;
     }
-    if (!target || !this.isNewerVersion(target, this.appVersion)) {
-      target = "1.6.13";
+    if (!target) {
+      target = "1.6.14";
     }
     if (title) title.textContent = `Terminal Update Available (v${target})`;
     if (desc && notes) desc.textContent = notes;
     if (actionBtn) actionBtn.innerHTML = `🚀 Update Terminal App (v${target})`;
+    this.pushBackHistory('ownerUpdateAlertModal');
     modal.classList.add('active');
     modal.style.setProperty('display', 'flex', 'important');
     document.body.classList.add('modal-open');
@@ -2501,8 +2629,13 @@ class StoreOwnerApp {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  if (window.ownerApp) return;
-  window.ownerApp = new StoreOwnerApp();
+  if (window.ownerApp) {
+    window.loyaltyOwnerApp = window.ownerApp;
+    return;
+  }
+  const app = new StoreOwnerApp();
+  window.ownerApp = app;
+  window.loyaltyOwnerApp = app;
 });
 
 } // End of __STORE_OWNER_APP_CLASS_DEFINED__ guard

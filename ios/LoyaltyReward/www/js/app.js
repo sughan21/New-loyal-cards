@@ -67,9 +67,14 @@ class LoyaltyApp {
     this.customerResetOtp = '';
     this.customerResetPhone = '';
     this.repeatApprovalPollTimer = null;
-    this.appVersion = "1.6.13";
-    this.versionCode = 21;
+    this.appVersion = "1.6.14";
+    this.versionCode = 22;
     this.latestUpdateInfo = null;
+
+    if (typeof window !== 'undefined') {
+      window.loyaltyApp = this;
+      window.customerApp = this;
+    }
 
     this.init();
   }
@@ -81,6 +86,7 @@ class LoyaltyApp {
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
     this.loadState();
     this.bindEvents();
+    this.setupBackNavigation();
     this.setupPWA();
     this.setupCardParallax();
     this.render();
@@ -624,6 +630,38 @@ class LoyaltyApp {
     const applyUpdateBtn = document.getElementById('applyUpdateBtn');
     if (applyUpdateBtn) {
       applyUpdateBtn.addEventListener('click', () => this.handleApplyUpdate());
+    }
+
+    // Customer Dedicated Store Owner Update Alert Modal Buttons
+    const ownerUpdateModalActionBtn = document.getElementById('ownerUpdateModalActionBtn');
+    if (ownerUpdateModalActionBtn) {
+      ownerUpdateModalActionBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        this.handleApplyUpdate();
+      });
+    }
+
+    const customerOwnerUpdateModal = document.getElementById('customerOwnerUpdateModal');
+    if (customerOwnerUpdateModal) {
+      const closeBtn = customerOwnerUpdateModal.querySelector('.modal-close-btn');
+      if (closeBtn) {
+        closeBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          this.closeOwnerUpdateModal();
+        });
+      }
+      const remindBtn = customerOwnerUpdateModal.querySelector('button[onclick*="remindLaterUpdate"]');
+      if (remindBtn) {
+        remindBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          this.remindLaterUpdate();
+        });
+      }
+    }
+
+    const customerUpdateTopBanner = document.getElementById('customerUpdateTopBanner');
+    if (customerUpdateTopBanner) {
+      customerUpdateTopBanner.addEventListener('click', () => this.showOwnerUpdateAlertModal());
     }
 
     const clearCacheReloadBtn = document.getElementById('clearCacheReloadBtn');
@@ -1223,6 +1261,7 @@ class LoyaltyApp {
     if (confPassInput) confPassInput.value = '';
     if (otpHint) otpHint.style.display = 'none';
 
+    this.pushBackHistory('forgotPasswordModal');
     modal.classList.add('active');
   }
 
@@ -1360,10 +1399,91 @@ class LoyaltyApp {
     if (alertEl) alertEl.style.display = 'none';
   }
 
+  // --- Step-by-Step Back Navigation & History Controller ---
+  setupBackNavigation() {
+    window.handleAppBack = () => this.handleBack();
+
+    // Listen for mobile browser & iOS Safari back gestures / popstate
+    window.addEventListener('popstate', () => {
+      this.handleBack(true);
+    });
+
+    // Support ESC key on desktop/laptop keyboards
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' || e.key === 'Esc') {
+        this.handleBack();
+      }
+    });
+  }
+
+  pushBackHistory(modalId) {
+    if (typeof window !== 'undefined' && window.history && window.history.pushState) {
+      try {
+        window.history.pushState({ loyaltyBackModal: modalId || 'modal' }, '');
+      } catch (_) {}
+    }
+  }
+
+  handleBack(fromPopstate = false) {
+    // 1. Check for any active modals in reverse DOM order
+    const activeModals = Array.from(document.querySelectorAll('.modal-backdrop.active, .modal-backdrop[style*="display: flex"], .modal-backdrop[style*="display:flex"], .modal-backdrop[style*="display: block"], .modal-backdrop[style*="display:block"]'))
+      .filter(m => {
+        const style = window.getComputedStyle(m);
+        return style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0';
+      });
+
+    if (activeModals.length > 0) {
+      const topModal = activeModals[activeModals.length - 1];
+      const modalId = topModal.id;
+
+      if (modalId === 'scannerModal' && typeof this.stopLiveScanner === 'function') {
+        this.stopLiveScanner();
+      }
+      if (modalId === 'repeatApprovalModal' && this.repeatApprovalPollTimer) {
+        clearInterval(this.repeatApprovalPollTimer);
+        this.repeatApprovalPollTimer = null;
+      }
+
+      topModal.classList.remove('active');
+      topModal.style.setProperty('display', 'none', 'important');
+
+      // Check if any other modal is still active
+      const remaining = Array.from(document.querySelectorAll('.modal-backdrop.active, .modal-backdrop[style*="display: flex"], .modal-backdrop[style*="display:flex"], .modal-backdrop[style*="display: block"], .modal-backdrop[style*="display:block"]'))
+        .filter(m => {
+          const style = window.getComputedStyle(m);
+          return style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0';
+        });
+
+      if (!remaining || remaining.length === 0) {
+        document.body.classList.remove('modal-open');
+      }
+
+      if (!fromPopstate && window.history && window.history.state && window.history.state.loyaltyBackModal) {
+        try { window.history.back(); } catch (_) {}
+      }
+      return true;
+    }
+
+    // 2. Check if search or text inputs are focused
+    if (document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA')) {
+      document.activeElement.blur();
+      return true;
+    }
+
+    // 3. Check if on auth screen and not in main login tab
+    if (this.activeAuthTab && this.activeAuthTab !== 'login') {
+      this.switchAuthTab('login');
+      return true;
+    }
+
+    return false;
+  }
+
   // --- Camera QR Scanner Engine ---
   openScannerModal() {
     const modal = document.getElementById('scannerModal');
     if (!modal) return;
+    this.pushBackHistory('scannerModal');
     modal.classList.add('active');
     this.startLiveScanner();
   }
@@ -1889,6 +2009,7 @@ class LoyaltyApp {
       });
     }
 
+    this.pushBackHistory('rewardModal');
     modal.classList.add('active');
   }
 
@@ -1946,6 +2067,7 @@ class LoyaltyApp {
       accountSection.style.display = this.currentUser ? 'block' : 'none';
     }
 
+    this.pushBackHistory('settingsModal');
     modal.classList.add('active');
     this.checkForAppUpdates(false);
   }
@@ -2177,12 +2299,13 @@ class LoyaltyApp {
     if (!target && this.latestUpdateInfo) {
       target = this.latestUpdateInfo.customerVersion || this.latestUpdateInfo.version;
     }
-    if (!target || !this.isNewerVersion(target, this.appVersion)) {
-      target = "1.6.13";
+    if (!target) {
+      target = "1.6.14";
     }
     if (title) title.textContent = `New Update Available (v${target})`;
     if (desc && note) desc.textContent = note;
     if (actionBtn) actionBtn.innerHTML = `🚀 Update & Install Now (v${target})`;
+    this.pushBackHistory('customerOwnerUpdateModal');
     modal.classList.add('active');
     modal.style.setProperty('display', 'flex', 'important');
     document.body.classList.add('modal-open');
@@ -2686,8 +2809,13 @@ class LoyaltyApp {
 
 // Instantiate on DOM ready
 document.addEventListener('DOMContentLoaded', () => {
-  if (window.loyaltyApp) return;
-  window.loyaltyApp = new LoyaltyApp();
+  if (window.loyaltyApp) {
+    window.customerApp = window.loyaltyApp;
+    return;
+  }
+  const app = new LoyaltyApp();
+  window.loyaltyApp = app;
+  window.customerApp = app;
 });
 
 } // End of __LOYALTY_APP_CLASS_DEFINED__ guard

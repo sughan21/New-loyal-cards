@@ -70,14 +70,17 @@ class MainActivity : AppCompatActivity() {
         if (intent.getStringExtra("action") == "show_update") {
             webView.postDelayed({
                 webView.evaluateJavascript("""
-                    if (window.customerApp) {
-                        if (typeof window.customerApp.showOwnerUpdateAlertModal === 'function') {
-                            window.customerApp.showOwnerUpdateAlertModal();
+                    (function() {
+                        var app = window.customerApp || window.loyaltyApp || window.ownerApp || window.loyaltyOwnerApp;
+                        if (app) {
+                            if (typeof app.showOwnerUpdateAlertModal === 'function') {
+                                app.showOwnerUpdateAlertModal();
+                            }
+                            if (typeof app.checkForAppUpdates === 'function') {
+                                app.checkForAppUpdates(true);
+                            }
                         }
-                        if (typeof window.customerApp.checkForAppUpdates === 'function') {
-                            window.customerApp.checkForAppUpdates(true);
-                        }
-                    }
+                    })();
                 """.trimIndent(), null)
             }, 600)
             intent.removeExtra("action")
@@ -250,14 +253,17 @@ class MainActivity : AppCompatActivity() {
                 if (intent?.getStringExtra("action") == "show_update") {
                     view?.postDelayed({
                         view.evaluateJavascript("""
-                            if (window.customerApp) {
-                                if (typeof window.customerApp.showOwnerUpdateAlertModal === 'function') {
-                                    window.customerApp.showOwnerUpdateAlertModal();
+                            (function() {
+                                var app = window.customerApp || window.loyaltyApp || window.ownerApp || window.loyaltyOwnerApp;
+                                if (app) {
+                                    if (typeof app.showOwnerUpdateAlertModal === 'function') {
+                                        app.showOwnerUpdateAlertModal();
+                                    }
+                                    if (typeof app.checkForAppUpdates === 'function') {
+                                        app.checkForAppUpdates(true);
+                                    }
                                 }
-                                if (typeof window.customerApp.checkForAppUpdates === 'function') {
-                                    window.customerApp.checkForAppUpdates(true);
-                                }
-                            }
+                            })();
                         """.trimIndent(), null)
                     }, 600)
                     intent?.removeExtra("action")
@@ -289,14 +295,41 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        // Hardware back button navigation
+        // Hardware back button navigation: Closes open modals, dialogs & expanded cards step-by-step
+        var lastBackPressTime = 0L
+
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
-                if (webView.canGoBack()) {
-                    webView.goBack()
-                } else {
-                    isEnabled = false
-                    onBackPressedDispatcher.onBackPressed()
+                // Ask WebView JavaScript to unwind the topmost open modal, popup, or view
+                webView.evaluateJavascript("""
+                    (function() {
+                        if (typeof window.handleAppBack === 'function') {
+                            try {
+                                return window.handleAppBack() ? "true" : "false";
+                            } catch (e) {
+                                return "false";
+                            }
+                        }
+                        return "false";
+                    })();
+                """.trimIndent()) { result ->
+                    val handled = result?.replace("\"", "")?.trim()?.equals("true", ignoreCase = true) == true
+                    if (!handled) {
+                        // If no modal or popup was open, check web navigation history
+                        if (webView.canGoBack()) {
+                            webView.goBack()
+                        } else {
+                            // On root dashboard: require double-tap back within 2 seconds to safely exit
+                            val currentTime = System.currentTimeMillis()
+                            if (currentTime - lastBackPressTime < 2000) {
+                                isEnabled = false
+                                onBackPressedDispatcher.onBackPressed()
+                            } else {
+                                lastBackPressTime = currentTime
+                                Toast.makeText(this@MainActivity, "Press back again to exit", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    }
                 }
             }
         })

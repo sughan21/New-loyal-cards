@@ -5272,11 +5272,11 @@ body.modal-open {
 
 /* Dual Mini-Cards Comparison Mode */
 .update-version-strip.has-update {
-  display: flex !important;
-  flex-direction: row !important;
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) 30px minmax(0, 1fr) !important;
   align-items: center !important;
-  justify-content: space-between !important;
-  gap: 6px !important;
+  justify-content: center !important;
+  gap: 8px !important;
   padding: 10px 8px !important;
   background: #ffffff !important;
   border: 1.5px solid #e7ded2 !important;
@@ -5295,8 +5295,6 @@ body.modal-open {
 }
 
 .update-version-strip.has-update .version-chip {
-  flex: 1 1 0 !important;
-  min-width: 0 !important;
   display: flex !important;
   flex-direction: column !important;
   align-items: center !important;
@@ -5307,6 +5305,8 @@ body.modal-open {
   border-radius: 12px !important;
   padding: 8px 4px !important;
   box-sizing: border-box !important;
+  width: 100% !important;
+  min-width: 0 !important;
   overflow: hidden !important;
 }
 
@@ -5412,21 +5412,22 @@ body.modal-open {
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  width: 24px !important;
-  height: 24px !important;
-  min-width: 24px !important;
-  min-height: 24px !important;
+  width: 28px !important;
+  height: 28px !important;
+  min-width: 28px !important;
+  min-height: 28px !important;
   border-radius: 50% !important;
   background: #fef3c7 !important;
   color: #d97706 !important;
-  font-size: 0.82rem !important;
+  font-size: 0.85rem !important;
   font-weight: 900 !important;
   line-height: 1 !important;
   border: 1.5px solid #fde68a !important;
   box-shadow: 0 2px 6px rgba(217, 119, 6, 0.15) !important;
-  flex: 0 0 24px !important;
-  margin: 0 !important;
+  grid-column: 2 !important;
+  margin: 0 auto !important;
   z-index: 2 !important;
+  box-sizing: border-box !important;
 }
 
 /* New Update Banner (Hidden by default, shown ONLY when update is available) */
