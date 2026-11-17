@@ -59,8 +59,8 @@ class LoyaltyApp {
     this.customerResetOtp = '';
     this.customerResetPhone = '';
     this.repeatApprovalPollTimer = null;
-    this.appVersion = "1.6.10";
-    this.versionCode = 18;
+    this.appVersion = "1.6.11";
+    this.versionCode = 19;
     this.latestUpdateInfo = null;
 
     this.init();
@@ -81,6 +81,8 @@ class LoyaltyApp {
     this.setupRealtimeCustomerSync();
     this.setupOfflineSync();
     this.checkForAppUpdates(false);
+    setTimeout(() => this.checkForAppUpdates(false), 1200);
+    setTimeout(() => this.checkForAppUpdates(false), 3000);
 
     // Ensure native bridge persistent session is restored if bridge attached slightly after sync
     if (!this.currentUser && typeof window !== 'undefined') {
@@ -1965,39 +1967,47 @@ class LoyaltyApp {
 
     let updateData = null;
 
-    // 1. Try local server or tunnel REST API (with short timeout so mobile doesn't stall)
+    // 1. Primary priority: Live GitHub Pages cloud version (always available on mobile & web)
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 1200);
-      const resp = await fetch(`${API_BASE_URL}/api/version?_t=${Date.now()}`, { cache: 'no-cache', signal: controller.signal });
-      clearTimeout(timeoutId);
-      if (resp.ok) {
-        updateData = await resp.json();
+      const respCloud = await fetch(`https://sughan21.github.io/New-loyal-cards/data/version.json?_t=${Date.now()}`, {
+        cache: 'no-store',
+        headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' }
+      });
+      if (respCloud.ok) {
+        updateData = await respCloud.json();
       }
     } catch (e) {}
 
-    // 2. Fallback to Supabase Realtime Cloud (instant cross-device sync)
+    // 2. Second priority: Supabase Realtime Cloud (instant cross-device sync)
     if (!updateData && window.loyaltyDb && window.loyaltyDb.isReady) {
       try {
         updateData = await window.loyaltyDb.fetchAppVersion();
       } catch (e) {}
     }
 
-    // 3. Fallback to direct static JSON file
+    // 3. Third priority: Local server or tunnel REST API (when testing with local node server)
     if (!updateData) {
       try {
-        const resp2 = await fetch(`./data/version.json?_t=${Date.now()}`, { cache: 'no-cache' });
-        if (resp2.ok) {
-          updateData = await resp2.json();
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 1200);
+        const resp = await fetch(`${API_BASE_URL}/api/version?_t=${Date.now()}`, { cache: 'no-cache', signal: controller.signal });
+        clearTimeout(timeoutId);
+        if (resp.ok) {
+          updateData = await resp.json();
         }
       } catch (e) {}
     }
 
-    // 4. Fallback to GitHub Pages live cloud version
+    // 4. Last resort fallback: local static JSON, but ONLY if newer than appVersion
     if (!updateData) {
       try {
-        const resp3 = await fetch(`https://sughan21.github.io/New-loyal-cards/data/version.json?_t=${Date.now()}`, { cache: 'no-cache' });
-        if (resp3.ok) updateData = await resp3.json();
+        const resp2 = await fetch(`./data/version.json?_t=${Date.now()}`, { cache: 'no-cache' });
+        if (resp2.ok) {
+          const localJson = await resp2.json();
+          if (localJson && this.isNewerVersion(localJson.customerVersion || localJson.version, this.appVersion)) {
+            updateData = localJson;
+          }
+        }
       } catch (e) {}
     }
 
@@ -2108,14 +2118,14 @@ class LoyaltyApp {
       }
 
       // Auto show Update Modal on app open with Update button and Remind Me Later
-      const snoozedVer = sessionStorage.getItem('customer_update_snooze_version') || localStorage.getItem('customer_update_snooze_version');
-      if (snoozedVer !== targetCustomerVer && !isManual) {
+      const isSnoozedSession = sessionStorage.getItem('customer_update_snooze_session') === 'true';
+      if (!isSnoozedSession || isManual) {
         setTimeout(() => {
           this.showOwnerUpdateAlertModal(
             updateData.notes || `Version ${targetCustomerVer} is ready to install! Update now to enjoy the latest rewards and features.`,
             targetCustomerVer
           );
-        }, 650);
+        }, 500);
       }
 
       if (isManual) {
@@ -2164,10 +2174,11 @@ class LoyaltyApp {
   }
 
   remindLaterUpdate() {
-    const target = (this.latestUpdateInfo && (this.latestUpdateInfo.customerVersion || this.latestUpdateInfo.version)) || this.appVersion;
     try {
-      sessionStorage.setItem('customer_update_snooze_version', target);
-      localStorage.setItem('customer_update_snooze_version', target);
+      sessionStorage.setItem('customer_update_snooze_session', 'true');
+      localStorage.removeItem('customer_update_snooze_version');
+      localStorage.removeItem('loyalty_update_remind_later_until');
+      localStorage.removeItem('loyalty_update_remind_later');
     } catch (_) {}
     this.closeOwnerUpdateModal();
     this.showToast("🕒 We'll remind you about the update later.", "info");

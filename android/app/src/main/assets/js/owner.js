@@ -52,8 +52,8 @@ class StoreOwnerApp {
     this.syncTimer = null;
     this.knownPendingRequestIds = new Set();
     this.expandedCustomerPhones = new Set();
-    this.appVersion = "1.6.10";
-    this.versionCode = 18;
+    this.appVersion = "1.6.11";
+    this.versionCode = 19;
     this.latestUpdateInfo = null;
 
     this.init();
@@ -68,6 +68,8 @@ class StoreOwnerApp {
     this.startLiveSync();
     this.setupOfflineSync();
     this.checkForAppUpdates(false);
+    setTimeout(() => this.checkForAppUpdates(false), 1200);
+    setTimeout(() => this.checkForAppUpdates(false), 3000);
   }
 
   setupOfflineSync() {
@@ -855,35 +857,45 @@ class StoreOwnerApp {
 
     let updateData = null;
 
-    // 1. Try local server or tunnel REST API (short timeout so mobile doesn't stall)
+    // 1. Primary priority: Live GitHub Pages cloud version (always available on mobile & web)
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 1200);
-      const resp = await fetch(`${API_BASE_URL}/api/version?_t=${Date.now()}`, { cache: 'no-cache', signal: controller.signal });
-      clearTimeout(timeoutId);
-      if (resp.ok) updateData = await resp.json();
+      const respCloud = await fetch(`https://sughan21.github.io/New-loyal-cards/data/version.json?_t=${Date.now()}`, {
+        cache: 'no-store',
+        headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' }
+      });
+      if (respCloud.ok) {
+        updateData = await respCloud.json();
+      }
     } catch (e) {}
 
-    // 2. Fallback to Supabase Realtime Cloud (instant cross-device sync)
+    // 2. Second priority: Supabase Realtime Cloud (instant cross-device sync)
     if (!updateData && window.loyaltyDb && window.loyaltyDb.isReady) {
       try {
         updateData = await window.loyaltyDb.fetchAppVersion();
       } catch (e) {}
     }
 
-    // 3. Fallback to direct static JSON file
+    // 3. Third priority: Local server or tunnel REST API (short timeout so mobile doesn't stall)
     if (!updateData) {
       try {
-        const resp2 = await fetch(`./data/version.json?_t=${Date.now()}`, { cache: 'no-cache' });
-        if (resp2.ok) updateData = await resp2.json();
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 1200);
+        const resp = await fetch(`${API_BASE_URL}/api/version?_t=${Date.now()}`, { cache: 'no-cache', signal: controller.signal });
+        clearTimeout(timeoutId);
+        if (resp.ok) updateData = await resp.json();
       } catch (e) {}
     }
 
-    // 4. Fallback to GitHub Pages live cloud version
+    // 4. Last resort fallback: local static JSON, but ONLY if newer than appVersion
     if (!updateData) {
       try {
-        const resp3 = await fetch(`https://sughan21.github.io/New-loyal-cards/data/version.json?_t=${Date.now()}`, { cache: 'no-cache' });
-        if (resp3.ok) updateData = await resp3.json();
+        const resp2 = await fetch(`./data/version.json?_t=${Date.now()}`, { cache: 'no-cache' });
+        if (resp2.ok) {
+          const localJson = await resp2.json();
+          if (localJson && this.isNewerVersion(localJson.ownerVersion || localJson.version, this.appVersion)) {
+            updateData = localJson;
+          }
+        }
       } catch (e) {}
     }
 
@@ -990,14 +1002,14 @@ class StoreOwnerApp {
 
       // Auto show Update Modal on app open with Update button and Remind Me Later
       const targetTerminalVer = remoteOwnerVer || updateData.version;
-      const snoozedVer = sessionStorage.getItem('owner_update_snooze_version') || localStorage.getItem('owner_update_snooze_version');
-      if (snoozedVer !== targetTerminalVer && !isManual) {
+      const isSnoozedSession = sessionStorage.getItem('owner_update_snooze_session') === 'true';
+      if (!isSnoozedSession || isManual) {
         setTimeout(() => {
           this.showOwnerUpdateAlertModal(
             targetTerminalVer,
             updateData.notes || `Version ${targetTerminalVer} is ready to install! Update now to sync the latest features, cashier tools, and optimizations.`
           );
-        }, 650);
+        }, 500);
       }
 
       if (isManual) this.showToast(`⚡ New version ${remoteOwnerVer || updateData.version} is available!`, "gold");
@@ -1041,10 +1053,10 @@ class StoreOwnerApp {
   }
 
   remindLaterUpdate() {
-    const target = (this.latestUpdateInfo && (this.latestUpdateInfo.ownerVersion || this.latestUpdateInfo.version)) || this.appVersion;
     try {
-      sessionStorage.setItem('owner_update_snooze_version', target);
-      localStorage.setItem('owner_update_snooze_version', target);
+      sessionStorage.setItem('owner_update_snooze_session', 'true');
+      localStorage.removeItem('owner_update_snooze_version');
+      localStorage.removeItem('owner_update_snooze_session');
     } catch (_) {}
     this.closeOwnerUpdateModal();
     this.showToast("🕒 We'll remind you about the update later.", "info");
@@ -1184,7 +1196,7 @@ class StoreOwnerApp {
     const outdatedCustomersToSync = [];
 
     this.users.forEach(customer => {
-      if (!customer || !customer.phone || String(customer.phone).startsWith('__') || this.isCustomerIosOrWeb(customer)) {
+      if (!customer || !customer.phone || String(customer.phone).startsWith('__')) {
         return;
       }
       customer.updateAlert = {
@@ -1755,10 +1767,6 @@ class StoreOwnerApp {
 
   isCustomerOutdated(customer) {
     if (!customer) return false;
-    // iOS and Safari Web Pass users automatically run the latest web code on reload - no APK install required!
-    if (this.isCustomerIosOrWeb(customer)) {
-      return false;
-    }
     const targetVer = this.getTargetCustomerVersion();
     const custVer = customer.appVersion;
     if (!custVer) return true;
@@ -2003,7 +2011,7 @@ class StoreOwnerApp {
 
       const targetVer = this.getTargetCustomerVersion();
       const isIos = this.isCustomerIosOrWeb(customer);
-      const isOutdated = !isIos && this.isCustomerOutdated(customer);
+      const isOutdated = this.isCustomerOutdated(customer);
       const customerVer = customer.appVersion;
       const hasAlertSent = (customer.updateAlert && customer.updateAlert.status === 'pending') || (latestEvent && latestEvent.type === 'update_alert');
 
