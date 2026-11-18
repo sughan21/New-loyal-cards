@@ -261,10 +261,15 @@ while ($listener.IsListening) {
                 try {
                     $delObj = $body | ConvertFrom-Json
                     $phoneToDel = [string]$delObj.phone
+                    $digits10 = ($phoneToDel -replace '\D')
+                    if ($digits10.Length -gt 10) { $digits10 = $digits10.Substring($digits10.Length - 10) }
+
                     $currentUsers = Load-JsonFile $dataFile
                     $filtered = New-Object System.Collections.ArrayList
                     foreach ($u in $currentUsers) {
-                        if ($u.phone -ne $phoneToDel) {
+                        $uDigits = ([string]$u.phone -replace '\D')
+                        if ($uDigits.Length -gt 10) { $uDigits = $uDigits.Substring($uDigits.Length - 10) }
+                        if ($u.phone -ne $phoneToDel -and (-not $digits10 -or $uDigits -ne $digits10)) {
                             [void]$filtered.Add($u)
                         }
                     }
@@ -272,10 +277,11 @@ while ($listener.IsListening) {
 
                     # Persist into deleted_phones.json to block future resyncs
                     $delPhones = Load-JsonFile $deletedFile
-                    if (-not ($delPhones -contains $phoneToDel)) {
-                        [void]$delPhones.Add($phoneToDel)
-                        Save-JsonFile $deletedFile $delPhones
-                    }
+                    if (-not ($delPhones -contains $phoneToDel)) { [void]$delPhones.Add($phoneToDel) }
+                    if ($digits10 -and -not ($delPhones -contains $digits10)) { [void]$delPhones.Add($digits10) }
+                    $p91 = "91$digits10"
+                    if ($digits10 -and -not ($delPhones -contains $p91)) { [void]$delPhones.Add($p91) }
+                    Save-JsonFile $deletedFile $delPhones
 
                     Send-JsonResponse $res 200 @{ success = $true; remaining = $filtered.Count }
                 } catch {

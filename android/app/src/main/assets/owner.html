@@ -757,12 +757,12 @@
         <div class="update-version-strip" id="ownerUpdateVersionStrip">
           <div class="version-chip current-version-chip">
             <span class="version-chip-label">Current Version</span>
-            <span class="version-chip-val" id="ownerCurrentVerDisplay"><span class="version-num">v1.6.21</span> <span class="version-chip-badge latest" id="ownerCurrentVerBadge">Latest ✅</span></span>
+            <span class="version-chip-val" id="ownerCurrentVerDisplay"><span class="version-num">v1.6.22</span> <span class="version-chip-badge latest" id="ownerCurrentVerBadge">Latest ✅</span></span>
           </div>
           <div class="version-chip-arrow" id="ownerVersionChipArrow" style="display: none;">➔</div>
           <div class="version-chip new-version-chip" id="ownerNewVersionChip" style="display: none;">
             <span class="version-chip-label">New Version</span>
-            <span class="version-chip-val" id="ownerNewVerDisplay"><span class="version-num">v1.6.21</span> <span class="version-chip-badge update">⚡ New</span></span>
+            <span class="version-chip-val" id="ownerNewVerDisplay"><span class="version-num">v1.6.22</span> <span class="version-chip-badge update">⚡ New</span></span>
           </div>
         </div>
 
@@ -885,6 +885,50 @@
     </div>
   </div>
 
+  <!-- Dedicated Customer Account Delete Confirmation Modal -->
+  <div id="ownerDeleteCustomerModal" class="modal-backdrop" style="display: none;">
+    <div class="modal-dialog delete-customer-dialog" style="max-width: 400px; text-align: center; border-radius: 20px; padding: 24px 20px;">
+      <button type="button" class="modal-close-btn modal-close-trigger" onclick="window.ownerApp?.closeDeleteCustomerModal()" aria-label="Close dialog">&times;</button>
+      
+      <div style="width: 60px; height: 60px; border-radius: 50%; background: #fee2e2; border: 2px solid #ef4444; display: inline-flex; align-items: center; justify-content: center; font-size: 1.8rem; margin: 0 auto 12px auto;">
+        🗑️
+      </div>
+
+      <div style="display: inline-block; padding: 4px 12px; background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.35); border-radius: 999px; font-size: 0.72rem; font-weight: 700; color: #b91c1c; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">
+        Permanent Account Deletion
+      </div>
+
+      <h3 style="font-size: 1.25rem; font-weight: 800; color: #1c120c; margin-bottom: 6px;">
+        Delete Customer Account?
+      </h3>
+
+      <div style="background: #fef2f2; border: 1.5px solid #fecaca; border-radius: 12px; padding: 12px; margin: 12px 0; text-align: left;">
+        <div style="font-size: 0.98rem; font-weight: 800; color: #991b1b; display: flex; align-items: center; gap: 6px;" id="deleteCustModalName">
+          Customer Name
+        </div>
+        <div style="font-size: 0.84rem; color: #7f1d1d; margin-top: 4px; font-weight: 600;" id="deleteCustModalPhone">
+          📞 918940757402
+        </div>
+        <div style="font-size: 0.78rem; color: #b91c1c; margin-top: 6px; font-weight: 600;" id="deleteCustModalStats">
+          Pass Progress: 1 of 11 Ticks
+        </div>
+      </div>
+
+      <p style="font-size: 0.82rem; color: #695547; line-height: 1.45; margin-bottom: 18px;">
+        This action is permanent. The customer's Loyalty Pass, stamps, and history will be completely deleted from both the store and cloud database.
+      </p>
+
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <button type="button" id="confirmDeleteCustomerBtn" onclick="window.ownerApp?.executeConfirmDeleteCustomer()" style="width: 100%; padding: 13px; font-size: 0.95rem; font-weight: 700; background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%); color: #ffffff; border: none; border-radius: 12px; box-shadow: 0 4px 14px rgba(239, 68, 68, 0.35); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+          <span>🗑️ Yes, Delete Customer Fully</span>
+        </button>
+        <button type="button" onclick="window.ownerApp?.closeDeleteCustomerModal()" style="width: 100%; padding: 11px; font-size: 0.85rem; font-weight: 600; background: transparent; color: #78716c; border: 1.5px solid #e7e5e4; border-radius: 10px; cursor: pointer;">
+          Cancel &amp; Keep Account
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Owner Terminal Auto Update Popup Modal (App Open Alert) -->
   <div id="ownerUpdateAlertModal" class="modal-backdrop" style="display: none;">
     <div class="modal-dialog update-alert-dialog">
@@ -931,11 +975,11 @@
   <script src="js/vendor/supabase.min.js" onerror="this.onerror=null;this.src='supabase.min.js'"></script>
   <script>if(!window.supabase)document.write('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"><\/script>');</script>
 
-  <script src="js/supabase-client.js?v=20261118_v1621" onerror="this.onerror=null;this.src='supabase-client.js?v=20261118_v1621'"></script>
+  <script src="js/supabase-client.js?v=20261118_v1622" onerror="this.onerror=null;this.src='supabase-client.js?v=20261118_v1622'"></script>
 
   <!-- Application Scripts -->
   <script src="js/audio.js" onerror="this.onerror=null;this.src='audio.js'"></script>
-  <script src="js/owner.js?v=20261118_v1621" onerror="this.onerror=null;this.src='owner.js?v=20261118_v1621'"></script>
+  <script src="js/owner.js?v=20261118_v1622" onerror="this.onerror=null;this.src='owner.js?v=20261118_v1622'"></script>
 </body>
 
 </html>

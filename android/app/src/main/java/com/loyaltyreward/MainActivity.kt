@@ -290,6 +290,47 @@ class MainActivity : AppCompatActivity() {
                 }
             }
 
+            override fun onJsConfirm(
+                view: WebView?,
+                url: String?,
+                message: String?,
+                result: JsResult?
+            ): Boolean {
+                if (isFinishing || isDestroyed) {
+                    result?.cancel()
+                    return true
+                }
+                androidx.appcompat.app.AlertDialog.Builder(this@MainActivity)
+                    .setTitle("Confirmation")
+                    .setMessage(message ?: "Are you sure you want to proceed?")
+                    .setPositiveButton("Yes, Delete") { _, _ -> result?.confirm() }
+                    .setNegativeButton("Cancel") { _, _ -> result?.cancel() }
+                    .setOnCancelListener { result?.cancel() }
+                    .setCancelable(true)
+                    .show()
+                return true
+            }
+
+            override fun onJsAlert(
+                view: WebView?,
+                url: String?,
+                message: String?,
+                result: JsResult?
+            ): Boolean {
+                if (isFinishing || isDestroyed) {
+                    result?.confirm()
+                    return true
+                }
+                androidx.appcompat.app.AlertDialog.Builder(this@MainActivity)
+                    .setTitle("Notice")
+                    .setMessage(message ?: "")
+                    .setPositiveButton("OK") { _, _ -> result?.confirm() }
+                    .setOnCancelListener { result?.confirm() }
+                    .setCancelable(true)
+                    .show()
+                return true
+            }
+
             override fun onPermissionRequest(request: PermissionRequest?) {
                 if (request == null) return
                 if (request.resources.contains(PermissionRequest.RESOURCE_VIDEO_CAPTURE)) {

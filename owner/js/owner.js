@@ -60,8 +60,8 @@ class StoreOwnerApp {
     this.syncTimer = null;
     this.knownPendingRequestIds = new Set();
     this.expandedCustomerPhones = new Set();
-    this.appVersion = "1.6.21";
-    this.versionCode = 29;
+    this.appVersion = "1.6.22";
+    this.versionCode = 30;
     this.latestUpdateInfo = null;
 
     if (typeof window !== 'undefined') {
@@ -142,11 +142,17 @@ class StoreOwnerApp {
     // 1. Load shared users
     const storedUsers = localStorage.getItem(APP_STORAGE_KEY_USERS);
     const deletedSet = new Set(JSON.parse(localStorage.getItem('loyalty_deleted_customers') || '[]'));
+    const isTombstoned = (ph) => {
+      if (!ph) return false;
+      const str = String(ph).trim();
+      const d10 = str.replace(/\D/g, '').slice(-10);
+      return deletedSet.has(str) || (d10 && (deletedSet.has(d10) || deletedSet.has(`91${d10}`) || deletedSet.has(`+91${d10}`)));
+    };
     if (storedUsers) {
       try {
         let loaded = JSON.parse(storedUsers);
         // Retain only active real customers, strictly exclude system records, deleted and demo entries
-        this.users = Array.isArray(loaded) ? loaded.filter(u => u && u.phone && !String(u.phone).startsWith('__') && String(u.phone).trim() !== '__APP_CONFIG_VERSION__' && !MOCK_DEMO_PHONES.includes(u.phone) && !deletedSet.has(String(u.phone).trim()) && u.name !== '__DELETED__') : [];
+        this.users = Array.isArray(loaded) ? loaded.filter(u => u && u.phone && !String(u.phone).startsWith('__') && String(u.phone).trim() !== '__APP_CONFIG_VERSION__' && !MOCK_DEMO_PHONES.includes(u.phone) && !isTombstoned(u.phone) && u.name !== '__DELETED__') : [];
       } catch (e) {
         this.users = [];
       }
@@ -203,6 +209,12 @@ class StoreOwnerApp {
         this.sanitizeCustomerNotes(remoteUsers);
         let changed = false;
         const deletedSet = new Set(JSON.parse(localStorage.getItem('loyalty_deleted_customers') || '[]'));
+        const isTombstoned = (ph) => {
+          if (!ph) return false;
+          const str = String(ph).trim();
+          const d10 = str.replace(/\D/g, '').slice(-10);
+          return deletedSet.has(str) || (d10 && (deletedSet.has(d10) || deletedSet.has(`91${d10}`) || deletedSet.has(`+91${d10}`)));
+        };
 
         // Reconcile: if a customer still exists in Supabase (not __DELETED__), remove from tombstone
         // This ensures previously deleted-locally customers reappear if they re-registered or were never actually deleted from cloud
@@ -220,12 +232,12 @@ class StoreOwnerApp {
 
         // Purge any locally present customers that were marked deleted or system config
         const countBefore = this.users.length;
-        this.users = this.users.filter(u => u && u.phone && !String(u.phone).startsWith('__') && String(u.phone).trim() !== '__APP_CONFIG_VERSION__' && !deletedSet.has(String(u.phone).trim()) && u.name !== '__DELETED__');
+        this.users = this.users.filter(u => u && u.phone && !String(u.phone).startsWith('__') && String(u.phone).trim() !== '__APP_CONFIG_VERSION__' && !isTombstoned(u.phone) && u.name !== '__DELETED__');
         if (this.users.length !== countBefore) changed = true;
 
         remoteUsers.forEach(rem => {
           const remPhone = String(rem.phone || '').trim();
-          if (!remPhone || remPhone.startsWith('__') || remPhone === '__APP_CONFIG_VERSION__' || MOCK_DEMO_PHONES.includes(remPhone) || deletedSet.has(remPhone) || rem.name === '__DELETED__') return;
+          if (!remPhone || remPhone.startsWith('__') || remPhone === '__APP_CONFIG_VERSION__' || MOCK_DEMO_PHONES.includes(remPhone) || isTombstoned(remPhone) || rem.name === '__DELETED__') return;
           const idx = this.users.findIndex(u => String(u.phone).trim() === remPhone);
           if (idx === -1) {
             this.users.unshift(rem);
@@ -265,10 +277,16 @@ class StoreOwnerApp {
         console.log("⚡ Owner Realtime Customer Sync:", eventType, cust ? cust.phone : '');
         if (!cust || !cust.phone) return;
         const p = String(cust.phone).trim();
+        const d10 = p.replace(/\D/g, '').slice(-10);
         if (p.startsWith('__') || p === '__APP_CONFIG_VERSION__') return;
         const deletedSet = new Set(JSON.parse(localStorage.getItem('loyalty_deleted_customers') || '[]'));
-        if ((eventType === 'DELETE' || cust.name === '__DELETED__') || deletedSet.has(p)) {
-          this.users = this.users.filter(u => String(u.phone).trim() !== p);
+        const isTombstoned = deletedSet.has(p) || (d10 && (deletedSet.has(d10) || deletedSet.has(`91${d10}`) || deletedSet.has(`+91${d10}`)));
+        if (eventType === 'DELETE' || cust.name === '__DELETED__' || isTombstoned) {
+          this.users = this.users.filter(u => {
+            const uP = String(u.phone).trim();
+            const u10 = uP.replace(/\D/g, '').slice(-10);
+            return uP !== p && (!d10 || u10 !== d10);
+          });
           localStorage.setItem(APP_STORAGE_KEY_USERS, JSON.stringify(this.users));
           this.renderMetrics();
           this.renderCustomerList();
@@ -1307,7 +1325,7 @@ class StoreOwnerApp {
       target = this.latestUpdateInfo.ownerVersion || this.latestUpdateInfo.version;
     }
     if (!target) {
-      target = "1.6.21";
+      target = "1.6.22";
     }
     if (title) title.textContent = `Terminal Update Available (v${target})`;
     if (desc && notes) desc.textContent = notes;
@@ -1742,22 +1760,89 @@ class StoreOwnerApp {
     this.render();
   }
 
-  async ownerDeleteCustomer(phone) {
+  ownerDeleteCustomer(phone) {
+    this.promptDeleteCustomer(phone);
+  }
+
+  promptDeleteCustomer(phone) {
     const cleanPhone = String(phone).trim();
-    const customer = this.users.find(u => String(u.phone).trim() === cleanPhone);
-    const name = customer ? customer.name : phone;
-    if (!confirm(`Are you sure you want to permanently delete customer "${name}" (${phone})? This will delete their card and stamps from the database.`)) {
+    const d10 = cleanPhone.replace(/\D/g, '').slice(-10);
+    const customer = this.users.find(u => {
+      const uPhone = String(u.phone).trim();
+      const u10 = uPhone.replace(/\D/g, '').slice(-10);
+      return uPhone === cleanPhone || (d10 && u10 === d10);
+    });
+
+    this.pendingDeletePhone = cleanPhone;
+    this.pendingDeleteCustomer = customer;
+
+    const modal = document.getElementById('ownerDeleteCustomerModal');
+    if (!modal) {
+      if (confirm(`Are you sure you want to permanently delete customer "${customer ? customer.name : phone}"? This will delete their card and stamps from the database.`)) {
+        this.performFullCustomerDelete(cleanPhone);
+      }
       return;
     }
 
-    // 1. Remove from local memory & persistent storage immediately
-    this.users = this.users.filter(u => String(u.phone).trim() !== cleanPhone);
+    const nameEl = document.getElementById('deleteCustModalName');
+    const phoneEl = document.getElementById('deleteCustModalPhone');
+    const statsEl = document.getElementById('deleteCustModalStats');
+
+    if (nameEl) nameEl.textContent = customer ? customer.name : 'Loyalty Customer';
+    if (phoneEl) phoneEl.textContent = `📞 ${cleanPhone}`;
+    if (statsEl) statsEl.textContent = customer ? `Pass Progress: ${customer.stamps || 0} of ${MAX_STAMPS} Ticks • ${customer.giftsEarned || 0} Gifts Earned` : '';
+
+    this.pushBackHistory('ownerDeleteCustomerModal');
+    modal.classList.add('active');
+    modal.style.setProperty('display', 'flex', 'important');
+    document.body.classList.add('modal-open');
+  }
+
+  closeDeleteCustomerModal() {
+    const modal = document.getElementById('ownerDeleteCustomerModal');
+    if (modal) {
+      modal.classList.remove('active');
+      modal.style.display = 'none';
+    }
+    document.body.classList.remove('modal-open');
+    this.pendingDeletePhone = null;
+    this.pendingDeleteCustomer = null;
+  }
+
+  async executeConfirmDeleteCustomer() {
+    const phone = this.pendingDeletePhone;
+    this.closeDeleteCustomerModal();
+    if (!phone) return;
+    await this.performFullCustomerDelete(phone);
+  }
+
+  async performFullCustomerDelete(phone) {
+    const cleanPhone = String(phone).trim();
+    const d10 = cleanPhone.replace(/\D/g, '').slice(-10);
+    const customer = this.users.find(u => {
+      const uPhone = String(u.phone).trim();
+      const u10 = uPhone.replace(/\D/g, '').slice(-10);
+      return uPhone === cleanPhone || (d10 && u10 === d10);
+    });
+    const name = customer ? customer.name : phone;
+
+    // 1. Remove from local memory & persistent storage immediately (all phone variants)
+    this.users = this.users.filter(u => {
+      const uPhone = String(u.phone).trim();
+      const u10 = uPhone.replace(/\D/g, '').slice(-10);
+      return uPhone !== cleanPhone && (!d10 || u10 !== d10);
+    });
     localStorage.setItem(APP_STORAGE_KEY_USERS, JSON.stringify(this.users));
 
     // 2. Add to local tombstone set so background polls never restore it
     try {
       const deletedSet = new Set(JSON.parse(localStorage.getItem('loyalty_deleted_customers') || '[]'));
       deletedSet.add(cleanPhone);
+      if (d10) {
+        deletedSet.add(d10);
+        deletedSet.add(`91${d10}`);
+        deletedSet.add(`+91${d10}`);
+      }
       localStorage.setItem('loyalty_deleted_customers', JSON.stringify(Array.from(deletedSet)));
     } catch (_) {}
 
@@ -1770,7 +1855,7 @@ class StoreOwnerApp {
     this.showToast(`🗑️ Permanently deleted customer "${name}".`, "info");
     this.render();
 
-    // 4. Delete from Supabase cloud database
+    // 4. Delete / tombstone from Supabase cloud database
     try {
       if (window.loyaltyDb && window.loyaltyDb.isReady) {
         await window.loyaltyDb.deleteCustomer(cleanPhone);
@@ -2061,7 +2146,7 @@ class StoreOwnerApp {
   getTargetCustomerVersion() {
     const broadcastVer = localStorage.getItem('loyalty_owner_broadcast_version');
     const remoteVer = this.latestUpdateInfo ? (this.latestUpdateInfo.customerVersion || this.latestUpdateInfo.version) : null;
-    let highest = this.appVersion || "1.6.21";
+    let highest = this.appVersion || "1.6.22";
     if (broadcastVer && this.isNewerVersion(broadcastVer, highest)) {
       highest = broadcastVer;
     }
