@@ -61,8 +61,8 @@ class StoreOwnerApp {
     this.syncTimer = null;
     this.knownPendingRequestIds = new Set();
     this.expandedCustomerPhones = new Set();
-    this.appVersion = "1.6.26";
-    this.versionCode = 34;
+    this.appVersion = "1.0";
+    this.versionCode = 35;
     this.latestUpdateInfo = null;
 
     if (typeof window !== 'undefined') {
@@ -1059,8 +1059,27 @@ class StoreOwnerApp {
     this.checkForAppUpdates(false);
   }
 
-  isNewerVersion(remoteVer, currentVer) {
+  isNewerVersion(remoteVer, currentVer, remoteCode, currentCode) {
     if (!remoteVer || !currentVer) return false;
+
+    // Check version codes if available (e.g. Build 35 > Build 34)
+    if (typeof remoteCode === 'number' && typeof currentCode === 'number' && remoteCode !== currentCode) {
+      return remoteCode > currentCode;
+    }
+
+    // Special transition: Upgrading from legacy beta test builds (1.6.x) to official Version 1 (1.0 or v1.0)
+    const isLegacyBeta = (v) => String(v).includes('1.6.');
+    const isV1 = (v) => {
+      const s = String(v).toLowerCase().trim();
+      return s === '1.0' || s === '1.0.0' || s === 'v1.0' || s === 'version 1' || s === 'version1' || s === 'v1' || s === '1';
+    };
+    if (isLegacyBeta(currentVer) && isV1(remoteVer)) {
+      return true;
+    }
+    if (isV1(currentVer) && isLegacyBeta(remoteVer)) {
+      return false;
+    }
+
     const parse = (v) => String(v).replace(/^[^\d]*/, '').split('.').map(n => parseInt(n, 10) || 0);
     const r = parse(remoteVer);
     const c = parse(currentVer);
@@ -1336,7 +1355,7 @@ class StoreOwnerApp {
       target = this.latestUpdateInfo.ownerVersion || this.latestUpdateInfo.version;
     }
     if (!target) {
-      target = "1.6.26";
+      target = "1.0";
     }
     if (title) title.textContent = `Terminal Update Available (v${target})`;
     if (desc && notes) desc.textContent = notes;
@@ -2166,7 +2185,7 @@ class StoreOwnerApp {
   getTargetCustomerVersion() {
     const broadcastVer = localStorage.getItem('loyalty_owner_broadcast_version');
     const remoteVer = this.latestUpdateInfo ? (this.latestUpdateInfo.customerVersion || this.latestUpdateInfo.version) : null;
-    let highest = this.appVersion || "1.6.26";
+    let highest = this.appVersion || "1.0";
     if (broadcastVer && this.isNewerVersion(broadcastVer, highest)) {
       highest = broadcastVer;
     }
