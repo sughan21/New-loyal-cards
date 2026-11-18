@@ -1059,6 +1059,21 @@ class StoreOwnerApp {
     this.checkForAppUpdates(false);
   }
 
+  isUpdateAvailable(targetVer, currentVer, remoteCode, currentCode) {
+    if (!targetVer || !currentVer) return false;
+    const cleanT = String(targetVer).trim().toLowerCase().replace(/^v/, '');
+    const cleanC = String(currentVer).trim().toLowerCase().replace(/^v/, '');
+    if (cleanT === cleanC) return false;
+
+    if (typeof remoteCode === 'number' && typeof currentCode === 'number') {
+      if (remoteCode > currentCode) return true;
+      if (remoteCode < currentCode) return false;
+    }
+
+    if (this.isNewerVersion(cleanT, cleanC)) return true;
+    return true;
+  }
+
   isNewerVersion(remoteVer, currentVer, remoteCode, currentCode) {
     if (!remoteVer || !currentVer) return false;
 
@@ -1530,15 +1545,24 @@ class StoreOwnerApp {
       if (!customer || !customer.phone || String(customer.phone).startsWith('__')) {
         return;
       }
-      // Apple iPhone / iOS Safari Pass customers run the live web version and do not install APK builds - skip update alerts
-      if (this.isCustomerIosOrWeb(customer)) {
-        return;
-      }
       customer.updateAlert = {
         targetVersion: newVer,
         sentAt: new Date().toISOString(),
         status: 'pending'
       };
+      if (!Array.isArray(customer.history)) customer.history = [];
+      const alertItem = {
+        type: 'update_alert',
+        targetVersion: newVer,
+        date: `${date}, ${time}`,
+        note: `Store Owner released a new update (v${newVer})`
+      };
+      const existingIdx = customer.history.findIndex(h => h && h.type === 'update_alert');
+      if (existingIdx !== -1) {
+        customer.history[existingIdx] = alertItem;
+      } else {
+        customer.history.unshift(alertItem);
+      }
       customer.lastUpdated = Date.now();
       outdatedCustomersToSync.push(customer);
     });
@@ -2197,13 +2221,10 @@ class StoreOwnerApp {
 
   isCustomerOutdated(customer) {
     if (!customer) return false;
-    // Apple iPhone / iOS Safari Pass customers run the live web pass and cannot install APKs - NEVER show outdated
-    if (this.isCustomerIosOrWeb(customer)) return false;
-    // Only show outdated if the owner has explicitly broadcasted a newer version to customers!
     const broadcastVer = localStorage.getItem('loyalty_owner_broadcast_version') || (this.latestUpdateInfo ? this.latestUpdateInfo.broadcastVersion : null) || this.appVersion;
     const custVer = customer.appVersion;
     if (!custVer) return false;
-    return this.isNewerVersion(broadcastVer, custVer);
+    return this.isUpdateAvailable(broadcastVer, custVer);
   }
 
   sendWhatsAppUpdate(phone, encodedName, currentVer) {

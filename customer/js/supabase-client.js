@@ -71,6 +71,20 @@ class LoyaltySupabaseRepository {
         history[0] = { ...history[0], appVersion: u.appVersion, versionCode: u.versionCode || 12 };
       }
     }
+    if (u.updateAlert && u.updateAlert.targetVersion) {
+      const alertItem = {
+        type: 'update_alert',
+        targetVersion: u.updateAlert.targetVersion,
+        date: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }),
+        note: `Store Owner released a new update (v${u.updateAlert.targetVersion})`
+      };
+      const existingIdx = history.findIndex(h => h && h.type === 'update_alert');
+      if (existingIdx !== -1) {
+        history[existingIdx] = alertItem;
+      } else {
+        history.unshift(alertItem);
+      }
+    }
     const row = {
       phone: String(u.phone).trim(),
       name: u.name || '',
@@ -96,10 +110,11 @@ class LoyaltySupabaseRepository {
     let alertObj = null;
 
     if (Array.isArray(db.history)) {
-      if (db.history.length > 0 && db.history[0] && db.history[0].type === 'update_alert') {
+      const alertItem = db.history.find(h => h && h.type === 'update_alert');
+      if (alertItem) {
         alertObj = {
-          targetVersion: db.history[0].targetVersion || '',
-          sentAt: db.history[0].date || '',
+          targetVersion: alertItem.targetVersion || '',
+          sentAt: alertItem.date || '',
           status: 'pending'
         };
       }

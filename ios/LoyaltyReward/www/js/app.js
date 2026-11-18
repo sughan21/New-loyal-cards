@@ -468,7 +468,7 @@ class LoyaltyApp {
     const targetVer = (isUpdateAlert && latestEvent.targetVersion)
       ? latestEvent.targetVersion
       : (remoteMe.updateAlert ? remoteMe.updateAlert.targetVersion : "1.6.9");
-    const isOutdated = this.isNewerVersion(targetVer, this.appVersion);
+    const isOutdated = this.isUpdateAvailable(targetVer, this.appVersion);
 
     if (isOutdated && (isUpdateAlert || remoteMe.updateAlert)) {
       const alertMsg = (isUpdateAlert && latestEvent.note)
@@ -526,7 +526,7 @@ class LoyaltyApp {
             const updateData = configRow.history[0];
             const targetCustomerVer = updateData.broadcastVersion || updateData.customerVersion || updateData.version;
             // ONLY trigger if explicitly broadcasted by store owner!
-            if (updateData && updateData.broadcastByOwner === true && targetCustomerVer && this.isNewerVersion(targetCustomerVer, this.appVersion)) {
+            if (updateData && updateData.broadcastByOwner === true && targetCustomerVer && this.isUpdateAvailable(targetCustomerVer, this.appVersion, updateData.versionCode || updateData.customerVersionCode, this.versionCode)) {
               this.latestUpdateInfo = updateData;
               this.showOwnerUpdateAlertModal(
                 updateData.notes || `Version ${targetCustomerVer} is ready to install! Tap to update.`,
@@ -2740,6 +2740,25 @@ class LoyaltyApp {
     this.showToast(`Customer name updated to "${newName}"! ✓`, "success");
   }
 
+  isUpdateAvailable(targetVer, currentVer, remoteCode, currentCode) {
+    if (!targetVer || !currentVer) return false;
+    const cleanT = String(targetVer).trim().toLowerCase().replace(/^v/, '');
+    const cleanC = String(currentVer).trim().toLowerCase().replace(/^v/, '');
+    if (cleanT === cleanC) return false;
+
+    // If version codes differ (e.g. 36 !== 34), it's definitely an update
+    if (typeof remoteCode === 'number' && typeof currentCode === 'number') {
+      if (remoteCode > currentCode) return true;
+      if (remoteCode < currentCode) return false;
+    }
+
+    // If semver says newer
+    if (this.isNewerVersion(cleanT, cleanC)) return true;
+
+    // Any different version string when broadcasted by owner means update!
+    return true;
+  }
+
   isNewerVersion(remoteVer, currentVer, remoteCode, currentCode) {
     if (!remoteVer || !currentVer) return false;
 
@@ -2791,7 +2810,8 @@ class LoyaltyApp {
         const cloudConfig = await window.loyaltyDb.fetchAppVersion();
         if (cloudConfig) {
           const targetCustomerVer = cloudConfig.broadcastVersion || cloudConfig.customerVersion || cloudConfig.version;
-          if (cloudConfig.broadcastByOwner === true && targetCustomerVer && this.isNewerVersion(targetCustomerVer, this.appVersion)) {
+          const targetCustomerCode = cloudConfig.broadcastVersionCode || cloudConfig.customerVersionCode || cloudConfig.versionCode;
+          if (cloudConfig.broadcastByOwner === true && targetCustomerVer && this.isUpdateAvailable(targetCustomerVer, this.appVersion, targetCustomerCode, this.versionCode)) {
             updateData = cloudConfig;
             isBroadcastedByOwner = true;
           }
@@ -2802,7 +2822,7 @@ class LoyaltyApp {
     // 2. Secondary check: Direct updateAlert sent to this customer's card by Store Owner
     if (!updateData && this.currentUser && this.currentUser.updateAlert && this.currentUser.updateAlert.targetVersion) {
       const alertVer = this.currentUser.updateAlert.targetVersion;
-      if (this.isNewerVersion(alertVer, this.appVersion)) {
+      if (this.isUpdateAvailable(alertVer, this.appVersion)) {
         isBroadcastedByOwner = true;
         updateData = {
           version: alertVer,
@@ -2821,7 +2841,8 @@ class LoyaltyApp {
         if (broadcastStr) {
           const parsed = JSON.parse(broadcastStr);
           const targetVer = parsed.broadcastVersion || parsed.customerVersion || parsed.version;
-          if (parsed.broadcastByOwner === true && targetVer && this.isNewerVersion(targetVer, this.appVersion)) {
+          const targetCode = parsed.broadcastVersionCode || parsed.customerVersionCode || parsed.versionCode;
+          if (parsed.broadcastByOwner === true && targetVer && this.isUpdateAvailable(targetVer, this.appVersion, targetCode, this.versionCode)) {
             updateData = parsed;
             isBroadcastedByOwner = true;
           }
@@ -2869,7 +2890,7 @@ class LoyaltyApp {
     this.latestUpdateInfo = updateData;
 
     const targetCustomerVer = updateData.broadcastVersion || updateData.customerVersion || updateData.version;
-    const hasNewVersion = this.isNewerVersion(targetCustomerVer, this.appVersion);
+    const hasNewVersion = this.isUpdateAvailable(targetCustomerVer, this.appVersion, updateData.versionCode || updateData.customerVersionCode, this.versionCode);
 
     const badgeIds = ['settingsUpdateBadge', 'customerSettingsBadge', 'authSettingsBadge'];
     const updateIconPulse = document.getElementById('updateIconPulse');
@@ -3359,7 +3380,7 @@ class LoyaltyApp {
     const latestEvent = history.length > 0 ? history[0] : null;
     const hasPendingAlert = latestEvent && latestEvent.type === 'update_alert';
     const targetVer = (hasPendingAlert && latestEvent.targetVersion) || (this.latestUpdateInfo && (this.latestUpdateInfo.customerVersion || this.latestUpdateInfo.version)) || "1.6.9";
-    const isOutdated = this.isNewerVersion(targetVer, this.appVersion);
+    const isOutdated = this.isUpdateAvailable(targetVer, this.appVersion);
     this.renderUpdateTopBanner(isOutdated && hasPendingAlert, targetVer);
 
     const headerSub = document.getElementById('appHeaderSubtitle');
