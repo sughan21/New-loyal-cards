@@ -60,8 +60,8 @@ class StoreOwnerApp {
     this.syncTimer = null;
     this.knownPendingRequestIds = new Set();
     this.expandedCustomerPhones = new Set();
-    this.appVersion = "1.6.20";
-    this.versionCode = 28;
+    this.appVersion = "1.6.21";
+    this.versionCode = 29;
     this.latestUpdateInfo = null;
 
     if (typeof window !== 'undefined') {
@@ -1307,7 +1307,7 @@ class StoreOwnerApp {
       target = this.latestUpdateInfo.ownerVersion || this.latestUpdateInfo.version;
     }
     if (!target) {
-      target = "1.6.20";
+      target = "1.6.21";
     }
     if (title) title.textContent = `Terminal Update Available (v${target})`;
     if (desc && notes) desc.textContent = notes;
@@ -2061,7 +2061,7 @@ class StoreOwnerApp {
   getTargetCustomerVersion() {
     const broadcastVer = localStorage.getItem('loyalty_owner_broadcast_version');
     const remoteVer = this.latestUpdateInfo ? (this.latestUpdateInfo.customerVersion || this.latestUpdateInfo.version) : null;
-    let highest = this.appVersion || "1.6.20";
+    let highest = this.appVersion || "1.6.21";
     if (broadcastVer && this.isNewerVersion(broadcastVer, highest)) {
       highest = broadcastVer;
     }
