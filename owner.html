@@ -87,8 +87,8 @@
     rel="stylesheet">
 
   <!-- Stylesheet (Supports both nested css/ and root uploads) -->
-  <link rel="stylesheet" href="css/style.css?v=20261117_v1616">
-  <link rel="stylesheet" href="style.css?v=20261117_v1616">
+  <link rel="stylesheet" href="css/style.css?v=20261118_v1617">
+  <link rel="stylesheet" href="style.css?v=20261118_v1617">
 
   <style>
     /* Critical Mobile Fix for Version Comparison Strip */
@@ -479,7 +479,7 @@
             <form id="ownerAddCustomerForm" class="add-customer-form">
               <input type="text" id="ownerNewCustName" class="custom-input" placeholder="Enter Customer Name" required>
               <input type="tel" id="ownerNewCustPhone" class="custom-input" placeholder="Enter 10-Digit Mobile Number"
-                required>
+                maxlength="10" inputmode="numeric" pattern="[0-9]{10}" required>
               <button type="submit" class="primary-btn add-cust-btn">
                 Add Customer
               </button>
@@ -757,12 +757,12 @@
         <div class="update-version-strip" id="ownerUpdateVersionStrip">
           <div class="version-chip current-version-chip">
             <span class="version-chip-label">Current Version</span>
-            <span class="version-chip-val" id="ownerCurrentVerDisplay"><span class="version-num">v1.6.16</span> <span class="version-chip-badge latest" id="ownerCurrentVerBadge">Latest ✅</span></span>
+            <span class="version-chip-val" id="ownerCurrentVerDisplay"><span class="version-num">v1.6.17</span> <span class="version-chip-badge latest" id="ownerCurrentVerBadge">Latest ✅</span></span>
           </div>
           <div class="version-chip-arrow" id="ownerVersionChipArrow" style="display: none;">➔</div>
           <div class="version-chip new-version-chip" id="ownerNewVersionChip" style="display: none;">
             <span class="version-chip-label">New Version</span>
-            <span class="version-chip-val" id="ownerNewVerDisplay"><span class="version-num">v1.6.16</span> <span class="version-chip-badge update">⚡ New</span></span>
+            <span class="version-chip-val" id="ownerNewVerDisplay"><span class="version-num">v1.6.17</span> <span class="version-chip-badge update">⚡ New</span></span>
           </div>
         </div>
 
@@ -931,11 +931,11 @@
   <script src="js/vendor/supabase.min.js" onerror="this.onerror=null;this.src='supabase.min.js'"></script>
   <script>if(!window.supabase)document.write('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"><\/script>');</script>
 
-  <script src="js/supabase-client.js?v=20261117_v1616" onerror="this.onerror=null;this.src='supabase-client.js?v=20261117_v1616'"></script>
+  <script src="js/supabase-client.js?v=20261118_v1617" onerror="this.onerror=null;this.src='supabase-client.js?v=20261118_v1617'"></script>
 
   <!-- Application Scripts -->
   <script src="js/audio.js" onerror="this.onerror=null;this.src='audio.js'"></script>
-  <script src="js/owner.js?v=20261117_v1616" onerror="this.onerror=null;this.src='owner.js?v=20261117_v1616'"></script>
+  <script src="js/owner.js?v=20261118_v1617" onerror="this.onerror=null;this.src='owner.js?v=20261118_v1617'"></script>
 </body>
 
 </html>

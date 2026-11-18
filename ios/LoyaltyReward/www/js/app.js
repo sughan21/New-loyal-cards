@@ -67,8 +67,8 @@ class LoyaltyApp {
     this.customerResetOtp = '';
     this.customerResetPhone = '';
     this.repeatApprovalPollTimer = null;
-    this.appVersion = "1.6.16";
-    this.versionCode = 24;
+    this.appVersion = "1.6.17";
+    this.versionCode = 25;
     this.latestUpdateInfo = null;
 
     if (typeof window !== 'undefined') {
@@ -86,6 +86,7 @@ class LoyaltyApp {
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
     this.loadState();
     this.bindEvents();
+    this.setupPhoneInputConstraints();
     this.setupBackNavigation();
     this.setupPWA();
     this.setupCardParallax();
@@ -970,268 +971,371 @@ class LoyaltyApp {
     }
   }
 
+  // --- Strict 10-Digit Mobile Number Constraint ---
+  setupPhoneInputConstraints() {
+    const phoneInputIds = ['loginPhone', 'regPhone', 'custForgotPhone'];
+    phoneInputIds.forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+
+      // Block non-numeric keystrokes immediately
+      el.addEventListener('keydown', (e) => {
+        // Allow control and navigation keys
+        if ([
+          'Backspace', 'Delete', 'Tab', 'Escape', 'Enter',
+          'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown',
+          'Home', 'End'
+        ].includes(e.key)) {
+          return;
+        }
+        // Allow Ctrl/Cmd shortcuts (Copy, Cut, Paste, Select All)
+        if (e.ctrlKey || e.metaKey) {
+          return;
+        }
+        // Disallow anything other than digits 0-9
+        if (!/^\d$/.test(e.key)) {
+          e.preventDefault();
+          return;
+        }
+        // Strictly prevent entering more than 10 digits
+        const selLen = (el.selectionEnd || 0) - (el.selectionStart || 0);
+        if (el.value.length >= 10 && selLen === 0) {
+          e.preventDefault();
+        }
+      });
+
+      // Filter input to max 10 digits in real-time
+      el.addEventListener('input', (e) => {
+        const cleanDigits = e.target.value.replace(/\D/g, '').slice(0, 10);
+        if (e.target.value !== cleanDigits) {
+          e.target.value = cleanDigits;
+        }
+      });
+
+      // Sanitize pasted content
+      el.addEventListener('paste', (e) => {
+        e.preventDefault();
+        const pasteText = (e.clipboardData || window.clipboardData)?.getData('text') || '';
+        const digits = pasteText.replace(/\D/g, '').slice(0, 10);
+        const start = el.selectionStart || 0;
+        const end = el.selectionEnd || 0;
+        const cur = el.value;
+        const next = (cur.slice(0, start) + digits + cur.slice(end)).replace(/\D/g, '').slice(0, 10);
+        el.value = next;
+        const newPos = Math.min(start + digits.length, 10);
+        el.setSelectionRange(newPos, newPos);
+      });
+    });
+  }
+
   // --- Customer Login & Register ---
   async handleCustomerLogin(e) {
     e.preventDefault();
-    const rawPhone = document.getElementById('loginPhone').value.trim();
-    const phone = rawPhone.replace(/\D/g, '').replace(/^91(?=\d{10}$)/, '').replace(/^0(?=\d{10}$)/, '') || rawPhone;
-    const password = document.getElementById('loginPassword').value;
+    const phoneInput = document.getElementById('loginPhone');
+    const passInput = document.getElementById('loginPassword');
+    const submitBtn = e.target.querySelector('button[type="submit"]');
 
-    let user = this.users.find(u => {
-      const uClean = String(u.phone).replace(/\D/g, '').replace(/^91(?=\d{10}$)/, '').replace(/^0(?=\d{10}$)/, '');
-      return (u.phone === rawPhone || u.phone === phone || uClean === phone) && u.password === password;
-    });
+    const rawPhone = phoneInput ? phoneInput.value.trim() : '';
+    const phone = rawPhone.replace(/\D/g, '').slice(0, 10);
+    const password = passInput ? passInput.value : '';
 
-    if (!user && window.loyaltyDb && window.loyaltyDb.isReady) {
-      try {
-        const cloudCust = await window.loyaltyDb.fetchCustomer(phone) || await window.loyaltyDb.fetchCustomer(rawPhone);
-        if (cloudCust && (cloudCust.password === password || !cloudCust.password)) {
-          user = cloudCust;
-          const idx = this.users.findIndex(u => u.phone === user.phone);
-          if (idx === -1) {
-            this.users.push(user);
-          } else {
-            this.users[idx] = user;
-          }
-          this.saveUsers();
-        }
-      } catch (err) {
-        console.warn("Cloud login check error:", err);
-      }
-    }
-
-    if (!user) {
-      // Check if mobile exists with another password
-      const phoneExists = this.users.some(u => {
-        const uClean = String(u.phone).replace(/\D/g, '').replace(/^91(?=\d{10}$)/, '').replace(/^0(?=\d{10}$)/, '');
-        return u.phone === rawPhone || u.phone === phone || uClean === phone;
-      });
-
-      if (phoneExists) {
-        if (window.soundEngine) window.soundEngine.playError();
-        this.showToast("Incorrect password for this registered mobile number.", "error");
-        return;
-      }
-
-      // If user enters a new mobile number (>= 10 digits) on Login tab, auto-create their loyalty pass seamlessly!
-      if (phone.length >= 10 && password) {
-        const devInfo = window.detectDeviceInfo ? await window.detectDeviceInfo() : { deviceName: "Mobile Device", deviceId: "" };
-        const timeStr = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-        const dateStr = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-        const fullDateStr = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
-        const initialHistory = [
-          { 
-            date: `${dateStr}, ${timeStr}`, 
-            type: 'stamp', 
-            note: `Welcome Reward Claimed: 1st Loyalty Tick Unlocked! (Tick #1 of ${MAX_STAMPS})`,
-            device: devInfo.deviceName,
-            deviceId: devInfo.deviceId,
-            appVersion: this.appVersion,
-            versionCode: this.versionCode
-          },
-          { 
-            date: fullDateStr, 
-            type: 'joined', 
-            note: `Joined Loyalty Reward from ${devInfo.deviceName}`,
-            device: devInfo.deviceName,
-            deviceId: devInfo.deviceId,
-            appVersion: this.appVersion,
-            versionCode: this.versionCode
-          }
-        ];
-        user = {
-          phone,
-          name: 'Loyalty Member ' + phone.slice(-4),
-          password,
-          stamps: 1,
-          giftsEarned: 0,
-          memberId: 'GP-' + Math.floor(10000 + Math.random() * 90000),
-          deviceName: devInfo.deviceName,
-          deviceId: devInfo.deviceId,
-          appVersion: this.appVersion,
-          versionCode: this.versionCode,
-          history: initialHistory,
-          lastStampDate: new Date().toISOString().slice(0, 10),
-          createdAt: fullDateStr
-        };
-        this.users.push(user);
-        this.currentUser = user;
-        this.saveCurrentUser();
-        await this.pushUserToServer(user);
-        this.setupRealtimeCustomerSync();
-        this._hasScrolledToTop = false;
-        window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
-        if (window.soundEngine) window.soundEngine.playStampSound();
-        this.triggerConfetti(false);
-        this.showToast(`🎉 Welcome to ${this.storeConfig.name}! New Pass created & 1st Stamp added! (1/${MAX_STAMPS})`, "success");
-        this.render();
-        return;
-      }
-
+    // 1. Validate 10-digit mobile number
+    if (!phone || phone.length !== 10) {
       if (window.soundEngine) window.soundEngine.playError();
-      this.showToast("Invalid mobile number or password.", "error");
+      this.showToast("Please enter a valid 10-digit mobile number.", "error");
+      if (phoneInput) {
+        phoneInput.focus();
+        phoneInput.classList.add('input-error');
+        setTimeout(() => phoneInput.classList.remove('input-error'), 2000);
+      }
       return;
     }
 
-    // Read and record customer device name & unique hardware device ID
-    const devInfo = window.detectDeviceInfo ? await window.detectDeviceInfo() : { deviceName: "Mobile Device", deviceId: "" };
-    user.deviceName = devInfo.deviceName;
-    user.deviceId = devInfo.deviceId;
-    user.lastLoginDevice = devInfo.deviceName;
-    user.lastLoginAt = new Date().toISOString();
-    user.appVersion = this.appVersion;
-    user.versionCode = this.versionCode;
-
-    // Ensure history is an array and clean out any old login records
-    if (!Array.isArray(user.history)) user.history = [];
-    user.history = user.history.filter(h => h.type !== 'login');
-
-    this.currentUser = user;
-    this.saveCurrentUser();
-    localStorage.setItem(APP_STORAGE_KEY_CURRENT, user.phone);
-    this.setupRealtimeCustomerSync();
-    this._hasScrolledToTop = false;
-    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
-
-    // Check if customer arrived via Store Counter QR scan
-    const pendingScan = sessionStorage.getItem('pending_store_token');
-    if (pendingScan) {
-      sessionStorage.removeItem('pending_store_token');
-      this.hidePendingScanBanner();
-      if (window.soundEngine) window.soundEngine.playSuccessTone();
-      this.showToast(`✨ Welcome back, ${user.name}! Store QR detected.`, "success");
-      this.render();
-      setTimeout(() => {
-        this.processScannedCode(pendingScan);
-      }, 400);
+    // 2. Validate password entered
+    if (!password) {
+      if (window.soundEngine) window.soundEngine.playError();
+      this.showToast("Please enter your password.", "error");
+      if (passInput) {
+        passInput.focus();
+        passInput.classList.add('input-error');
+        setTimeout(() => passInput.classList.remove('input-error'), 2000);
+      }
       return;
     }
 
-    // If new user has 0 stamps, claim their 1st Welcome Stamp on first login!
-    const hasAnyStamps = (user.stamps > 0) || (Array.isArray(user.history) && user.history.some(h => h.type === 'stamp'));
-    if (!hasAnyStamps) {
-      user.stamps = 1;
-      const timeStr = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-      const dateStr = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-      user.history.unshift({
-        date: `${dateStr}, ${timeStr}`,
-        type: 'stamp',
-        note: `Welcome Reward Claimed: 1st Loyalty Tick Unlocked! (Tick #1 of ${MAX_STAMPS})`
-      });
-      user.lastStampDate = new Date().toISOString().slice(0, 10);
+    // Button feedback
+    const origBtnHtml = submitBtn ? submitBtn.innerHTML : '';
+    if (submitBtn) {
+      submitBtn.innerHTML = '<span>Verifying Account...</span>';
+      submitBtn.style.opacity = '0.85';
+      submitBtn.disabled = true;
+    }
+
+    try {
+      // 3. Search for registered customer (First in local cache, then in Supabase Cloud)
+      const matchPhone = (userPhone, targetPhone) => {
+        if (!userPhone || !targetPhone) return false;
+        const cleanU = String(userPhone).replace(/\D/g, '').replace(/^91(?=\d{10}$)/, '').replace(/^0(?=\d{10}$)/, '');
+        const cleanT = String(targetPhone).replace(/\D/g, '').replace(/^91(?=\d{10}$)/, '').replace(/^0(?=\d{10}$)/, '');
+        return cleanU === cleanT || String(userPhone).trim() === String(targetPhone).trim();
+      };
+
+      let user = this.users.find(u => matchPhone(u.phone, phone));
+
+      // Always query Supabase Cloud to verify latest registration and password
+      if (window.loyaltyDb) {
+        try {
+          const cloudCust = await window.loyaltyDb.fetchCustomer(phone);
+          if (cloudCust && cloudCust.phone && !String(cloudCust.phone).startsWith('__') && cloudCust.name !== '__DELETED__') {
+            user = cloudCust;
+            const idx = this.users.findIndex(u => matchPhone(u.phone, cloudCust.phone));
+            if (idx === -1) {
+              this.users.push(cloudCust);
+            } else {
+              this.users[idx] = cloudCust;
+            }
+            this.saveUsers();
+          }
+        } catch (err) {
+          console.warn("Cloud lookup error during login:", err);
+        }
+      }
+
+      // 4. STRICT RULE 1: Customer MUST already be signed up!
+      if (!user) {
+        if (window.soundEngine) window.soundEngine.playError();
+        this.showToast("❌ No customer account found for this mobile number. Please tap 'New Customer' to sign up first.", "error");
+        if (phoneInput) {
+          phoneInput.focus();
+          phoneInput.classList.add('input-error');
+          setTimeout(() => phoneInput.classList.remove('input-error'), 2500);
+        }
+        return;
+      }
+
+      // 5. STRICT RULE 2: Password MUST match the password created during sign up!
+      const storedPassword = String(user.password || '');
+      if (!storedPassword || storedPassword !== String(password)) {
+        if (window.soundEngine) window.soundEngine.playError();
+        this.showToast("❌ Incorrect password for this mobile number. Please enter the password you created during sign up.", "error");
+        if (passInput) {
+          passInput.value = '';
+          passInput.focus();
+          passInput.classList.add('input-error');
+          setTimeout(() => passInput.classList.remove('input-error'), 2500);
+        }
+        return;
+      }
+
+      // 6. Login Successful! Record device and session
+      const devInfo = window.detectDeviceInfo ? await window.detectDeviceInfo() : { deviceName: "Mobile Device", deviceId: "" };
+      user.deviceName = devInfo.deviceName;
+      user.deviceId = devInfo.deviceId;
+      user.lastLoginDevice = devInfo.deviceName;
+      user.lastLoginAt = new Date().toISOString();
+      user.appVersion = this.appVersion;
+      user.versionCode = this.versionCode;
+
+      if (!Array.isArray(user.history)) user.history = [];
+      user.history = user.history.filter(h => h.type !== 'login');
+
+      this.currentUser = user;
       this.saveCurrentUser();
-      await this.pushUserToServer(user);
-      if (window.soundEngine) window.soundEngine.playStampSound();
-      this.triggerConfetti(false);
-      this.showToast(`🎁 Welcome Reward Claimed! 1st Stamp added to your card! (1/${MAX_STAMPS})`, "success");
-    } else {
+      localStorage.setItem(APP_STORAGE_KEY_CURRENT, user.phone);
+      this.setupRealtimeCustomerSync();
+      this._hasScrolledToTop = false;
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+
+      // Check if arriving via Store QR scan
+      const pendingScan = sessionStorage.getItem('pending_store_token');
+      if (pendingScan) {
+        sessionStorage.removeItem('pending_store_token');
+        this.hidePendingScanBanner();
+        if (window.soundEngine) window.soundEngine.playSuccessTone();
+        this.showToast(`✨ Welcome back, ${user.name}! Store QR detected.`, "success");
+        this.render();
+        setTimeout(() => {
+          this.processScannedCode(pendingScan);
+        }, 400);
+        return;
+      }
+
       await this.pushUserToServer(user);
       if (window.soundEngine) window.soundEngine.playSuccessTone();
       this.showToast(`✨ Welcome back, ${user.name}!`, "success");
+      this.render();
+    } finally {
+      if (submitBtn) {
+        submitBtn.innerHTML = origBtnHtml;
+        submitBtn.style.opacity = '1';
+        submitBtn.disabled = false;
+      }
     }
-    this.render();
   }
 
   async handleCustomerRegister(e) {
     e.preventDefault();
-    const name = document.getElementById('regName').value.trim();
-    const rawPhone = document.getElementById('regPhone').value.trim();
-    const phone = rawPhone.replace(/\D/g, '').replace(/^91(?=\d{10}$)/, '').replace(/^0(?=\d{10}$)/, '') || rawPhone;
-    const password = document.getElementById('regPassword').value;
-    const confirmPassword = document.getElementById('regConfirmPassword').value;
+    const nameInput = document.getElementById('regName');
+    const phoneInput = document.getElementById('regPhone');
+    const passInput = document.getElementById('regPassword');
+    const confPassInput = document.getElementById('regConfirmPassword');
+    const submitBtn = e.target.querySelector('button[type="submit"]');
 
-    if (!name || !phone || !password) {
-      this.showToast("Please fill in all fields.", "error");
+    const name = nameInput ? nameInput.value.trim() : '';
+    const rawPhone = phoneInput ? phoneInput.value.trim() : '';
+    const phone = rawPhone.replace(/\D/g, '').slice(0, 10);
+    const password = passInput ? passInput.value : '';
+    const confirmPassword = confPassInput ? confPassInput.value : '';
+
+    if (!name) {
+      this.showToast("Please enter your full name.", "error");
+      if (nameInput) nameInput.focus();
+      return;
+    }
+
+    if (!phone || phone.length !== 10) {
+      if (window.soundEngine) window.soundEngine.playError();
+      this.showToast("Please enter a valid 10-digit mobile number.", "error");
+      if (phoneInput) {
+        phoneInput.focus();
+        phoneInput.classList.add('input-error');
+        setTimeout(() => phoneInput.classList.remove('input-error'), 2000);
+      }
+      return;
+    }
+
+    if (!password) {
+      this.showToast("Please create a password for your Loyalty Pass.", "error");
+      if (passInput) passInput.focus();
       return;
     }
 
     if (password !== confirmPassword) {
-      this.showToast("Passwords do not match.", "error");
-      return;
-    }
-
-    let existing = this.users.find(u => {
-      const uClean = String(u.phone).replace(/\D/g, '').replace(/^91(?=\d{10}$)/, '').replace(/^0(?=\d{10}$)/, '');
-      return u.phone === phone || uClean === phone;
-    });
-
-    if (!existing && window.loyaltyDb && window.loyaltyDb.isReady) {
-      try {
-        existing = await window.loyaltyDb.fetchCustomer(phone);
-        if (existing) {
-          this.users.push(existing);
-          this.saveUsers();
-        }
-      } catch (err) {}
-    }
-
-    if (existing) {
-      this.showToast("Mobile already registered! Please sign in.", "error");
-      this.switchAuthTab('login');
-      document.getElementById('loginPhone').value = phone;
-      return;
-    }
-
-    // Read device name & unique hardware device ID on registration
-    const devInfo = window.detectDeviceInfo ? await window.detectDeviceInfo() : { deviceName: "Mobile Device", deviceId: "" };
-    const deviceName = devInfo.deviceName;
-    const deviceId = devInfo.deviceId;
-
-    // Automatically give 1 Welcome Stamp (Tick #1 of 11) to claim on sign-up
-    const initialStamps = 1;
-    const timeStr = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-    const dateStr = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-    const fullDateStr = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
-
-    const initialHistory = [
-      { 
-        date: `${dateStr}, ${timeStr}`, 
-        type: 'stamp', 
-        note: `Welcome Reward Claimed: 1st Loyalty Tick Unlocked! (Tick #1 of ${MAX_STAMPS})`,
-        device: deviceName,
-        deviceId: deviceId
-      },
-      { 
-        date: fullDateStr, 
-        type: 'joined', 
-        note: `Joined Loyalty Reward from ${deviceName}`,
-        device: deviceName,
-        deviceId: deviceId
+      if (window.soundEngine) window.soundEngine.playError();
+      this.showToast("Passwords do not match. Please re-enter.", "error");
+      if (confPassInput) {
+        confPassInput.value = '';
+        confPassInput.focus();
+        confPassInput.classList.add('input-error');
+        setTimeout(() => confPassInput.classList.remove('input-error'), 2000);
       }
-    ];
-
-    const pendingScan = sessionStorage.getItem('pending_store_token');
-    if (pendingScan) {
-      sessionStorage.removeItem('pending_store_token');
-      this.hidePendingScanBanner();
+      return;
     }
 
-    const newUser = {
-      phone,
-      name,
-      password,
-      stamps: initialStamps,
-      giftsEarned: 0,
-      memberId: 'GP-' + Math.floor(10000 + Math.random() * 90000),
-      deviceName: deviceName,
-      deviceId: deviceId,
-      appVersion: this.appVersion,
-      versionCode: this.versionCode,
-      history: initialHistory,
-      lastStampDate: new Date().toISOString().slice(0, 10),
-      createdAt: fullDateStr
-    };
+    // Button feedback
+    const origBtnHtml = submitBtn ? submitBtn.innerHTML : '';
+    if (submitBtn) {
+      submitBtn.innerHTML = '<span>Creating Loyalty Pass...</span>';
+      submitBtn.style.opacity = '0.85';
+      submitBtn.disabled = true;
+    }
 
-    this.users.push(newUser);
-    this.currentUser = newUser;
-    this.saveCurrentUser();
-    await this.pushUserToServer(newUser);
-    this.setupRealtimeCustomerSync();
-    this._hasScrolledToTop = false;
-    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    try {
+      const matchPhone = (userPhone, targetPhone) => {
+        if (!userPhone || !targetPhone) return false;
+        const cleanU = String(userPhone).replace(/\D/g, '').replace(/^91(?=\d{10}$)/, '').replace(/^0(?=\d{10}$)/, '');
+        const cleanT = String(targetPhone).replace(/\D/g, '').replace(/^91(?=\d{10}$)/, '').replace(/^0(?=\d{10}$)/, '');
+        return cleanU === cleanT || String(userPhone).trim() === String(targetPhone).trim();
+      };
 
-    if (window.soundEngine) window.soundEngine.playStampSound();
-    this.triggerConfetti(false);
+      // Check if already registered in local cache or cloud
+      let existing = this.users.find(u => matchPhone(u.phone, phone));
+      if (!existing && window.loyaltyDb) {
+        try {
+          existing = await window.loyaltyDb.fetchCustomer(phone);
+        } catch (err) {}
+      }
+
+      if (existing) {
+        if (window.soundEngine) window.soundEngine.playError();
+        this.showToast("This mobile number is already registered! Please sign in with your password.", "error");
+        this.switchAuthTab('login');
+        const loginPhoneEl = document.getElementById('loginPhone');
+        if (loginPhoneEl) loginPhoneEl.value = phone;
+        const loginPassEl = document.getElementById('loginPassword');
+        if (loginPassEl) {
+          loginPassEl.value = '';
+          loginPassEl.focus();
+        }
+        return;
+      }
+
+      // Read device info
+      const devInfo = window.detectDeviceInfo ? await window.detectDeviceInfo() : { deviceName: "Mobile Device", deviceId: "" };
+      const deviceName = devInfo.deviceName;
+      const deviceId = devInfo.deviceId;
+
+      // Welcome Stamp: 1st Loyalty Tick Unlocked on sign-up
+      const initialStamps = 1;
+      const timeStr = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+      const dateStr = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+      const fullDateStr = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+
+      const initialHistory = [
+        { 
+          date: `${dateStr}, ${timeStr}`, 
+          type: 'stamp', 
+          note: `Welcome Reward Claimed: 1st Loyalty Tick Unlocked! (Tick #1 of ${MAX_STAMPS})`,
+          device: deviceName,
+          deviceId: deviceId
+        },
+        { 
+          date: fullDateStr, 
+          type: 'joined', 
+          note: `Joined Loyalty Reward from ${deviceName}`,
+          device: deviceName,
+          deviceId: deviceId
+        }
+      ];
+
+      const pendingScan = sessionStorage.getItem('pending_store_token');
+      if (pendingScan) {
+        sessionStorage.removeItem('pending_store_token');
+        this.hidePendingScanBanner();
+      }
+
+      const newUser = {
+        phone,
+        name,
+        password,
+        stamps: initialStamps,
+        giftsEarned: 0,
+        memberId: 'GP-' + Math.floor(10000 + Math.random() * 90000),
+        deviceName: deviceName,
+        deviceId: deviceId,
+        appVersion: this.appVersion,
+        versionCode: this.versionCode,
+        history: initialHistory,
+        lastStampDate: new Date().toISOString().slice(0, 10),
+        createdAt: fullDateStr
+      };
+
+      this.users.push(newUser);
+      this.currentUser = newUser;
+      this.saveCurrentUser();
+      await this.pushUserToServer(newUser);
+      this.setupRealtimeCustomerSync();
+      this._hasScrolledToTop = false;
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+
+      if (window.soundEngine) window.soundEngine.playStampSound();
+      this.triggerConfetti(false);
+      this.showToast(`🎉 Welcome to ${this.storeConfig.name}, ${name}! Your Pass is ready with 1st Stamp! (1/${MAX_STAMPS})`, "success");
+      this.render();
+
+      if (pendingScan) {
+        setTimeout(() => {
+          this.processScannedCode(pendingScan);
+        }, 500);
+      }
+    } finally {
+      if (submitBtn) {
+        submitBtn.innerHTML = origBtnHtml;
+        submitBtn.style.opacity = '1';
+        submitBtn.disabled = false;
+      }
+    }
+  }
     this.showToast(`🎉 Welcome to ${this.storeConfig.name}, ${name}! Your 1st Welcome Stamp has been claimed! (1/${MAX_STAMPS})`, "success");
     this.render();
   }
@@ -1292,16 +1396,37 @@ class LoyaltyApp {
     modal.classList.add('active');
   }
 
-  handleCustomerSendOtp() {
+  async handleCustomerSendOtp() {
     const phoneInput = document.getElementById('custForgotPhone');
-    const phone = phoneInput ? phoneInput.value.trim() : '';
+    const rawPhone = phoneInput ? phoneInput.value.trim() : '';
+    const phone = rawPhone.replace(/\D/g, '').slice(0, 10);
 
-    if (!phone) {
-      this.showToast("Please enter your registered mobile number first.", "error");
+    if (!phone || phone.length !== 10) {
+      this.showToast("Please enter a valid 10-digit registered mobile number.", "error");
+      if (phoneInput) phoneInput.focus();
       return;
     }
 
-    const customer = this.users.find(u => u.phone === phone);
+    const matchPhone = (userPhone, targetPhone) => {
+      if (!userPhone || !targetPhone) return false;
+      const cleanU = String(userPhone).replace(/\D/g, '').replace(/^91(?=\d{10}$)/, '').replace(/^0(?=\d{10}$)/, '');
+      const cleanT = String(targetPhone).replace(/\D/g, '').replace(/^91(?=\d{10}$)/, '').replace(/^0(?=\d{10}$)/, '');
+      return cleanU === cleanT || String(userPhone).trim() === String(targetPhone).trim();
+    };
+
+    let customer = this.users.find(u => matchPhone(u.phone, phone));
+    if (!customer && window.loyaltyDb) {
+      try {
+        customer = await window.loyaltyDb.fetchCustomer(phone);
+        if (customer) {
+          const idx = this.users.findIndex(u => matchPhone(u.phone, customer.phone));
+          if (idx === -1) this.users.push(customer);
+          else this.users[idx] = customer;
+          this.saveUsers();
+        }
+      } catch (_) {}
+    }
+
     if (!customer) {
       if (window.soundEngine) window.soundEngine.playError();
       this.showToast("Mobile number not found in registered loyalty passes.", "error");
@@ -1326,14 +1451,34 @@ class LoyaltyApp {
     this.showToast(`💬 SMS OTP code sent: ${code}`, "success");
   }
 
-  handleCustomerPasswordReset(e) {
+  async handleCustomerPasswordReset(e) {
     e.preventDefault();
-    const phone = document.getElementById('custForgotPhone').value.trim();
+    const rawPhone = document.getElementById('custForgotPhone').value.trim();
+    const phone = rawPhone.replace(/\D/g, '').slice(0, 10);
     const otp = document.getElementById('custForgotOtp').value.trim();
     const newPassword = document.getElementById('custNewPassword').value;
     const confirmPassword = document.getElementById('custConfirmNewPassword').value;
 
-    const customer = this.users.find(u => u.phone === phone);
+    const matchPhone = (userPhone, targetPhone) => {
+      if (!userPhone || !targetPhone) return false;
+      const cleanU = String(userPhone).replace(/\D/g, '').replace(/^91(?=\d{10}$)/, '').replace(/^0(?=\d{10}$)/, '');
+      const cleanT = String(targetPhone).replace(/\D/g, '').replace(/^91(?=\d{10}$)/, '').replace(/^0(?=\d{10}$)/, '');
+      return cleanU === cleanT || String(userPhone).trim() === String(targetPhone).trim();
+    };
+
+    let customer = this.users.find(u => matchPhone(u.phone, phone));
+    if (!customer && window.loyaltyDb) {
+      try {
+        customer = await window.loyaltyDb.fetchCustomer(phone);
+        if (customer) {
+          const idx = this.users.findIndex(u => matchPhone(u.phone, customer.phone));
+          if (idx === -1) this.users.push(customer);
+          else this.users[idx] = customer;
+          this.saveUsers();
+        }
+      } catch (_) {}
+    }
+
     if (!customer) {
       this.showToast("Mobile number not found in registered accounts.", "error");
       return;
@@ -2388,7 +2533,7 @@ class LoyaltyApp {
       target = this.latestUpdateInfo.customerVersion || this.latestUpdateInfo.version;
     }
     if (!target) {
-      target = "1.6.16";
+      target = "1.6.17";
     }
     if (title) title.textContent = `New Update Available (v${target})`;
     if (desc && note) desc.textContent = note;

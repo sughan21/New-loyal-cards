@@ -5783,17 +5783,6 @@ body.modal-open {
   background: rgba(16, 185, 129, 0.2) !important;
 }
 
-.update-alert-dialog {
-  max-width: 420px !important;
-  width: 92% !important;
-  background: #ffffff !important;
-  border: 1px solid #e7dfd5 !important;
-  border-radius: 20px !important;
-  box-shadow: 0 16px 40px rgba(28, 18, 12, 0.2) !important;
-  text-align: center !important;
-  padding: 26px 20px !important;
-}
-
 /* ==========================================================================
    CUSTOMER TOP UPDATE BANNER & OWNER UPDATE ALERT MODAL
    ========================================================================== */
@@ -5870,4 +5859,18 @@ body.modal-open {
   box-shadow: 0 16px 40px rgba(28, 18, 12, 0.2) !important;
   text-align: center !important;
   padding: 26px 20px !important;
+}
+
+/* Input Error & Shake Animation */
+.custom-input.input-error {
+  border-color: #ef4444 !important;
+  background-color: #fff5f5 !important;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2) !important;
+  animation: shakeInput 0.35s ease-in-out;
+}
+
+@keyframes shakeInput {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-5px); }
+  40%, 80% { transform: translateX(5px); }
 }

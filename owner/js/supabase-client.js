@@ -183,26 +183,73 @@ class LoyaltySupabaseRepository {
   }
 
   async fetchCustomer(phone) {
-    if (!this.isReady || !phone) return null;
-    try {
-      const { data, error } = await this.client
-        .from('customers')
-        .select('*')
-        .eq('phone', String(phone).trim())
-        .maybeSingle();
+    if (!phone) return null;
+    const cleanDigits = String(phone).replace(/\D/g, '');
+    const clean10 = cleanDigits.slice(-10);
 
-      if (error) {
-        console.warn("Supabase fetchCustomer error:", error);
-        return null;
+    const tryFetch = async (targetPhone) => {
+      if (!targetPhone) return null;
+      const cleanTarget = String(targetPhone).trim();
+
+      if (this.isReady && this.client) {
+        try {
+          const { data, error } = await this.client
+            .from('customers')
+            .select('*')
+            .eq('phone', cleanTarget)
+            .maybeSingle();
+
+          if (!error && data && data.name !== '__DELETED__' && data.member_id !== '__DELETED__') {
+            return this.toLocalCustomer(data);
+          }
+        } catch (e) {
+          console.warn("Supabase client fetchCustomer error:", e);
+        }
       }
-      if (data && (data.name === '__DELETED__' || data.member_id === '__DELETED__')) {
-        return null;
+
+      // Direct REST fallback
+      try {
+        const res = await fetch(`${SUPABASE_CONFIG.url}/rest/v1/customers?phone=eq.${encodeURIComponent(cleanTarget)}&select=*`, {
+          headers: {
+            'apikey': SUPABASE_CONFIG.anonKey,
+            'Authorization': `Bearer ${SUPABASE_CONFIG.anonKey}`
+          }
+        });
+        if (res.ok) {
+          const rows = await res.json();
+          if (Array.isArray(rows) && rows.length > 0) {
+            const data = rows[0];
+            if (data && data.name !== '__DELETED__' && data.member_id !== '__DELETED__') {
+              return this.toLocalCustomer(data);
+            }
+          }
+        }
+      } catch (err) {
+        console.warn("Supabase fetchCustomer REST error:", err);
       }
-      return data ? this.toLocalCustomer(data) : null;
-    } catch (e) {
-      console.warn("Supabase network error:", e);
       return null;
+    };
+
+    // 1. Try clean 10-digit phone
+    if (clean10.length === 10) {
+      const res = await tryFetch(clean10);
+      if (res) return res;
     }
+
+    // 2. Try raw input if different
+    const rawTrim = String(phone).trim();
+    if (rawTrim && rawTrim !== clean10) {
+      const res = await tryFetch(rawTrim);
+      if (res) return res;
+    }
+
+    // 3. Try with 91 prefix
+    if (clean10.length === 10) {
+      const res = await tryFetch('91' + clean10);
+      if (res) return res;
+    }
+
+    return null;
   }
 
   async deleteCustomer(phone) {

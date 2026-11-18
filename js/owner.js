@@ -60,8 +60,8 @@ class StoreOwnerApp {
     this.syncTimer = null;
     this.knownPendingRequestIds = new Set();
     this.expandedCustomerPhones = new Set();
-    this.appVersion = "1.6.16";
-    this.versionCode = 24;
+    this.appVersion = "1.6.17";
+    this.versionCode = 25;
     this.latestUpdateInfo = null;
 
     if (typeof window !== 'undefined') {
@@ -625,6 +625,33 @@ class StoreOwnerApp {
     // Quick Add Customer Form
     const addCustForm = document.getElementById('ownerAddCustomerForm');
     if (addCustForm) addCustForm.addEventListener('submit', (e) => this.handleAddCustomer(e));
+
+    // Setup phone input constraint (10 digits only)
+    const newCustPhoneInput = document.getElementById('ownerNewCustPhone');
+    if (newCustPhoneInput) {
+      newCustPhoneInput.setAttribute('maxlength', '10');
+      newCustPhoneInput.setAttribute('inputmode', 'numeric');
+      newCustPhoneInput.setAttribute('pattern', '[0-9]{10}');
+      
+      newCustPhoneInput.addEventListener('keydown', (e) => {
+        const allowedKeys = ['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Tab', 'Enter', 'Home', 'End'];
+        if (allowedKeys.includes(e.key) || (e.ctrlKey || e.metaKey)) return;
+        if (!/^[0-9]$/.test(e.key)) {
+          e.preventDefault();
+        }
+      });
+      newCustPhoneInput.addEventListener('input', (e) => {
+        let val = e.target.value.replace(/\D/g, '');
+        if (val.length > 10) val = val.slice(0, 10);
+        if (e.target.value !== val) e.target.value = val;
+      });
+      newCustPhoneInput.addEventListener('paste', (e) => {
+        e.preventDefault();
+        const text = (e.clipboardData || window.clipboardData).getData('text') || '';
+        const digits = text.replace(/\D/g, '').slice(0, 10);
+        document.execCommand('insertText', false, digits);
+      });
+    }
 
     // Print Standee (Isolates only the counter standee card)
     const printBtn = document.getElementById('printStandeeBtn');
@@ -1280,7 +1307,7 @@ class StoreOwnerApp {
       target = this.latestUpdateInfo.ownerVersion || this.latestUpdateInfo.version;
     }
     if (!target) {
-      target = "1.6.16";
+      target = "1.6.17";
     }
     if (title) title.textContent = `Terminal Update Available (v${target})`;
     if (desc && notes) desc.textContent = notes;
@@ -1531,12 +1558,33 @@ class StoreOwnerApp {
   // --- Customer Operations ---
   handleAddCustomer(e) {
     e.preventDefault();
-    const name = document.getElementById('ownerNewCustName').value.trim();
-    const phone = document.getElementById('ownerNewCustPhone').value.trim();
+    const nameInput = document.getElementById('ownerNewCustName');
+    const phoneInput = document.getElementById('ownerNewCustPhone');
+    const name = nameInput ? nameInput.value.trim() : '';
+    const rawPhone = phoneInput ? phoneInput.value.trim() : '';
+    const phone = rawPhone.replace(/\D/g, '').slice(0, 10);
 
-    if (!name || !phone) return;
+    if (!name) {
+      this.showToast("Please enter customer name.", "error");
+      if (nameInput) nameInput.focus();
+      return;
+    }
 
-    if (this.users.some(u => u.phone === phone)) {
+    if (!/^\d{10}$/.test(phone)) {
+      this.showToast("Please enter a valid 10-digit mobile number.", "error");
+      if (phoneInput) {
+        phoneInput.focus();
+        phoneInput.classList.add('input-error');
+        setTimeout(() => phoneInput.classList.remove('input-error'), 1500);
+      }
+      return;
+    }
+
+    const cleanExisting = (p) => (p || '').replace(/\D/g, '');
+    if (this.users.some(u => {
+      const ep = cleanExisting(u.phone);
+      return ep === phone || (ep.length >= 10 && ep.endsWith(phone)) || (phone.length >= 10 && phone.endsWith(ep));
+    })) {
       this.showToast("Customer mobile already registered!", "error");
       return;
     }
@@ -2013,7 +2061,7 @@ class StoreOwnerApp {
   getTargetCustomerVersion() {
     const broadcastVer = localStorage.getItem('loyalty_owner_broadcast_version');
     const remoteVer = this.latestUpdateInfo ? (this.latestUpdateInfo.customerVersion || this.latestUpdateInfo.version) : null;
-    let highest = this.appVersion || "1.6.16";
+    let highest = this.appVersion || "1.6.17";
     if (broadcastVer && this.isNewerVersion(broadcastVer, highest)) {
       highest = broadcastVer;
     }
