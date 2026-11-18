@@ -67,8 +67,8 @@ class LoyaltyApp {
     this.customerResetOtp = '';
     this.customerResetPhone = '';
     this.repeatApprovalPollTimer = null;
-    this.appVersion = "1.6.17";
-    this.versionCode = 25;
+    this.appVersion = "1.6.18";
+    this.versionCode = 26;
     this.latestUpdateInfo = null;
 
     if (typeof window !== 'undefined') {
@@ -578,6 +578,41 @@ class LoyaltyApp {
     const registerForm = document.getElementById('registerForm');
     if (registerForm) registerForm.addEventListener('submit', (e) => this.handleCustomerRegister(e));
 
+    // Inline Account Not Found Prompt button
+    const loginPromptBtn = document.getElementById('loginCreateAccountPromptBtn');
+    if (loginPromptBtn) {
+      loginPromptBtn.addEventListener('click', () => {
+        const phone = (document.getElementById('loginPhone')?.value || '').replace(/\D/g, '').slice(0, 10);
+        this.switchToRegisterWithPhone(phone);
+      });
+    }
+
+    // Google Sign-In & Sign-Up Buttons
+    const googleLoginBtn = document.getElementById('googleLoginBtn');
+    if (googleLoginBtn) {
+      googleLoginBtn.addEventListener('click', () => this.openGoogleAuthModal('login'));
+    }
+
+    const googleRegisterBtn = document.getElementById('googleRegisterBtn');
+    if (googleRegisterBtn) {
+      googleRegisterBtn.addEventListener('click', () => this.openGoogleAuthModal('register'));
+    }
+
+    const googleAuthForm = document.getElementById('googleAuthForm');
+    if (googleAuthForm) {
+      googleAuthForm.addEventListener('submit', (e) => this.handleGoogleAuthSubmit(e));
+    }
+
+    const loginPhoneInputEl = document.getElementById('loginPhone');
+    if (loginPhoneInputEl) {
+      loginPhoneInputEl.addEventListener('input', () => {
+        const alertBox = document.getElementById('loginUserNotFoundAlert');
+        if (alertBox && alertBox.style.display !== 'none') {
+          alertBox.style.display = 'none';
+        }
+      });
+    }
+
     // Customer Logout
     const logoutBtn = document.getElementById('logoutBtn');
     if (logoutBtn) {
@@ -957,6 +992,10 @@ class LoyaltyApp {
     const loginForm = document.getElementById('loginForm');
     const registerForm = document.getElementById('registerForm');
 
+    // Hide any previous not-found alert
+    const alertBox = document.getElementById('loginUserNotFoundAlert');
+    if (alertBox) alertBox.style.display = 'none';
+
     if (loginTabBtn) loginTabBtn.classList.remove('active');
     if (registerTabBtn) registerTabBtn.classList.remove('active');
     if (loginForm) loginForm.style.display = 'none';
@@ -971,9 +1010,23 @@ class LoyaltyApp {
     }
   }
 
+  switchToRegisterWithPhone(phone) {
+    this.switchAuthTab('register');
+    if (phone) {
+      const regPhone = document.getElementById('regPhone');
+      if (regPhone) {
+        regPhone.value = phone;
+      }
+    }
+    const regName = document.getElementById('regName');
+    if (regName) {
+      setTimeout(() => regName.focus(), 150);
+    }
+  }
+
   // --- Strict 10-Digit Mobile Number Constraint ---
   setupPhoneInputConstraints() {
-    const phoneInputIds = ['loginPhone', 'regPhone', 'custForgotPhone'];
+    const phoneInputIds = ['loginPhone', 'regPhone', 'custForgotPhone', 'googleAuthPhone'];
     phoneInputIds.forEach(id => {
       const el = document.getElementById(id);
       if (!el) return;
@@ -1104,7 +1157,17 @@ class LoyaltyApp {
       // 4. STRICT RULE 1: Customer MUST already be signed up!
       if (!user) {
         if (window.soundEngine) window.soundEngine.playError();
-        this.showToast("❌ No customer account found for this mobile number. Please tap 'New Customer' to sign up first.", "error");
+        this.showToast("❌ No customer account found for this mobile number. Please tap 'Create New Account' to sign up.", "error");
+
+        // Display inline Account Not Found Alert Box
+        const alertBox = document.getElementById('loginUserNotFoundAlert');
+        const phoneDisplay = document.getElementById('notFoundPhoneDisplay');
+        if (phoneDisplay) phoneDisplay.textContent = phone;
+        if (alertBox) {
+          alertBox.style.display = 'flex';
+          alertBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
         if (phoneInput) {
           phoneInput.focus();
           phoneInput.classList.add('input-error');
@@ -1172,7 +1235,6 @@ class LoyaltyApp {
       }
     }
   }
-
   async handleCustomerRegister(e) {
     e.preventDefault();
     const nameInput = document.getElementById('regName');
@@ -1336,8 +1398,173 @@ class LoyaltyApp {
       }
     }
   }
-    this.showToast(`🎉 Welcome to ${this.storeConfig.name}, ${name}! Your 1st Welcome Stamp has been claimed! (1/${MAX_STAMPS})`, "success");
-    this.render();
+
+  // --- Google Account Authentication (Login & Register) ---
+  openGoogleAuthModal(mode = 'login') {
+    const modal = document.getElementById('googleAuthModal');
+    if (!modal) return;
+    this.googleAuthMode = mode;
+    const titleEl = document.getElementById('googleModalTitle');
+    const descEl = document.getElementById('googleModalDesc');
+    const submitBtn = document.getElementById('googleAuthSubmitBtn');
+
+    // Pre-fill phone from login or register input if user already entered 10 digits
+    const currentPhone = (document.getElementById('loginPhone')?.value || document.getElementById('regPhone')?.value || '').replace(/\D/g, '').slice(0, 10);
+    const googlePhoneInput = document.getElementById('googleAuthPhone');
+    if (googlePhoneInput && currentPhone) {
+      googlePhoneInput.value = currentPhone;
+    }
+
+    if (mode === 'register') {
+      if (titleEl) titleEl.textContent = "Sign up with Google";
+      if (descEl) descEl.textContent = "Create your Loyalty Pass instantly and claim your 1st Welcome Stamp!";
+      if (submitBtn) {
+        const textSpan = submitBtn.querySelector('span');
+        if (textSpan) textSpan.textContent = "Create Pass with Google";
+      }
+    } else {
+      if (titleEl) titleEl.textContent = "Sign in with Google";
+      if (descEl) descEl.textContent = "Connect your Google account for 1-tap Loyalty Pass access.";
+      if (submitBtn) {
+        const textSpan = submitBtn.querySelector('span');
+        if (textSpan) textSpan.textContent = "Continue to Loyalty Pass";
+      }
+    }
+
+    modal.classList.add('active');
+  }
+
+  async handleGoogleAuthSubmit(e) {
+    e.preventDefault();
+    const email = document.getElementById('googleAuthEmail')?.value.trim();
+    const name = document.getElementById('googleAuthName')?.value.trim();
+    const phoneInput = document.getElementById('googleAuthPhone');
+    const phone = (phoneInput?.value || '').replace(/\D/g, '').slice(0, 10);
+    const submitBtn = document.getElementById('googleAuthSubmitBtn');
+
+    if (!email || !name) {
+      this.showToast("Please provide your Google email and name.", "error");
+      return;
+    }
+
+    if (!phone || phone.length !== 10) {
+      if (window.soundEngine) window.soundEngine.playError();
+      this.showToast("Please enter a valid 10-digit mobile number.", "error");
+      if (phoneInput) {
+        phoneInput.focus();
+        phoneInput.classList.add('input-error');
+        setTimeout(() => phoneInput.classList.remove('input-error'), 2000);
+      }
+      return;
+    }
+
+    const origBtnHtml = submitBtn ? submitBtn.innerHTML : '';
+    if (submitBtn) {
+      submitBtn.innerHTML = '<span>Connecting Google Account...</span>';
+      submitBtn.disabled = true;
+    }
+
+    try {
+      const matchPhone = (userPhone, targetPhone) => {
+        if (!userPhone || !targetPhone) return false;
+        const cleanU = String(userPhone).replace(/\D/g, '').replace(/^91(?=\d{10}$)/, '').replace(/^0(?=\d{10}$)/, '');
+        const cleanT = String(targetPhone).replace(/\D/g, '').replace(/^91(?=\d{10}$)/, '').replace(/^0(?=\d{10}$)/, '');
+        return cleanU === cleanT || String(userPhone).trim() === String(targetPhone).trim();
+      };
+
+      // Search if user exists by phone or google email
+      let user = this.users.find(u => matchPhone(u.phone, phone) || (u.googleEmail && u.googleEmail.toLowerCase() === email.toLowerCase()));
+
+      if (!user && window.loyaltyDb) {
+        try {
+          user = await window.loyaltyDb.fetchCustomer(phone);
+        } catch (err) {}
+      }
+
+      const devInfo = window.detectDeviceInfo ? await window.detectDeviceInfo() : { deviceName: "Mobile Device", deviceId: "" };
+      const timeStr = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+      const dateStr = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+      const fullDateStr = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+
+      if (user) {
+        // Existing user: Link google email and sign in!
+        user.googleEmail = email;
+        if (!user.name || user.name.startsWith('Customer')) user.name = name;
+        user.deviceName = devInfo.deviceName;
+        user.deviceId = devInfo.deviceId;
+        user.lastLoginDevice = devInfo.deviceName;
+        user.lastLoginAt = new Date().toISOString();
+        user.appVersion = this.appVersion;
+        user.versionCode = this.versionCode;
+
+        this.currentUser = user;
+        this.saveCurrentUser();
+        localStorage.setItem(APP_STORAGE_KEY_CURRENT, user.phone);
+        this.setupRealtimeCustomerSync();
+        await this.pushUserToServer(user);
+        this.closeAllModals();
+
+        if (window.soundEngine) window.soundEngine.playSuccessTone();
+        this.showToast(`✨ Welcome back, ${user.name}! (Signed in via Google)`, "success");
+        this.render();
+      } else {
+        // New user: Create Loyalty Pass with Google Account!
+        const initialStamps = 1;
+        const initialHistory = [
+          {
+            date: `${dateStr}, ${timeStr}`,
+            type: 'stamp',
+            note: `Welcome Reward Claimed: 1st Loyalty Tick Unlocked! (Tick #1 of ${MAX_STAMPS})`,
+            device: devInfo.deviceName,
+            deviceId: devInfo.deviceId
+          },
+          {
+            date: fullDateStr,
+            type: 'joined',
+            note: `Joined Loyalty Reward via Google Account (${email})`,
+            device: devInfo.deviceName,
+            deviceId: devInfo.deviceId
+          }
+        ];
+
+        const newUser = {
+          phone,
+          name,
+          googleEmail: email,
+          password: "google_auth_" + Math.random().toString(36).substring(2, 10),
+          stamps: initialStamps,
+          giftsEarned: 0,
+          memberId: 'GP-' + Math.floor(10000 + Math.random() * 90000),
+          deviceName: devInfo.deviceName,
+          deviceId: devInfo.deviceId,
+          appVersion: this.appVersion,
+          versionCode: this.versionCode,
+          history: initialHistory,
+          lastStampDate: new Date().toISOString().slice(0, 10),
+          createdAt: fullDateStr
+        };
+
+        this.users.push(newUser);
+        this.currentUser = newUser;
+        this.saveCurrentUser();
+        await this.pushUserToServer(newUser);
+        this.setupRealtimeCustomerSync();
+        this.closeAllModals();
+
+        if (window.soundEngine) window.soundEngine.playStampSound();
+        this.triggerConfetti(false);
+        this.showToast(`🎉 Welcome, ${name}! Loyalty Pass created with Google! (1/${MAX_STAMPS} Ticks)`, "success");
+        this.render();
+      }
+    } catch (err) {
+      console.error("Google Auth error:", err);
+      this.showToast("Could not complete Google Sign In. Please try again.", "error");
+    } finally {
+      if (submitBtn) {
+        submitBtn.innerHTML = origBtnHtml;
+        submitBtn.disabled = false;
+      }
+    }
   }
 
   customerLogout() {
@@ -2533,7 +2760,7 @@ class LoyaltyApp {
       target = this.latestUpdateInfo.customerVersion || this.latestUpdateInfo.version;
     }
     if (!target) {
-      target = "1.6.17";
+      target = "1.6.18";
     }
     if (title) title.textContent = `New Update Available (v${target})`;
     if (desc && note) desc.textContent = note;
