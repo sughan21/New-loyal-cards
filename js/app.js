@@ -688,6 +688,21 @@ class LoyaltyApp {
       applyUpdateBtn.addEventListener('click', () => this.handleApplyUpdate());
     }
 
+    // Customer Name Edit inside Settings
+    const saveCustomerNameBtn = document.getElementById('saveCustomerNameBtn');
+    if (saveCustomerNameBtn) {
+      saveCustomerNameBtn.addEventListener('click', () => this.handleSaveCustomerName());
+    }
+    const editCustomerNameInput = document.getElementById('editCustomerNameInput');
+    if (editCustomerNameInput) {
+      editCustomerNameInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          this.handleSaveCustomerName();
+        }
+      });
+    }
+
     // Customer Dedicated Store Owner Update Alert Modal Buttons (Direct Bindings)
     const ownerUpdateModalActionBtn = document.getElementById('ownerUpdateModalActionBtn');
     if (ownerUpdateModalActionBtn) {
@@ -2647,9 +2662,82 @@ class LoyaltyApp {
       accountSection.style.display = this.currentUser ? 'block' : 'none';
     }
 
+    const profileSection = document.getElementById('settingsProfileSection');
+    if (profileSection) {
+      profileSection.style.display = this.currentUser ? 'block' : 'none';
+      const nameInput = document.getElementById('editCustomerNameInput');
+      const phoneDisplay = document.getElementById('settingsCustomerPhoneDisplay');
+      const saveStatus = document.getElementById('editNameSaveStatus');
+      if (saveStatus) saveStatus.style.display = 'none';
+      if (this.currentUser) {
+        if (nameInput) nameInput.value = this.currentUser.name || '';
+        if (phoneDisplay) phoneDisplay.textContent = this.currentUser.phone || '-';
+      }
+    }
+
     this.pushBackHistory('settingsModal');
     modal.classList.add('active');
     this.checkForAppUpdates(false);
+  }
+
+  async handleSaveCustomerName() {
+    if (!this.currentUser) return;
+    const nameInput = document.getElementById('editCustomerNameInput');
+    const saveBtn = document.getElementById('saveCustomerNameBtn');
+    const saveStatus = document.getElementById('editNameSaveStatus');
+    if (!nameInput) return;
+
+    const newName = nameInput.value.trim();
+    if (!newName) {
+      this.showToast("Please enter a valid customer name", "error");
+      nameInput.focus();
+      return;
+    }
+
+    if (newName.length < 2) {
+      this.showToast("Name must be at least 2 characters", "error");
+      nameInput.focus();
+      return;
+    }
+
+    if (newName === this.currentUser.name) {
+      this.showToast("Name is already up to date ✓", "info");
+      return;
+    }
+
+    const oldName = this.currentUser.name;
+    this.currentUser.name = newName;
+    this.saveCurrentUser();
+
+    if (saveBtn) {
+      saveBtn.disabled = true;
+      saveBtn.innerHTML = '<span>Saving...</span>';
+    }
+
+    try {
+      if (window.loyaltyDb && window.loyaltyDb.isReady) {
+        await window.loyaltyDb.upsertCustomer(this.currentUser);
+      }
+      await this.pushUserToServer(this.currentUser);
+    } catch (e) {
+      console.warn("Failed to sync customer name to cloud:", e);
+    } finally {
+      if (saveBtn) {
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = '<span>💾 Save</span>';
+      }
+    }
+
+    if (saveStatus) {
+      saveStatus.style.display = 'inline-block';
+      setTimeout(() => {
+        if (saveStatus) saveStatus.style.display = 'none';
+      }, 2500);
+    }
+
+    this.render();
+    if (window.soundEngine) window.soundEngine.playSuccessTone();
+    this.showToast(`Customer name updated to "${newName}"! ✓`, "success");
   }
 
   isNewerVersion(remoteVer, currentVer, remoteCode, currentCode) {

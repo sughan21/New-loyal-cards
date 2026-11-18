@@ -5423,6 +5423,20 @@ body.modal-open {
   gap: 12px !important;
 }
 
+.setting-profile-card {
+  background: #fbf9f6 !important;
+  border: 1.5px solid #ebe2d5 !important;
+  border-radius: 18px !important;
+  padding: 14px 16px !important;
+  margin-top: 6px !important;
+  box-sizing: border-box !important;
+}
+
+#editCustomerNameInput:focus {
+  border-color: #b87c32 !important;
+  box-shadow: 0 0 0 3px rgba(184, 124, 50, 0.15) !important;
+}
+
 .update-card-header {
   display: flex !important;
   align-items: center !important;
