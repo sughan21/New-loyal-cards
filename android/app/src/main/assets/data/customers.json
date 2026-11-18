@@ -210,33 +210,6 @@
         "giftsEarned":  0,
         "history":  [
                         {
-                            "date":  "12 Nov, 20:52",
-                            "note":  "⚡ System Update Alert (v1.6.5) pushed by Store Owner: Please install the latest build!",
-                            "type":  "update_alert",
-                            "targetVersion":  "1.6.5"
-                        },
-                        {
-                            "date":  "12 Nov, 20:51",
-                            "note":  "⚡ System Update Alert (v1.6.5) pushed by Store Owner: Please install the latest build!",
-                            "type":  "update_alert",
-                            "targetVersion":  "1.6.5"
-                        },
-                        {
-                            "date":  "12 Nov, 20:41",
-                            "note":  "⚡ System Update Alert (v1.6.4) pushed by Store Owner: Please uninstall older version \u0026 install new build!",
-                            "type":  "update_alert"
-                        },
-                        {
-                            "date":  "12 Nov, 20:38",
-                            "note":  "⚡ System Update Alert (v1.6.4) pushed by Store Owner: Please uninstall older version \u0026 install new build!",
-                            "type":  "update_alert"
-                        },
-                        {
-                            "date":  "12 Nov, 20:26",
-                            "note":  "⚡ System Update Alert (v1.6.4) pushed by Store Owner: Please uninstall older version \u0026 install new build!",
-                            "type":  "update_alert"
-                        },
-                        {
                             "date":  "12 Nov, 07:24 pm",
                             "note":  "Store Purchase (2nd Visit Cashier Approved) - Tick #2 of 11 Collected",
                             "type":  "stamp"
@@ -267,13 +240,6 @@
         "stamps":  2,
         "giftsEarned":  1,
         "history":  [
-                        {
-                            "date":  "12 Nov, 21:00",
-                            "note":  "✅ App Updated to v1.6.5 Successfully",
-                            "type":  "update_installed",
-                            "appVersion":  "1.6.5",
-                            "versionCode":  13
-                        },
                         {
                             "date":  "12 Nov, 07:27 PM",
                             "note":  "Store Purchase (2nd Visit Cashier Approved) - Tick #2 of 11 Collected",
@@ -350,13 +316,6 @@
                             "note":  "↩️ Stamp Removed by Cashier (Tick #5 deleted. Current: 4/11)",
                             "type":  "stamp_cancelled",
                             "appVersion":  "1.6.5"
-                        },
-                        {
-                            "date":  "13 Nov, 19:46",
-                            "note":  "✅ App Updated to v1.6.5 Successfully",
-                            "type":  "update_installed",
-                            "appVersion":  "1.6.5",
-                            "versionCode":  13
                         },
                         {
                             "date":  "11 Nov, 20:22",

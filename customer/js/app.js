@@ -67,8 +67,8 @@ class LoyaltyApp {
     this.customerResetOtp = '';
     this.customerResetPhone = '';
     this.repeatApprovalPollTimer = null;
-    this.appVersion = "1.6.22";
-    this.versionCode = 30;
+    this.appVersion = "1.6.23";
+    this.versionCode = 31;
     this.latestUpdateInfo = null;
 
     if (typeof window !== 'undefined') {
@@ -2928,7 +2928,7 @@ class LoyaltyApp {
       target = this.latestUpdateInfo.customerVersion || this.latestUpdateInfo.version;
     }
     if (!target) {
-      target = "1.6.22";
+      target = "1.6.23";
     }
     if (title) title.textContent = `New Update Available (v${target})`;
     if (desc && note) desc.textContent = note;
@@ -3415,27 +3415,41 @@ class LoyaltyApp {
     // History Log (Only show actual stamps, gifts, and initial welcome joining)
     const historyList = document.getElementById('customerHistoryList');
     if (historyList) {
-      const displayHistory = (this.currentUser.history || []).filter(item => item.type !== 'login');
+      const validHistoryTypes = new Set(['stamp', 'stamp_cancelled', 'reward', 'joined']);
+      const displayHistory = (this.currentUser.history || []).filter(item => {
+        if (!item || !item.type) return false;
+        if (!validHistoryTypes.has(item.type)) return false;
+        if (typeof item.note === 'string' && (item.note.includes('System Update Alert') || item.note.includes('Seamless 1-tap updates') || item.note.includes('Update verified'))) return false;
+        return true;
+      });
+
       if (displayHistory.length === 0) {
         historyList.innerHTML = `<div style="text-align:center; padding:15px; color:var(--text-dark); font-size:0.8rem;">No activity yet. Scan your first store QR after purchasing!</div>`;
       } else {
         historyList.innerHTML = displayHistory.map(item => {
           let tagText = '✓ STAMP';
-          let tagColor = 'var(--emerald-primary)';
+          let tagColor = '#10b981';
+          let tagBg = 'rgba(16, 185, 129, 0.12)';
           if (item.type === 'reward') {
-            tagText = '★ GIFT';
-            tagColor = 'var(--gold-primary)';
+            tagText = '🎁 REDEEMED';
+            tagColor = '#d97706';
+            tagBg = 'rgba(217, 119, 6, 0.12)';
+          } else if (item.type === 'stamp_cancelled') {
+            tagText = '↩️ REMOVED';
+            tagColor = '#ef4444';
+            tagBg = 'rgba(239, 68, 68, 0.12)';
           } else if (item.type === 'joined') {
             tagText = '★ JOINED';
-            tagColor = 'var(--text-muted)';
+            tagColor = '#78716c';
+            tagBg = 'rgba(120, 113, 108, 0.12)';
           }
           return `
-            <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid var(--border-subtle); font-size:0.8rem;">
-              <div>
-                <div style="font-weight:600; color:var(--text-primary);">${item.note}</div>
-                <div style="font-size:0.7rem; color:var(--text-muted);">${item.date}</div>
+            <div style="display:flex; justify-content:space-between; align-items:center; padding:11px 0; border-bottom:1px solid var(--border-subtle); font-size:0.82rem; gap:12px;">
+              <div style="flex:1;">
+                <div style="font-weight:600; color:var(--text-primary); line-height:1.4;">${item.note}</div>
+                <div style="font-size:0.72rem; color:var(--text-muted); margin-top:2px;">${item.date}</div>
               </div>
-              <span style="font-size:0.7rem; font-weight:700; color:${tagColor};">
+              <span style="font-size:0.7rem; font-weight:700; color:${tagColor}; background:${tagBg}; padding:4px 8px; border-radius:6px; white-space:nowrap;">
                 ${tagText}
               </span>
             </div>

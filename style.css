@@ -2571,14 +2571,22 @@ body.store-mode-active .app-container {
 
 .history-item-tag.tag-stamp {
   color: #059669;
+  background: rgba(5, 150, 105, 0.1);
 }
 
 .history-item-tag.tag-gift {
-  color: #b87737;
+  color: #b45309;
+  background: rgba(180, 83, 9, 0.1);
+}
+
+.history-item-tag.tag-stamp-cancel {
+  color: #dc2626;
+  background: rgba(220, 38, 38, 0.1);
 }
 
 .history-item-tag.tag-joined {
   color: #695547;
+  background: rgba(105, 85, 71, 0.1);
 }
 
 .history-empty-text {

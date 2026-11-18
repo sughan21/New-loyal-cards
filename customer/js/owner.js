@@ -60,8 +60,8 @@ class StoreOwnerApp {
     this.syncTimer = null;
     this.knownPendingRequestIds = new Set();
     this.expandedCustomerPhones = new Set();
-    this.appVersion = "1.6.22";
-    this.versionCode = 30;
+    this.appVersion = "1.6.23";
+    this.versionCode = 31;
     this.latestUpdateInfo = null;
 
     if (typeof window !== 'undefined') {
@@ -114,12 +114,20 @@ class StoreOwnerApp {
 
   sanitizeCustomerNotes(userList) {
     if (!Array.isArray(userList)) return userList;
+    const validHistoryTypes = new Set(['stamp', 'stamp_cancelled', 'reward', 'joined']);
     userList.forEach(u => {
+      // Purge any update alerts or system broadcast events from permanent stamp history
+      if (Array.isArray(u.history)) {
+        u.history = u.history.filter(item => {
+          if (!item || !item.type) return false;
+          if (!validHistoryTypes.has(item.type)) return false;
+          if (typeof item.note === 'string' && (item.note.includes('System Update Alert') || item.note.includes('Seamless 1-tap updates') || item.note.includes('Update verified'))) return false;
+          return true;
+        });
+      }
+
       // Apple iPhone / iOS / Safari Pass users run live web and do not receive APK push alerts
       if (this.isCustomerIosOrWeb(u)) {
-        if (Array.isArray(u.history)) {
-          u.history = u.history.filter(item => item && item.type !== 'update_alert');
-        }
         if (u.updateAlert) {
           delete u.updateAlert;
         }
@@ -1325,7 +1333,7 @@ class StoreOwnerApp {
       target = this.latestUpdateInfo.ownerVersion || this.latestUpdateInfo.version;
     }
     if (!target) {
-      target = "1.6.22";
+      target = "1.6.23";
     }
     if (title) title.textContent = `Terminal Update Available (v${target})`;
     if (desc && notes) desc.textContent = notes;
@@ -1506,15 +1514,6 @@ class StoreOwnerApp {
         sentAt: new Date().toISOString(),
         status: 'pending'
       };
-      if (!Array.isArray(customer.history)) customer.history = [];
-      if (!customer.history[0] || customer.history[0].type !== 'update_alert' || customer.history[0].targetVersion !== newVer) {
-        customer.history.unshift({
-          date: `${date}, ${time}`,
-          type: "update_alert",
-          note: `⚡ System Update Alert (v${newVer}) pushed by Store Owner: Please install the latest build!`,
-          targetVersion: newVer
-        });
-      }
       customer.lastUpdated = Date.now();
       outdatedCustomersToSync.push(customer);
     });
@@ -2146,7 +2145,7 @@ class StoreOwnerApp {
   getTargetCustomerVersion() {
     const broadcastVer = localStorage.getItem('loyalty_owner_broadcast_version');
     const remoteVer = this.latestUpdateInfo ? (this.latestUpdateInfo.customerVersion || this.latestUpdateInfo.version) : null;
-    let highest = this.appVersion || "1.6.22";
+    let highest = this.appVersion || "1.6.23";
     if (broadcastVer && this.isNewerVersion(broadcastVer, highest)) {
       highest = broadcastVer;
     }
@@ -2227,14 +2226,6 @@ class StoreOwnerApp {
       status: 'pending'
     };
 
-    if (!Array.isArray(customer.history)) customer.history = [];
-    customer.history.unshift({
-      date: `${date}, ${time}`,
-      type: "update_alert",
-      note: `⚡ System Update Alert (v${targetVer}) pushed by Store Owner: Please install the latest build!`,
-      targetVersion: targetVer
-    });
-
     customer.lastUpdated = Date.now();
     this.saveUsers();
     await this.pushCustomerToServer(customer);
@@ -2253,17 +2244,7 @@ class StoreOwnerApp {
     customer.versionCode = this.versionCode || 12;
     delete customer.updateAlert;
 
-    const time = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-    const date = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-
-    if (!Array.isArray(customer.history)) customer.history = [];
-    customer.history.unshift({
-      date: `${date}, ${time}`,
-      type: "update_verified",
-      note: `✅ App Updated to v${targetVer} Confirmed (Update Box Cleared)`,
-      appVersion: targetVer
-    });
-
+    customer.lastUpdated = Date.now();
     this.saveUsers();
     await this.pushCustomerToServer(customer);
 
@@ -2447,33 +2428,32 @@ class StoreOwnerApp {
       dotsHtml += `<div class="mini-stamp-dot gift-dot ${stamps >= MAX_STAMPS ? 'unlocked removable' : ''}" ${giftRemove}>${stamps >= MAX_STAMPS ? '🎁' : '★'}</div>`;
 
       let historyItemsHtml = '';
-      const displayHistory = history.filter(item => item.type !== 'login');
+      const validHistoryTypes = new Set(['stamp', 'stamp_cancelled', 'reward', 'joined']);
+      const displayHistory = (history || []).filter(item => {
+        if (!item || !item.type) return false;
+        if (!validHistoryTypes.has(item.type)) return false;
+        if (typeof item.note === 'string' && (item.note.includes('System Update Alert') || item.note.includes('Seamless 1-tap updates') || item.note.includes('Update verified'))) return false;
+        return true;
+      });
+
       if (displayHistory.length === 0) {
         historyItemsHtml = `<div class="history-empty-text">No stamp or redemption events recorded yet for this customer card.</div>`;
       } else {
         historyItemsHtml = displayHistory.map(item => {
           const isReward = item.type === 'reward';
           const isJoined = item.type === 'joined';
-          const isUpdateAlert = item.type === 'update_alert';
           const isCancel = item.type === 'stamp_cancelled';
-          const isUpdated = item.type === 'update_verified';
           let tagText = '✓ STAMP';
           let tagClass = 'tag-stamp';
           if (isReward) {
-            tagText = '★ REWARD';
+            tagText = '🎁 REDEEMED';
             tagClass = 'tag-gift';
+          } else if (isCancel) {
+            tagText = '↩️ REMOVED';
+            tagClass = 'tag-stamp-cancel';
           } else if (isJoined) {
             tagText = '★ JOINED';
             tagClass = 'tag-joined';
-          } else if (isUpdateAlert) {
-            tagText = '⚡ UPDATE';
-            tagClass = 'tag-update-alert';
-          } else if (isCancel) {
-            tagText = '↩️ CANCELLED';
-            tagClass = 'tag-stamp-cancel';
-          } else if (isUpdated) {
-            tagText = '✓ UPDATED';
-            tagClass = 'tag-stamp';
           }
           return `
             <div class="history-item-row">
@@ -2554,7 +2534,7 @@ class StoreOwnerApp {
             `}
             <button type="button" id="historyBtn-${customer.phone}" class="btn-toggle-history ${isExpanded ? 'active' : ''}" onclick="window.ownerApp.toggleCustomerHistory('${customer.phone}')" title="Click to view stamp history">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-              <span>History (${history.length})</span>
+              <span>History (${displayHistory.length})</span>
               <svg class="history-chevron" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
             </button>
             <button type="button" class="btn-delete-customer" onclick="window.ownerApp.ownerDeleteCustomer('${customer.phone}')" title="Delete customer card">
@@ -2597,7 +2577,7 @@ class StoreOwnerApp {
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
                   <span>Card Stamp History</span>
                 </div>
-                <span class="history-badge-count">${history.length} Event${history.length === 1 ? '' : 's'}</span>
+                <span class="history-badge-count">${displayHistory.length} Event${displayHistory.length === 1 ? '' : 's'}</span>
               </div>
               <div class="card-history-list">
                 ${historyItemsHtml}
