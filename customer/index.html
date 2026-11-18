@@ -87,8 +87,8 @@
     rel="stylesheet">
 
   <!-- Stylesheet (Supports both nested css/ and root uploads) -->
-  <link rel="stylesheet" href="css/style.css?v=20261118_v1619">
-  <link rel="stylesheet" href="style.css?v=20261118_v1619">
+  <link rel="stylesheet" href="css/style.css?v=20261118_v1620">
+  <link rel="stylesheet" href="style.css?v=20261118_v1620">
 
   <style>
     /* Critical Mobile Fix for Version Comparison Strip */
@@ -1087,12 +1087,12 @@
         <div class="update-version-strip" id="updateVersionStrip">
           <div class="version-chip current-version-chip">
             <span class="version-chip-label">Current Version</span>
-            <span class="version-chip-val" id="currentVerDisplay"><span class="version-num">v1.6.19</span> <span class="version-chip-badge latest" id="currentVerBadge">Latest ✅</span></span>
+            <span class="version-chip-val" id="currentVerDisplay"><span class="version-num">v1.6.20</span> <span class="version-chip-badge latest" id="currentVerBadge">Latest ✅</span></span>
           </div>
           <div class="version-chip-arrow" id="versionChipArrow" style="display: none;">➔</div>
           <div class="version-chip new-version-chip" id="newVersionChip" style="display: none;">
             <span class="version-chip-label">New Version</span>
-            <span class="version-chip-val" id="newVerDisplay"><span class="version-num">v1.6.19</span> <span class="version-chip-badge update">⚡ New</span></span>
+            <span class="version-chip-val" id="newVerDisplay"><span class="version-num">v1.6.20</span> <span class="version-chip-badge update">⚡ New</span></span>
           </div>
         </div>
 
@@ -1241,49 +1241,37 @@
     <div class="modal-dialog google-auth-dialog">
       <button type="button" class="modal-close-btn modal-close-trigger" aria-label="Close">&times;</button>
       <div class="google-modal-header">
-        <svg class="google-modal-icon" width="36" height="36" viewBox="0 0 24 24">
+        <svg class="google-modal-icon" width="40" height="40" viewBox="0 0 24 24">
           <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
           <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
           <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
           <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
         </svg>
-        <h3 id="googleModalTitle">Sign in with Google</h3>
-        <p id="googleModalDesc">Connect your Google account for 1-tap Loyalty Pass access.</p>
+        <h3 id="googleModalTitle" style="font-size: 1.25rem; font-weight: 800; color: var(--text-pure); margin-bottom: 4px;">Link Google Account</h3>
+        <p id="googleModalDesc" style="font-size: 0.82rem; color: var(--text-muted); margin: 0;">Connect your Google account for 1-tap Loyalty Pass access.</p>
       </div>
 
-      <form id="googleAuthForm" class="auth-form" style="display: flex; flex-direction: column; gap: 14px; margin-top: 10px;">
-        <div class="input-group">
-          <label for="googleAuthEmail">Google Account Email</label>
-          <div class="input-field-wrapper">
-            <span class="input-field-icon">📧</span>
-            <input type="email" id="googleAuthEmail" class="custom-input" placeholder="e.g. name@gmail.com" required autocomplete="email">
-          </div>
+      <div id="googleSetupNoticeBox" style="background: #fff8f0; border: 1.5px solid #f97316; border-radius: 12px; padding: 14px; margin-top: 12px; text-align: left;">
+        <div style="font-weight: 800; color: #c2410c; margin-bottom: 6px; font-size: 0.92rem; display: flex; align-items: center; gap: 6px;">
+          <span>⚠️</span> <span>Google Provider Not Activated in Supabase</span>
         </div>
-
-        <div class="input-group">
-          <label for="googleAuthName">Full Name</label>
-          <div class="input-field-wrapper">
-            <span class="input-field-icon">👤</span>
-            <input type="text" id="googleAuthName" class="custom-input" placeholder="Your name on Google" required autocomplete="name">
-          </div>
+        <p style="font-size: 0.8rem; color: #431407; margin: 0 0 10px 0; line-height: 1.45;">
+          Direct Google authentication requires enabling the <strong>Google Provider</strong> in your Supabase backend project.
+        </p>
+        <div style="background: #ffffff; border: 1px solid #fed7aa; border-radius: 8px; padding: 8px 10px; margin-bottom: 10px;">
+          <span style="font-size: 0.72rem; color: #9a3412; font-weight: 700; text-transform: uppercase;">Redirect Callback URI for Google Cloud:</span>
+          <code style="display: block; font-size: 0.74rem; color: #7c2d12; word-break: break-all; margin-top: 2px; user-select: all;">https://rhqpiskqgfmotazjzbnm.supabase.co/auth/v1/callback</code>
         </div>
+        <a href="https://supabase.com/dashboard/project/rhqpiskqgfmotazjzbnm/auth/providers" target="_blank" rel="noopener" class="primary-btn" style="background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); color: #fff; text-decoration: none; padding: 10px 14px; font-size: 0.82rem; border-radius: 8px; justify-content: center; box-shadow: 0 2px 8px rgba(234, 88, 12, 0.3);">
+          <span>Open Supabase Auth Providers Dashboard ↗</span>
+        </a>
+      </div>
 
-        <div class="input-group">
-          <label for="googleAuthPhone">Customer Mobile Number (10 Digits)</label>
-          <div class="input-field-wrapper">
-            <span class="input-field-icon">📞</span>
-            <input type="tel" id="googleAuthPhone" class="custom-input" placeholder="Enter 10-digit mobile number" maxlength="10" inputmode="numeric" pattern="[0-9]{10}" autocomplete="tel" required>
-          </div>
-          <small style="color: var(--text-muted); font-size: 0.72rem; margin-top: 2px;">
-            Required so store owners can identify you and stamp your card at the counter.
-          </small>
-        </div>
-
-        <button type="submit" id="googleAuthSubmitBtn" class="primary-btn" style="background: #1a73e8; color: #fff; margin-top: 6px;">
-          <span>Continue to Loyalty Pass</span>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
+      <div style="text-align: center; margin-top: 14px;">
+        <button type="button" class="modal-close-trigger primary-btn" style="background: var(--bg-surface-elevated); color: var(--text-pure); border: 1px solid var(--border-medium); width: 100%; font-size: 0.85rem;">
+          <span>Sign In with 10-Digit Mobile Number Instead</span>
         </button>
-      </form>
+      </div>
     </div>
   </div>
 
@@ -1294,11 +1282,11 @@
   <script src="js/vendor/supabase.min.js" onerror="this.onerror=null;this.src='supabase.min.js'"></script>
   <script>if(!window.supabase)document.write('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"><\/script>');</script>
 
-  <script src="js/supabase-client.js?v=20261118_v1619" onerror="this.onerror=null;this.src='supabase-client.js?v=20261118_v1619'"></script>
+  <script src="js/supabase-client.js?v=20261118_v1620" onerror="this.onerror=null;this.src='supabase-client.js?v=20261118_v1620'"></script>
 
   <!-- Application Scripts -->
   <script src="js/audio.js" onerror="this.onerror=null;this.src='audio.js'"></script>
-  <script src="js/app.js?v=20261118_v1619" onerror="this.onerror=null;this.src='app.js?v=20261118_v1619'"></script>
+  <script src="js/app.js?v=20261118_v1620" onerror="this.onerror=null;this.src='app.js?v=20261118_v1620'"></script>
 </body>
 
 </html>

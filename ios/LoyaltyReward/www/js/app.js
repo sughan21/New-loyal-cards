@@ -67,8 +67,8 @@ class LoyaltyApp {
     this.customerResetOtp = '';
     this.customerResetPhone = '';
     this.repeatApprovalPollTimer = null;
-    this.appVersion = "1.6.19";
-    this.versionCode = 27;
+    this.appVersion = "1.6.20";
+    this.versionCode = 28;
     this.latestUpdateInfo = null;
 
     if (typeof window !== 'undefined') {
@@ -1412,11 +1412,38 @@ class LoyaltyApp {
     const btn = mode === 'register' ? document.getElementById('googleRegisterBtn') : document.getElementById('googleLoginBtn');
     const origHtml = btn ? btn.innerHTML : '';
     if (btn) {
-      btn.innerHTML = '<span style="display:inline-flex; align-items:center; gap:6px;"><span class="banner-pulse">⏳</span> Linking with Google...</span>';
+      btn.innerHTML = '<span style="display:inline-flex; align-items:center; gap:6px;"><span class="banner-pulse">⏳</span> Checking Google Sign-In...</span>';
       btn.disabled = true;
     }
 
     try {
+      // Step 1: Pre-flight check if Google Provider is activated in Supabase backend
+      let isGoogleEnabled = false;
+      try {
+        const checkUrl = "https://rhqpiskqgfmotazjzbnm.supabase.co/auth/v1/authorize?provider=google";
+        const checkResp = await fetch(checkUrl, {
+          method: 'GET',
+          headers: {
+            'apikey': (window.SUPABASE_CONFIG && window.SUPABASE_CONFIG.anonKey) || "sb_publishable_Jf7gwY9zb3exmw8RD98ERQ_o66Pq2xY"
+          }
+        });
+        if (checkResp.status === 400) {
+          isGoogleEnabled = false;
+        } else if (checkResp.ok || checkResp.status === 302 || checkResp.status === 303) {
+          isGoogleEnabled = true;
+        }
+      } catch (checkErr) {
+        console.warn("Google provider pre-flight check error:", checkErr);
+      }
+
+      // If Google Provider is NOT enabled in Supabase yet, DO NOT redirect to that raw 400 JSON page!
+      if (!isGoogleEnabled) {
+        if (window.soundEngine) window.soundEngine.playError();
+        this.showGoogleSetupNoticeModal();
+        return;
+      }
+
+      // Step 2: Google IS enabled, proceed with safe OAuth redirect
       if (window.loyaltyDb?.client?.auth) {
         let redirectUrl = window.location.href.split('#')[0].split('?')[0];
         if (window.location.protocol === 'https:' && window.location.host === 'appassets.androidplatform.net') {
@@ -1427,6 +1454,7 @@ class LoyaltyApp {
           provider: 'google',
           options: {
             redirectTo: redirectUrl,
+            skipBrowserRedirect: true,
             queryParams: {
               prompt: 'select_account'
             }
@@ -1434,17 +1462,11 @@ class LoyaltyApp {
         });
 
         if (error) {
-          console.warn("Supabase Google OAuth error:", error);
-          if (error.message?.includes('provider is not enabled') || error.message?.includes('validation_failed')) {
-            this.showGoogleSetupNoticeModal(error);
-            return;
-          }
-          this.showToast(`Google Sign-In: ${error.message}`, "error");
+          this.showGoogleSetupNoticeModal(error);
           return;
         }
 
         if (data?.url) {
-          // Open real Google Sign-In
           if (window.AndroidBridge && typeof window.AndroidBridge.openExternalUrl === 'function') {
             window.AndroidBridge.openExternalUrl(data.url);
           } else {
@@ -1469,21 +1491,6 @@ class LoyaltyApp {
   showGoogleSetupNoticeModal(err) {
     const modal = document.getElementById('googleAuthModal');
     if (!modal) return;
-    const titleEl = document.getElementById('googleModalTitle');
-    const descEl = document.getElementById('googleModalDesc');
-
-    // Pre-fill phone from login or register input if user already entered 10 digits
-    const currentPhone = (document.getElementById('loginPhone')?.value || document.getElementById('regPhone')?.value || '').replace(/\D/g, '').slice(0, 10);
-    const googlePhoneInput = document.getElementById('googleAuthPhone');
-    if (googlePhoneInput && currentPhone) {
-      googlePhoneInput.value = currentPhone;
-    }
-
-    if (titleEl) titleEl.textContent = "⚡ Link Google Sign-In";
-    if (descEl) {
-      descEl.innerHTML = "To link direct Google Sign-In with Google account selection, enable Google in your Supabase Auth Providers.<br><br><strong>Redirect URI for Google Cloud:</strong><br><code style='background:#f1f5f9; padding:2px 6px; border-radius:4px; font-size:0.76rem; user-select:all; display:block; margin:4px 0; word-break:break-all;'>https://rhqpiskqgfmotazjzbnm.supabase.co/auth/v1/callback</code>";
-    }
-
     modal.classList.add('active');
   }
 
@@ -2921,7 +2928,7 @@ class LoyaltyApp {
       target = this.latestUpdateInfo.customerVersion || this.latestUpdateInfo.version;
     }
     if (!target) {
-      target = "1.6.19";
+      target = "1.6.20";
     }
     if (title) title.textContent = `New Update Available (v${target})`;
     if (desc && note) desc.textContent = note;
