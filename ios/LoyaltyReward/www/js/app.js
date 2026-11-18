@@ -67,8 +67,8 @@ class LoyaltyApp {
     this.customerResetOtp = '';
     this.customerResetPhone = '';
     this.repeatApprovalPollTimer = null;
-    this.appVersion = "1.6.18";
-    this.versionCode = 26;
+    this.appVersion = "1.6.19";
+    this.versionCode = 27;
     this.latestUpdateInfo = null;
 
     if (typeof window !== 'undefined') {
@@ -88,6 +88,7 @@ class LoyaltyApp {
     this.bindEvents();
     this.setupPhoneInputConstraints();
     this.setupBackNavigation();
+    this.setupSupabaseAuthListener();
     this.setupPWA();
     this.setupCardParallax();
     this.render();
@@ -587,15 +588,21 @@ class LoyaltyApp {
       });
     }
 
-    // Google Sign-In & Sign-Up Buttons
+    // Google Sign-In & Sign-Up Buttons - Direct Google Account Link
     const googleLoginBtn = document.getElementById('googleLoginBtn');
     if (googleLoginBtn) {
-      googleLoginBtn.addEventListener('click', () => this.openGoogleAuthModal('login'));
+      googleLoginBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        this.handleGoogleAuthClick('login');
+      });
     }
 
     const googleRegisterBtn = document.getElementById('googleRegisterBtn');
     if (googleRegisterBtn) {
-      googleRegisterBtn.addEventListener('click', () => this.openGoogleAuthModal('register'));
+      googleRegisterBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        this.handleGoogleAuthClick('register');
+      });
     }
 
     const googleAuthForm = document.getElementById('googleAuthForm');
@@ -1399,14 +1406,71 @@ class LoyaltyApp {
     }
   }
 
-  // --- Google Account Authentication (Login & Register) ---
-  openGoogleAuthModal(mode = 'login') {
+  // --- Direct Google OAuth Authentication ---
+  async handleGoogleAuthClick(mode = 'login') {
+    this.googleAuthMode = mode;
+    const btn = mode === 'register' ? document.getElementById('googleRegisterBtn') : document.getElementById('googleLoginBtn');
+    const origHtml = btn ? btn.innerHTML : '';
+    if (btn) {
+      btn.innerHTML = '<span style="display:inline-flex; align-items:center; gap:6px;"><span class="banner-pulse">⏳</span> Linking with Google...</span>';
+      btn.disabled = true;
+    }
+
+    try {
+      if (window.loyaltyDb?.client?.auth) {
+        let redirectUrl = window.location.href.split('#')[0].split('?')[0];
+        if (window.location.protocol === 'https:' && window.location.host === 'appassets.androidplatform.net') {
+          redirectUrl = 'https://appassets.androidplatform.net/assets/index.html';
+        }
+
+        const { data, error } = await window.loyaltyDb.client.auth.signInWithOAuth({
+          provider: 'google',
+          options: {
+            redirectTo: redirectUrl,
+            queryParams: {
+              prompt: 'select_account'
+            }
+          }
+        });
+
+        if (error) {
+          console.warn("Supabase Google OAuth error:", error);
+          if (error.message?.includes('provider is not enabled') || error.message?.includes('validation_failed')) {
+            this.showGoogleSetupNoticeModal(error);
+            return;
+          }
+          this.showToast(`Google Sign-In: ${error.message}`, "error");
+          return;
+        }
+
+        if (data?.url) {
+          // Open real Google Sign-In
+          if (window.AndroidBridge && typeof window.AndroidBridge.openExternalUrl === 'function') {
+            window.AndroidBridge.openExternalUrl(data.url);
+          } else {
+            window.location.href = data.url;
+          }
+          return;
+        }
+      } else {
+        this.showGoogleSetupNoticeModal();
+      }
+    } catch (e) {
+      console.error("Google Auth Click exception:", e);
+      this.showGoogleSetupNoticeModal(e);
+    } finally {
+      if (btn) {
+        btn.innerHTML = origHtml;
+        btn.disabled = false;
+      }
+    }
+  }
+
+  showGoogleSetupNoticeModal(err) {
     const modal = document.getElementById('googleAuthModal');
     if (!modal) return;
-    this.googleAuthMode = mode;
     const titleEl = document.getElementById('googleModalTitle');
     const descEl = document.getElementById('googleModalDesc');
-    const submitBtn = document.getElementById('googleAuthSubmitBtn');
 
     // Pre-fill phone from login or register input if user already entered 10 digits
     const currentPhone = (document.getElementById('loginPhone')?.value || document.getElementById('regPhone')?.value || '').replace(/\D/g, '').slice(0, 10);
@@ -1415,23 +1479,120 @@ class LoyaltyApp {
       googlePhoneInput.value = currentPhone;
     }
 
-    if (mode === 'register') {
-      if (titleEl) titleEl.textContent = "Sign up with Google";
-      if (descEl) descEl.textContent = "Create your Loyalty Pass instantly and claim your 1st Welcome Stamp!";
-      if (submitBtn) {
-        const textSpan = submitBtn.querySelector('span');
-        if (textSpan) textSpan.textContent = "Create Pass with Google";
-      }
-    } else {
-      if (titleEl) titleEl.textContent = "Sign in with Google";
-      if (descEl) descEl.textContent = "Connect your Google account for 1-tap Loyalty Pass access.";
-      if (submitBtn) {
-        const textSpan = submitBtn.querySelector('span');
-        if (textSpan) textSpan.textContent = "Continue to Loyalty Pass";
-      }
+    if (titleEl) titleEl.textContent = "⚡ Link Google Sign-In";
+    if (descEl) {
+      descEl.innerHTML = "To link direct Google Sign-In with Google account selection, enable Google in your Supabase Auth Providers.<br><br><strong>Redirect URI for Google Cloud:</strong><br><code style='background:#f1f5f9; padding:2px 6px; border-radius:4px; font-size:0.76rem; user-select:all; display:block; margin:4px 0; word-break:break-all;'>https://rhqpiskqgfmotazjzbnm.supabase.co/auth/v1/callback</code>";
     }
 
     modal.classList.add('active');
+  }
+
+  setupSupabaseAuthListener() {
+    if (!window.loyaltyDb?.client?.auth) return;
+
+    try {
+      // Check session on page load (e.g. returning from Google OAuth redirect)
+      window.loyaltyDb.client.auth.getSession().then(({ data: { session } }) => {
+        if (session?.user) {
+          this.handleGoogleAuthenticatedUser(session.user);
+        }
+      });
+
+      // Listen for auth changes
+      window.loyaltyDb.client.auth.onAuthStateChange(async (event, session) => {
+        if ((event === 'SIGNED_IN' || event === 'USER_UPDATED') && session?.user) {
+          this.handleGoogleAuthenticatedUser(session.user);
+        }
+      });
+    } catch (e) {
+      console.warn("Auth listener init error:", e);
+    }
+  }
+
+  async handleGoogleAuthenticatedUser(googleUser) {
+    if (this.currentUser) return;
+    const email = googleUser.email || '';
+    const name = googleUser.user_metadata?.full_name || googleUser.user_metadata?.name || email.split('@')[0] || 'Loyalty Member';
+
+    // Search existing user by googleEmail or email
+    let user = this.users.find(u => (u.googleEmail && u.googleEmail.toLowerCase() === email.toLowerCase()) || (u.email && u.email.toLowerCase() === email.toLowerCase()));
+
+    if (!user && window.loyaltyDb) {
+      try {
+        const all = await window.loyaltyDb.fetchAllCustomers();
+        if (Array.isArray(all)) {
+          user = all.find(u => (u.googleEmail && u.googleEmail.toLowerCase() === email.toLowerCase()) || (u.email && u.email.toLowerCase() === email.toLowerCase()));
+        }
+      } catch (e) {}
+    }
+
+    if (user) {
+      user.googleEmail = email;
+      this.currentUser = user;
+      this.saveCurrentUser();
+      localStorage.setItem(APP_STORAGE_KEY_CURRENT, user.phone);
+      this.setupRealtimeCustomerSync();
+      this.render();
+      if (window.soundEngine) window.soundEngine.playSuccessTone();
+      this.showToast(`✨ Welcome back, ${user.name}! (Signed in with Google)`, "success");
+    } else {
+      // Prompt for phone number to link pass
+      const phone = prompt(`Welcome, ${name}! Please enter your 10-digit mobile number so store cashiers can add loyalty stamps to your pass:`);
+      const cleanPhone = (phone || '').replace(/\D/g, '').slice(0, 10);
+      if (cleanPhone.length === 10) {
+        const devInfo = window.detectDeviceInfo ? await window.detectDeviceInfo() : { deviceName: "Mobile Device", deviceId: "" };
+        const timeStr = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+        const dateStr = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+        const fullDateStr = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+
+        const newUser = {
+          phone: cleanPhone,
+          name: name,
+          googleEmail: email,
+          password: "google_oauth_" + Math.random().toString(36).substring(2, 10),
+          stamps: 1,
+          giftsEarned: 0,
+          memberId: 'GP-' + Math.floor(10000 + Math.random() * 90000),
+          deviceName: devInfo.deviceName,
+          deviceId: devInfo.deviceId,
+          appVersion: this.appVersion,
+          versionCode: this.versionCode,
+          history: [
+            {
+              date: `${dateStr}, ${timeStr}`,
+              type: 'stamp',
+              note: `Welcome Reward Claimed: 1st Loyalty Tick Unlocked! (Tick #1 of ${MAX_STAMPS})`,
+              device: devInfo.deviceName,
+              deviceId: devInfo.deviceId
+            },
+            {
+              date: fullDateStr,
+              type: 'joined',
+              note: `Joined via Google Sign-In (${email})`,
+              device: devInfo.deviceName,
+              deviceId: devInfo.deviceId
+            }
+          ],
+          lastStampDate: new Date().toISOString().slice(0, 10),
+          createdAt: fullDateStr
+        };
+
+        this.users.push(newUser);
+        this.currentUser = newUser;
+        this.saveCurrentUser();
+        await this.pushUserToServer(newUser);
+        this.setupRealtimeCustomerSync();
+        this.render();
+
+        if (window.soundEngine) window.soundEngine.playStampSound();
+        this.triggerConfetti(false);
+        this.showToast(`🎉 Welcome, ${name}! Your Pass is ready with 1st Stamp! (1/${MAX_STAMPS})`, "success");
+      }
+    }
+  }
+
+  openGoogleAuthModal(mode = 'login') {
+    this.handleGoogleAuthClick(mode);
   }
 
   async handleGoogleAuthSubmit(e) {
@@ -2760,7 +2921,7 @@ class LoyaltyApp {
       target = this.latestUpdateInfo.customerVersion || this.latestUpdateInfo.version;
     }
     if (!target) {
-      target = "1.6.18";
+      target = "1.6.19";
     }
     if (title) title.textContent = `New Update Available (v${target})`;
     if (desc && note) desc.textContent = note;

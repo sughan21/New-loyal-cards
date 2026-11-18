@@ -239,6 +239,17 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
 
+                if (urlStr.startsWith("https://accounts.google.com") || urlStr.contains("supabase.co/auth/v1/authorize") || urlStr.contains("accounts.google.com")) {
+                    try {
+                        val intent = Intent(Intent.ACTION_VIEW, uri)
+                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        startActivity(intent)
+                        return true
+                    } catch (e: Exception) {
+                        return false
+                    }
+                }
+
                 return false
             }
 
