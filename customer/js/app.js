@@ -67,8 +67,8 @@ class LoyaltyApp {
     this.customerResetOtp = '';
     this.customerResetPhone = '';
     this.repeatApprovalPollTimer = null;
-    this.appVersion = "1.6.24";
-    this.versionCode = 32;
+    this.appVersion = "1.6.25";
+    this.versionCode = 33;
     this.latestUpdateInfo = null;
 
     if (typeof window !== 'undefined') {
@@ -632,6 +632,18 @@ class LoyaltyApp {
     // Scan Store QR Button
     const openScanBtn = document.getElementById('openScannerBtn');
     if (openScanBtn) openScanBtn.addEventListener('click', () => this.openScannerModal());
+
+    // Google Review Button Handler
+    const reviewBtn = document.getElementById('customerGoogleReviewBtn');
+    if (reviewBtn) {
+      const reviewUrl = 'https://share.google/q0NPPENHYIeZs7ReR';
+      reviewBtn.addEventListener('click', (e) => {
+        if (window.AndroidBridge && typeof window.AndroidBridge.openExternalUrl === 'function') {
+          e.preventDefault();
+          window.AndroidBridge.openExternalUrl(reviewUrl);
+        }
+      });
+    }
 
     // Modal Close Triggers (Click, Touch & Backdrop Tap)
     const handleCloseModal = (e) => {
@@ -2928,7 +2940,7 @@ class LoyaltyApp {
       target = this.latestUpdateInfo.customerVersion || this.latestUpdateInfo.version;
     }
     if (!target) {
-      target = "1.6.24";
+      target = "1.6.25";
     }
     if (title) title.textContent = `New Update Available (v${target})`;
     if (desc && note) desc.textContent = note;

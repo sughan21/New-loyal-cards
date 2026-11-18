@@ -27,7 +27,8 @@ const DEFAULT_STORE = {
   ownerUsername: "admin",
   ownerPassword: "admin123",
   cashierPin: "1234",
-  recoveryKey: "9999"
+  recoveryKey: "9999",
+  googleReviewUrl: "https://share.google/q0NPPENHYIeZs7ReR"
 };
 
 // Known mock demo customer phone numbers & automation accounts to purge
@@ -60,8 +61,8 @@ class StoreOwnerApp {
     this.syncTimer = null;
     this.knownPendingRequestIds = new Set();
     this.expandedCustomerPhones = new Set();
-    this.appVersion = "1.6.24";
-    this.versionCode = 32;
+    this.appVersion = "1.6.25";
+    this.versionCode = 33;
     this.latestUpdateInfo = null;
 
     if (typeof window !== 'undefined') {
@@ -1333,7 +1334,7 @@ class StoreOwnerApp {
       target = this.latestUpdateInfo.ownerVersion || this.latestUpdateInfo.version;
     }
     if (!target) {
-      target = "1.6.24";
+      target = "1.6.25";
     }
     if (title) title.textContent = `Terminal Update Available (v${target})`;
     if (desc && notes) desc.textContent = notes;
@@ -2146,7 +2147,7 @@ class StoreOwnerApp {
   getTargetCustomerVersion() {
     const broadcastVer = localStorage.getItem('loyalty_owner_broadcast_version');
     const remoteVer = this.latestUpdateInfo ? (this.latestUpdateInfo.customerVersion || this.latestUpdateInfo.version) : null;
-    let highest = this.appVersion || "1.6.24";
+    let highest = this.appVersion || "1.6.25";
     if (broadcastVer && this.isNewerVersion(broadcastVer, highest)) {
       highest = broadcastVer;
     }

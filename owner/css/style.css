@@ -1040,6 +1040,41 @@ body.store-mode-active .app-container {
   box-shadow: 0 2px 8px rgba(245, 158, 11, 0.15);
 }
 
+/* Customer Pass: Google Review Box */
+.customer-google-review-box {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #ffffff;
+  border: 1.5px solid rgba(184, 119, 55, 0.22);
+  border-radius: 16px;
+  padding: 12px 14px;
+  text-decoration: none;
+  box-shadow: 0 4px 14px rgba(35, 20, 10, 0.04);
+  margin-bottom: 16px;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  color: inherit;
+}
+
+.customer-google-review-box:hover {
+  transform: translateY(-2px);
+  border-color: #4285f4;
+  box-shadow: 0 6px 18px rgba(66, 133, 244, 0.12);
+}
+
+.google-badge-circle {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+
 .milestone-strip-icon {
   font-size: 1.25rem;
   line-height: 1;
@@ -2571,14 +2606,22 @@ body.store-mode-active .app-container {
 
 .history-item-tag.tag-stamp {
   color: #059669;
+  background: rgba(5, 150, 105, 0.1);
 }
 
 .history-item-tag.tag-gift {
-  color: #b87737;
+  color: #b45309;
+  background: rgba(180, 83, 9, 0.1);
+}
+
+.history-item-tag.tag-stamp-cancel {
+  color: #dc2626;
+  background: rgba(220, 38, 38, 0.1);
 }
 
 .history-item-tag.tag-joined {
   color: #695547;
+  background: rgba(105, 85, 71, 0.1);
 }
 
 .history-empty-text {

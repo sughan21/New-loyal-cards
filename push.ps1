@@ -1,4 +1,4 @@
-﻿# Quick 1-command GitHub push from IDE PowerShell terminal
+# Quick 1-command GitHub push from IDE PowerShell terminal
 $env:PATH = "$PSScriptRoot\bin\git\cmd;$PSScriptRoot\bin\git\mingw64\bin;$PSScriptRoot\bin\git\usr\bin;" + $env:PATH
 $git = "$PSScriptRoot\bin\git\cmd\git.exe"
 if (-not (Test-Path $git)) { $git = "git" }
