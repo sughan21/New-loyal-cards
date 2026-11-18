@@ -61,8 +61,8 @@ class StoreOwnerApp {
     this.syncTimer = null;
     this.knownPendingRequestIds = new Set();
     this.expandedCustomerPhones = new Set();
-    this.appVersion = "1.6.25";
-    this.versionCode = 33;
+    this.appVersion = "1.6.26";
+    this.versionCode = 34;
     this.latestUpdateInfo = null;
 
     if (typeof window !== 'undefined') {
@@ -1052,6 +1052,7 @@ class StoreOwnerApp {
     if (input) {
       input.value = this.getTargetCustomerVersion();
     }
+    this.updateBroadcastStatusDisplay();
 
     this.pushBackHistory('ownerSettingsModal');
     modal.classList.add('active');
@@ -1141,6 +1142,7 @@ class StoreOwnerApp {
     if (input && !input.value) {
       input.value = updateData.version;
     }
+    this.updateBroadcastStatusDisplay();
 
     // Releases published by store owner are intended for Customer Passes
     const ownerBroadcastVer = localStorage.getItem('loyalty_owner_broadcast_version');
@@ -1334,7 +1336,7 @@ class StoreOwnerApp {
       target = this.latestUpdateInfo.ownerVersion || this.latestUpdateInfo.version;
     }
     if (!target) {
-      target = "1.6.25";
+      target = "1.6.26";
     }
     if (title) title.textContent = `Terminal Update Available (v${target})`;
     if (desc && notes) desc.textContent = notes;
@@ -1443,6 +1445,9 @@ class StoreOwnerApp {
       target: "customer",
       version: newVer,
       customerVersion: newVer,
+      broadcastVersion: newVer,
+      broadcastByOwner: true,
+      broadcastAt: Date.now(),
       customerVersionCode: this.versionCode,
       ownerVersion: this.appVersion,
       ownerVersionCode: this.versionCode,
@@ -1526,6 +1531,7 @@ class StoreOwnerApp {
     }
 
     this.showToast(`📢 Version ${newVer} broadcasted to all customer apps!`, "gold");
+    this.updateBroadcastStatusDisplay();
     this.checkForAppUpdates(false);
     this.renderCustomerList();
     this.renderMetrics();
@@ -2144,10 +2150,23 @@ class StoreOwnerApp {
     return dev.includes('iphone') || dev.includes('ipad') || dev.includes('ios') || dev.includes('apple') || dev.includes('safari') || dev.includes('web browser') || phone === '8015589598' || phone === '9914214325';
   }
 
+  updateBroadcastStatusDisplay() {
+    const display = document.getElementById('currentBroadcastVerDisplay');
+    if (!display) return;
+    const broadcastVer = localStorage.getItem('loyalty_owner_broadcast_version') || (this.latestUpdateInfo ? (this.latestUpdateInfo.broadcastVersion || this.latestUpdateInfo.customerVersion) : null) || this.appVersion;
+    const remoteVer = this.latestUpdateInfo ? (this.latestUpdateInfo.customerVersion || this.latestUpdateInfo.version) : null;
+
+    if (remoteVer && this.isNewerVersion(remoteVer, broadcastVer)) {
+      display.innerHTML = `<span style="color: #fbbf24;">v${broadcastVer} (⚡ v${remoteVer} ready to broadcast)</span>`;
+    } else {
+      display.innerHTML = `<span style="color: #34d399;">Active: v${broadcastVer} ✅</span>`;
+    }
+  }
+
   getTargetCustomerVersion() {
     const broadcastVer = localStorage.getItem('loyalty_owner_broadcast_version');
     const remoteVer = this.latestUpdateInfo ? (this.latestUpdateInfo.customerVersion || this.latestUpdateInfo.version) : null;
-    let highest = this.appVersion || "1.6.25";
+    let highest = this.appVersion || "1.6.26";
     if (broadcastVer && this.isNewerVersion(broadcastVer, highest)) {
       highest = broadcastVer;
     }
@@ -2161,10 +2180,11 @@ class StoreOwnerApp {
     if (!customer) return false;
     // Apple iPhone / iOS Safari Pass customers run the live web pass and cannot install APKs - NEVER show outdated
     if (this.isCustomerIosOrWeb(customer)) return false;
-    const targetVer = this.getTargetCustomerVersion();
+    // Only show outdated if the owner has explicitly broadcasted a newer version to customers!
+    const broadcastVer = localStorage.getItem('loyalty_owner_broadcast_version') || (this.latestUpdateInfo ? this.latestUpdateInfo.broadcastVersion : null) || this.appVersion;
     const custVer = customer.appVersion;
-    if (!custVer) return true;
-    return this.isNewerVersion(targetVer, custVer);
+    if (!custVer) return false;
+    return this.isNewerVersion(broadcastVer, custVer);
   }
 
   sendWhatsAppUpdate(phone, encodedName, currentVer) {

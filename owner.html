@@ -757,12 +757,12 @@
         <div class="update-version-strip" id="ownerUpdateVersionStrip">
           <div class="version-chip current-version-chip">
             <span class="version-chip-label">Current Version</span>
-            <span class="version-chip-val" id="ownerCurrentVerDisplay"><span class="version-num">v1.6.25</span> <span class="version-chip-badge latest" id="ownerCurrentVerBadge">Latest ✅</span></span>
+            <span class="version-chip-val" id="ownerCurrentVerDisplay"><span class="version-num">v1.6.26</span> <span class="version-chip-badge latest" id="ownerCurrentVerBadge">Latest ✅</span></span>
           </div>
           <div class="version-chip-arrow" id="ownerVersionChipArrow" style="display: none;">➔</div>
           <div class="version-chip new-version-chip" id="ownerNewVersionChip" style="display: none;">
             <span class="version-chip-label">New Version</span>
-            <span class="version-chip-val" id="ownerNewVerDisplay"><span class="version-num">v1.6.25</span> <span class="version-chip-badge update">⚡ New</span></span>
+            <span class="version-chip-val" id="ownerNewVerDisplay"><span class="version-num">v1.6.26</span> <span class="version-chip-badge update">⚡ New</span></span>
           </div>
         </div>
 
@@ -825,6 +825,14 @@
           </div>
           <input type="text" id="broadcastNotesInput" class="custom-input" placeholder="What's new in this release for customers (e.g. 1-Tap updates, Faster sync, New gift rewards)"
             style="font-size: 0.78rem; padding: 7px 10px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); color: #fff; border-radius: 8px;">
+
+          <!-- Customer Release Status Banner -->
+          <div id="broadcastStatusInfo" style="display: flex; align-items: center; justify-content: space-between; font-size: 0.75rem; padding: 8px 12px; border-radius: 8px; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08); margin-top: 4px;">
+            <span style="color: var(--text-secondary); display: flex; align-items: center; gap: 5px;">
+              <span>📡 Customer Broadcast:</span>
+            </span>
+            <span id="currentBroadcastVerDisplay" style="color: #34d399; font-weight: 700;">Active: v1.6.25 ✅</span>
+          </div>
         </div>
       </div>
 
@@ -975,11 +983,11 @@
   <script src="js/vendor/supabase.min.js" onerror="this.onerror=null;this.src='supabase.min.js'"></script>
   <script>if(!window.supabase)document.write('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"><\/script>');</script>
 
-  <script src="js/supabase-client.js?v=20261118_v1625" onerror="this.onerror=null;this.src='supabase-client.js?v=20261118_v1625'"></script>
+  <script src="js/supabase-client.js?v=20261118_v1626" onerror="this.onerror=null;this.src='supabase-client.js?v=20261118_v1626'"></script>
 
   <!-- Application Scripts -->
   <script src="js/audio.js" onerror="this.onerror=null;this.src='audio.js'"></script>
-  <script src="js/owner.js?v=20261118_v1625" onerror="this.onerror=null;this.src='owner.js?v=20261118_v1625'"></script>
+  <script src="js/owner.js?v=20261118_v1626" onerror="this.onerror=null;this.src='owner.js?v=20261118_v1626'"></script>
 </body>
 
 </html>

@@ -67,8 +67,8 @@ class LoyaltyApp {
     this.customerResetOtp = '';
     this.customerResetPhone = '';
     this.repeatApprovalPollTimer = null;
-    this.appVersion = "1.6.25";
-    this.versionCode = 33;
+    this.appVersion = "1.6.26";
+    this.versionCode = 34;
     this.latestUpdateInfo = null;
 
     if (typeof window !== 'undefined') {
@@ -524,8 +524,9 @@ class LoyaltyApp {
         (configRow) => {
           if (configRow && Array.isArray(configRow.history) && configRow.history.length > 0) {
             const updateData = configRow.history[0];
-            const targetCustomerVer = updateData.customerVersion || updateData.version;
-            if (targetCustomerVer && this.isNewerVersion(targetCustomerVer, this.appVersion)) {
+            const targetCustomerVer = updateData.broadcastVersion || updateData.customerVersion || updateData.version;
+            // ONLY trigger if explicitly broadcasted by store owner!
+            if (updateData && updateData.broadcastByOwner === true && targetCustomerVer && this.isNewerVersion(targetCustomerVer, this.appVersion)) {
               this.latestUpdateInfo = updateData;
               this.showOwnerUpdateAlertModal(
                 updateData.notes || `Version ${targetCustomerVer} is ready to install! Tap to update.`,
@@ -2675,46 +2676,47 @@ class LoyaltyApp {
     }
 
     let updateData = null;
+    let isBroadcastedByOwner = false;
 
-    // 1. Primary priority: Live GitHub Pages cloud version (always available on mobile & web)
-    try {
-      const respCloud = await fetch(`https://sughan21.github.io/New-loyal-cards/data/version.json?_t=${Date.now()}`, {
-        cache: 'no-store',
-        headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' }
-      });
-      if (respCloud.ok) {
-        updateData = await respCloud.json();
-      }
-    } catch (e) {}
-
-    // 2. Second priority: Supabase Realtime Cloud (instant cross-device sync)
-    if (!updateData && window.loyaltyDb && window.loyaltyDb.isReady) {
+    // 1. Primary priority: Check Owner Broadcast from Supabase Realtime Cloud (__APP_CONFIG_VERSION__)
+    if (window.loyaltyDb && window.loyaltyDb.isReady) {
       try {
-        updateData = await window.loyaltyDb.fetchAppVersion();
-      } catch (e) {}
-    }
-
-    // 3. Third priority: Local server or tunnel REST API (when testing with local node server)
-    if (!updateData) {
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 1200);
-        const resp = await fetch(`${API_BASE_URL}/api/version?_t=${Date.now()}`, { cache: 'no-cache', signal: controller.signal });
-        clearTimeout(timeoutId);
-        if (resp.ok) {
-          updateData = await resp.json();
+        const cloudConfig = await window.loyaltyDb.fetchAppVersion();
+        if (cloudConfig) {
+          const targetCustomerVer = cloudConfig.broadcastVersion || cloudConfig.customerVersion || cloudConfig.version;
+          if (cloudConfig.broadcastByOwner === true && targetCustomerVer && this.isNewerVersion(targetCustomerVer, this.appVersion)) {
+            updateData = cloudConfig;
+            isBroadcastedByOwner = true;
+          }
         }
       } catch (e) {}
     }
 
-    // 4. Last resort fallback: local static JSON, but ONLY if newer than appVersion
+    // 2. Secondary check: Direct updateAlert sent to this customer's card by Store Owner
+    if (!updateData && this.currentUser && this.currentUser.updateAlert && this.currentUser.updateAlert.targetVersion) {
+      const alertVer = this.currentUser.updateAlert.targetVersion;
+      if (this.isNewerVersion(alertVer, this.appVersion)) {
+        isBroadcastedByOwner = true;
+        updateData = {
+          version: alertVer,
+          customerVersion: alertVer,
+          broadcastVersion: alertVer,
+          broadcastByOwner: true,
+          notes: "Store Owner released a new update for your Loyalty Pass!"
+        };
+      }
+    }
+
+    // 3. Fallback: Check local terminal broadcast in localStorage (if testing in same browser environment)
     if (!updateData) {
       try {
-        const resp2 = await fetch(`./data/version.json?_t=${Date.now()}`, { cache: 'no-cache' });
-        if (resp2.ok) {
-          const localJson = await resp2.json();
-          if (localJson && this.isNewerVersion(localJson.customerVersion || localJson.version, this.appVersion)) {
-            updateData = localJson;
+        const broadcastStr = localStorage.getItem('loyalty_broadcast_version');
+        if (broadcastStr) {
+          const parsed = JSON.parse(broadcastStr);
+          const targetVer = parsed.broadcastVersion || parsed.customerVersion || parsed.version;
+          if (parsed.broadcastByOwner === true && targetVer && this.isNewerVersion(targetVer, this.appVersion)) {
+            updateData = parsed;
+            isBroadcastedByOwner = true;
           }
         }
       } catch (e) {}
@@ -2725,16 +2727,41 @@ class LoyaltyApp {
       if (checkBtnText) checkBtnText.textContent = "Check for Updates";
     }
 
-    if (!updateData || !updateData.version) {
+    // STAGED ROLLOUT ENFORCEMENT:
+    // Every update must appear FIRST in the Owner App.
+    // The Customer App must ONLY update AFTER the owner clicks "📢 Broadcast to Customers"!
+    // If the owner has NOT clicked "Broadcast to Customers", the customer app will NOT show any update banner or modal.
+    if (!isBroadcastedByOwner || !updateData) {
       if (isManual) {
-        this.showToast("Could not reach update server. Please check connection.", "info");
+        this.showToast("Your Loyalty Pass is up to date! ✅", "success");
       }
+      this.renderUpdateTopBanner(false);
+      const newUpdateBanner = document.getElementById('newUpdateBanner');
+      if (newUpdateBanner) newUpdateBanner.style.setProperty('display', 'none', 'important');
+      const updateVersionStrip = document.getElementById('updateVersionStrip');
+      const versionChipArrow = document.getElementById('versionChipArrow');
+      const newVersionChip = document.getElementById('newVersionChip');
+      if (updateVersionStrip) updateVersionStrip.classList.remove('has-update');
+      if (versionChipArrow) versionChipArrow.style.setProperty('display', 'none', 'important');
+      if (newVersionChip) newVersionChip.style.setProperty('display', 'none', 'important');
+      ['settingsUpdateBadge', 'customerSettingsBadge', 'authSettingsBadge'].forEach(id => {
+        const b = document.getElementById(id);
+        if (b) b.style.setProperty('display', 'none', 'important');
+      });
+      const updateIconPulse = document.getElementById('updateIconPulse');
+      const updateIconSymbol = document.getElementById('updateIconSymbol');
+      const updateStatusTitle = document.getElementById('updateStatusTitle');
+      const updateStatusSubtitle = document.getElementById('updateStatusSubtitle');
+      if (updateIconPulse) updateIconPulse.classList.remove('has-update');
+      if (updateIconSymbol) updateIconSymbol.textContent = '✅';
+      if (updateStatusTitle) updateStatusTitle.textContent = 'App is up to date';
+      if (updateStatusSubtitle) updateStatusSubtitle.textContent = `You have the latest version installed`;
       return;
     }
 
     this.latestUpdateInfo = updateData;
 
-    const targetCustomerVer = updateData.customerVersion || updateData.version;
+    const targetCustomerVer = updateData.broadcastVersion || updateData.customerVersion || updateData.version;
     const hasNewVersion = this.isNewerVersion(targetCustomerVer, this.appVersion);
 
     const badgeIds = ['settingsUpdateBadge', 'customerSettingsBadge', 'authSettingsBadge'];
@@ -2940,7 +2967,7 @@ class LoyaltyApp {
       target = this.latestUpdateInfo.customerVersion || this.latestUpdateInfo.version;
     }
     if (!target) {
-      target = "1.6.25";
+      target = "1.6.26";
     }
     if (title) title.textContent = `New Update Available (v${target})`;
     if (desc && note) desc.textContent = note;
