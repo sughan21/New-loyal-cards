@@ -60,8 +60,8 @@ class StoreOwnerApp {
     this.syncTimer = null;
     this.knownPendingRequestIds = new Set();
     this.expandedCustomerPhones = new Set();
-    this.appVersion = "1.6.23";
-    this.versionCode = 31;
+    this.appVersion = "1.6.24";
+    this.versionCode = 32;
     this.latestUpdateInfo = null;
 
     if (typeof window !== 'undefined') {
@@ -1333,7 +1333,7 @@ class StoreOwnerApp {
       target = this.latestUpdateInfo.ownerVersion || this.latestUpdateInfo.version;
     }
     if (!target) {
-      target = "1.6.23";
+      target = "1.6.24";
     }
     if (title) title.textContent = `Terminal Update Available (v${target})`;
     if (desc && notes) desc.textContent = notes;
@@ -1953,10 +1953,13 @@ class StoreOwnerApp {
 
     unifiedQrBox.innerHTML = '';
 
+    const permanentGithubUrl = `https://sughan21.github.io/New-loyal-cards/download.html?store_scan=${encodeURIComponent(this.storeConfig.storeCode)}`;
+
     // Check if store owner configured a custom target URL
     let savedCustomUrl = localStorage.getItem('standee_target_url');
-    // Clean up stale or obsolete URLs from previous sessions
+    // Clean up stale, tunnel, or obsolete URLs from previous sessions
     if (savedCustomUrl && (
+      savedCustomUrl.includes('trycloudflare.com') ||
       savedCustomUrl.includes('harmony-groundwater-methodology-investment') ||
       savedCustomUrl.includes('vhs-adaptation-nowhere-hints') ||
       savedCustomUrl.includes('ended-degree-forest-vessels') ||
@@ -1971,20 +1974,11 @@ class StoreOwnerApp {
     let smartUrl;
     if (savedCustomUrl && savedCustomUrl.trim()) {
       smartUrl = savedCustomUrl.trim();
-    } else if (this.activeTunnelUrl) {
-      smartUrl = `${this.activeTunnelUrl}/download.html?store_scan=${encodeURIComponent(this.storeConfig.storeCode)}`;
-    } else if (window.location.origin.includes('trycloudflare.com')) {
-      smartUrl = `${window.location.origin}/download.html?store_scan=${encodeURIComponent(this.storeConfig.storeCode)}`;
-    } else if (this.lanUrl && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
-      // Local development: Prefer Wi-Fi LAN IP so phones on the same Wi-Fi network can scan directly!
-      smartUrl = `${this.lanUrl}/download.html?store_scan=${encodeURIComponent(this.storeConfig.storeCode)}`;
-    } else if (window.location.protocol === 'file:' || !window.location.origin || window.location.origin.startsWith('file:') || window.location.origin === 'null') {
-      smartUrl = this.lanUrl ? `${this.lanUrl}/download.html?store_scan=${encodeURIComponent(this.storeConfig.storeCode)}` : `http://localhost:8085/download.html?store_scan=${encodeURIComponent(this.storeConfig.storeCode)}`;
-    } else if (window.location.hostname.includes('androidplatform.net') || window.location.hostname.includes('github.io')) {
-      smartUrl = `https://sughan21.github.io/New-loyal-cards/download.html?store_scan=${encodeURIComponent(this.storeConfig.storeCode)}`;
     } else {
-      const folder = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1);
-      smartUrl = `${window.location.origin}${folder}download.html?store_scan=${encodeURIComponent(this.storeConfig.storeCode)}`;
+      // PERMANENT DEFAULT: Always use 24/7 GitHub Cloud Link!
+      // This ensures customers downloading the APK get 100% full, high-speed CDN downloads
+      // without Cloudflare tunnel disconnects, timeouts, or local network mismatches.
+      smartUrl = permanentGithubUrl;
     }
 
     if (typeof QRCode !== 'undefined') {
@@ -2038,12 +2032,22 @@ class StoreOwnerApp {
 
     // Dynamic preset buttons
     const ghBtn = document.getElementById('useGithubCloudPresetBtn');
-    const githubCloudUrl = `https://sughan21.github.io/New-loyal-cards/download.html?store_scan=${encodeURIComponent(this.storeConfig.storeCode)}`;
     if (ghBtn) {
+      if (smartUrl === permanentGithubUrl) {
+        ghBtn.textContent = '✓ Permanent GitHub Cloud Link (Active 24/7)';
+        ghBtn.style.background = '#f3e8ff';
+        ghBtn.style.borderColor = '#9333ea';
+        ghBtn.style.color = '#6b21a8';
+      } else {
+        ghBtn.textContent = '☁️ Use Permanent GitHub Cloud Link (24/7)';
+        ghBtn.style.background = '#fdf4ff';
+        ghBtn.style.borderColor = '#c084fc';
+        ghBtn.style.color = '#7e22ce';
+      }
       ghBtn.onclick = () => {
-        localStorage.setItem('standee_target_url', githubCloudUrl);
+        localStorage.removeItem('standee_target_url');
         this.generateStoreQRCodes();
-        this.showToast("☁️ QR updated to Permanent GitHub Cloud Link (24/7)!", "gold");
+        this.showToast("☁️ QR set to Permanent GitHub Cloud Link (24/7)!", "gold");
       };
     }
 
@@ -2052,7 +2056,8 @@ class StoreOwnerApp {
       if (this.activeTunnelUrl) {
         cfBtn.style.display = 'inline-block';
         cfBtn.onclick = () => {
-          localStorage.removeItem('standee_target_url');
+          const cfTarget = `${this.activeTunnelUrl}/download.html?store_scan=${encodeURIComponent(this.storeConfig.storeCode)}`;
+          localStorage.setItem('standee_target_url', cfTarget);
           this.generateStoreQRCodes();
           this.showToast("🌐 QR switched to Live Cloudflare Public Link!", "success");
         };
@@ -2087,31 +2092,27 @@ class StoreOwnerApp {
       const resp = await fetch(`${API_BASE_URL}/api/tunnel`, { cache: 'no-cache' });
       if (resp.ok) {
         const data = await resp.json();
-        let shouldRefresh = false;
 
-        if (data && data.lanUrl && data.lanUrl !== this.lanUrl) {
+        if (data && data.lanUrl) {
           this.lanUrl = data.lanUrl;
-          if (!this.activeTunnelUrl && !localStorage.getItem('standee_target_url')) {
-            shouldRefresh = true;
-          }
         }
 
         if (data && data.active && data.url) {
-          if (data.url !== this.activeTunnelUrl) {
-            this.activeTunnelUrl = data.url;
-            if (!localStorage.getItem('standee_target_url')) {
-              shouldRefresh = true;
-            }
-          }
-        } else if (this.activeTunnelUrl) {
+          this.activeTunnelUrl = data.url;
+        } else {
           this.activeTunnelUrl = null;
-          if (!localStorage.getItem('standee_target_url')) {
-            shouldRefresh = true;
-          }
         }
 
-        if (shouldRefresh) {
-          this.generateStoreQRCodes();
+        // Keep the Standee QR on Permanent GitHub Cloud Link (24/7) by default!
+        // Only update optional preset buttons if present
+        const cfBtn = document.getElementById('useCloudflarePresetBtn');
+        if (cfBtn) {
+          cfBtn.style.display = this.activeTunnelUrl ? 'inline-block' : 'none';
+        }
+        const lanBtn = document.getElementById('useLanPresetBtn');
+        if (lanBtn) {
+          const directVal = document.getElementById('standeeDirectUrl')?.value || '';
+          lanBtn.style.display = (this.lanUrl && !directVal.includes(this.lanUrl)) ? 'inline-block' : 'none';
         }
       }
     } catch (e) {
@@ -2145,7 +2146,7 @@ class StoreOwnerApp {
   getTargetCustomerVersion() {
     const broadcastVer = localStorage.getItem('loyalty_owner_broadcast_version');
     const remoteVer = this.latestUpdateInfo ? (this.latestUpdateInfo.customerVersion || this.latestUpdateInfo.version) : null;
-    let highest = this.appVersion || "1.6.23";
+    let highest = this.appVersion || "1.6.24";
     if (broadcastVer && this.isNewerVersion(broadcastVer, highest)) {
       highest = broadcastVer;
     }
@@ -2170,7 +2171,7 @@ class StoreOwnerApp {
     const targetVer = this.getTargetCustomerVersion();
     const cleanPhone = String(phone).replace(/\D/g, '');
     const intlPhone = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
-    const downloadUrl = 'https://sughan21.github.io/New-loyal-cards/LoyaltyPass-Customer.apk';
+    const downloadUrl = 'https://raw.githubusercontent.com/sughan21/New-loyal-cards/main/LoyaltyPass-Customer.apk';
     const webPassUrl = 'https://sughan21.github.io/New-loyal-cards/';
 
     const cust = this.users.find(u => u.phone === phone);

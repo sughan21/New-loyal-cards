@@ -255,40 +255,54 @@ class LoyaltySupabaseRepository {
   async deleteCustomer(phone) {
     if (!this.isReady || !phone) return false;
     const cleanPhone = String(phone).trim();
-    try {
-      // 1. Attempt direct SQL DELETE
-      try {
-        await this.client
-          .from('customers')
-          .delete()
-          .eq('phone', cleanPhone);
-      } catch (_) {}
+    const digits10 = cleanPhone.replace(/\D/g, '').slice(-10);
+    const variants = Array.from(new Set([
+      cleanPhone,
+      digits10,
+      digits10 ? `91${digits10}` : '',
+      digits10 ? `+91${digits10}` : ''
+    ])).filter(Boolean);
 
-      // 2. Mark as __DELETED__ tombstone so query filters exclude it immediately
+    try {
       const time = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
       const date = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-      await this.client
-        .from('customers')
-        .update({
-          name: '__DELETED__',
-          member_id: '__DELETED__',
-          stamps: 0,
-          history: [{
-            type: 'account_deleted',
-            date: `${date}, ${time}`,
-            note: 'Customer account permanently deleted by Store Owner'
-          }],
-          last_updated: Date.now()
-        })
-        .eq('phone', cleanPhone);
 
-      // 3. Clean up any pending or past stamp requests for this customer
-      try {
-        await this.client
-          .from('stamp_requests')
-          .delete()
-          .eq('phone', cleanPhone);
-      } catch (_) {}
+      for (const p of variants) {
+        // 1. Attempt direct SQL DELETE
+        try {
+          await this.client
+            .from('customers')
+            .delete()
+            .eq('phone', p);
+        } catch (_) {}
+
+        // 2. Mark as __DELETED__ tombstone so query filters and fetchAllCustomers exclude it
+        try {
+          await this.client
+            .from('customers')
+            .update({
+              name: '__DELETED__',
+              member_id: '__DELETED__',
+              stamps: 0,
+              password: '',
+              history: [{
+                type: 'account_deleted',
+                date: `${date}, ${time}`,
+                note: 'Customer account permanently deleted by Store Owner'
+              }],
+              last_updated: Date.now()
+            })
+            .eq('phone', p);
+        } catch (_) {}
+
+        // 3. Clean up any pending or past stamp requests for this customer
+        try {
+          await this.client
+            .from('stamp_requests')
+            .delete()
+            .eq('phone', p);
+        } catch (_) {}
+      }
 
       return true;
     } catch (e) {

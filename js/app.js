@@ -67,8 +67,8 @@ class LoyaltyApp {
     this.customerResetOtp = '';
     this.customerResetPhone = '';
     this.repeatApprovalPollTimer = null;
-    this.appVersion = "1.6.23";
-    this.versionCode = 31;
+    this.appVersion = "1.6.24";
+    this.versionCode = 32;
     this.latestUpdateInfo = null;
 
     if (typeof window !== 'undefined') {
@@ -2928,7 +2928,7 @@ class LoyaltyApp {
       target = this.latestUpdateInfo.customerVersion || this.latestUpdateInfo.version;
     }
     if (!target) {
-      target = "1.6.23";
+      target = "1.6.24";
     }
     if (title) title.textContent = `New Update Available (v${target})`;
     if (desc && note) desc.textContent = note;
