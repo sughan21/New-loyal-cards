@@ -61,8 +61,8 @@ class StoreOwnerApp {
     this.syncTimer = null;
     this.knownPendingRequestIds = new Set();
     this.expandedCustomerPhones = new Set();
-    this.appVersion = "1.6.27";
-    this.versionCode = 36;
+    this.appVersion = "1.0";
+    this.versionCode = 37;
     this.latestUpdateInfo = null;
 
     if (typeof window !== 'undefined') {
@@ -1065,39 +1065,31 @@ class StoreOwnerApp {
     const cleanC = String(currentVer).trim().toLowerCase().replace(/^v/, '');
     if (cleanT === cleanC) return false;
 
-    if (typeof remoteCode === 'number' && typeof currentCode === 'number') {
+    // If numeric version codes are available, version code is the ground truth
+    if (typeof remoteCode === 'number' && typeof currentCode === 'number' && !isNaN(remoteCode) && !isNaN(currentCode)) {
       if (remoteCode > currentCode) return true;
-      if (remoteCode < currentCode) return false;
+      if (remoteCode <= currentCode) return false;
     }
 
-    if (this.isNewerVersion(cleanT, cleanC)) return true;
-    return true;
+    // Otherwise strictly check if target semver is newer (NEVER return true on older or equal versions)
+    return this.isNewerVersion(cleanT, cleanC, remoteCode, currentCode);
   }
 
   isNewerVersion(remoteVer, currentVer, remoteCode, currentCode) {
     if (!remoteVer || !currentVer) return false;
 
-    // Check version codes if available (e.g. Build 35 > Build 34)
-    if (typeof remoteCode === 'number' && typeof currentCode === 'number' && remoteCode !== currentCode) {
+    // Check version codes if available (e.g. Build 37 > Build 36)
+    if (typeof remoteCode === 'number' && typeof currentCode === 'number' && !isNaN(remoteCode) && !isNaN(currentCode) && remoteCode !== currentCode) {
       return remoteCode > currentCode;
     }
 
-    // Special transition: Upgrading from legacy beta test builds (1.6.x) to official Version 1 (1.0 or v1.0)
-    const isLegacyBeta = (v) => String(v).includes('1.6.');
-    const isV1 = (v) => {
-      const s = String(v).toLowerCase().trim();
-      return s === '1.0' || s === '1.0.0' || s === 'v1.0' || s === 'version 1' || s === 'version1' || s === 'v1' || s === '1';
-    };
-    if (isLegacyBeta(currentVer) && isV1(remoteVer)) {
-      return true;
-    }
-    if (isV1(currentVer) && isLegacyBeta(remoteVer)) {
-      return false;
-    }
+    const cleanR = String(remoteVer).trim().toLowerCase().replace(/^v/, '');
+    const cleanC = String(currentVer).trim().toLowerCase().replace(/^v/, '');
+    if (cleanR === cleanC) return false;
 
     const parse = (v) => String(v).replace(/^[^\d]*/, '').split('.').map(n => parseInt(n, 10) || 0);
-    const r = parse(remoteVer);
-    const c = parse(currentVer);
+    const r = parse(cleanR);
+    const c = parse(cleanC);
     const len = Math.max(r.length, c.length);
     for (let i = 0; i < len; i++) {
       const rNum = r[i] || 0;
@@ -1370,7 +1362,7 @@ class StoreOwnerApp {
       target = this.latestUpdateInfo.ownerVersion || this.latestUpdateInfo.version;
     }
     if (!target) {
-      target = "1.6.27";
+      target = this.appVersion || "1.0";
     }
     if (title) title.textContent = `Terminal Update Available (v${target})`;
     if (desc && notes) desc.textContent = notes;
@@ -1708,6 +1700,7 @@ class StoreOwnerApp {
       note: `Store Purchase (Owner Added) - Tick #${customer.stamps} of ${MAX_STAMPS}${milestoneTag}`
     });
 
+    customer.lastUpdated = Date.now();
     this.saveUsers();
 
     if (customer.stamps >= MAX_STAMPS) {
@@ -1758,6 +1751,7 @@ class StoreOwnerApp {
       appVersion: customer.appVersion || this.getTargetCustomerVersion()
     });
 
+    customer.lastUpdated = Date.now();
     this.saveUsers();
 
     if (window.soundEngine && typeof window.soundEngine.playTrashSound === 'function') {
@@ -1782,6 +1776,7 @@ class StoreOwnerApp {
       note: `🏷️ ${percent}% OFF OFFER APPLIED AT CASHIER DESK`
     });
 
+    customer.lastUpdated = Date.now();
     this.saveUsers();
     if (window.soundEngine) window.soundEngine.playSuccessTone();
     this.showToast(`🏷️ ${percent}% OFF discount applied for ${customer.name}! Stamps continue towards 11 for Free Gift.`, "gold");
@@ -1803,6 +1798,7 @@ class StoreOwnerApp {
       note: `🎁 GRAND FREE GIFT HANDED OUT BY STORE OWNER: ${this.storeConfig.rewardTitle}`
     });
 
+    customer.lastUpdated = Date.now();
     this.saveUsers();
     if (window.soundEngine) window.soundEngine.playSuccessTone();
     this.showToast(`🎁 Free Gift handed over to ${customer.name}! Card reset to 0/11 for next reward cycle.`, "gold");
@@ -2209,7 +2205,7 @@ class StoreOwnerApp {
   getTargetCustomerVersion() {
     const broadcastVer = localStorage.getItem('loyalty_owner_broadcast_version');
     const remoteVer = this.latestUpdateInfo ? (this.latestUpdateInfo.customerVersion || this.latestUpdateInfo.version) : null;
-    let highest = this.appVersion || "1.6.27";
+    let highest = this.appVersion || "1.0";
     if (broadcastVer && this.isNewerVersion(broadcastVer, highest)) {
       highest = broadcastVer;
     }
@@ -2224,7 +2220,9 @@ class StoreOwnerApp {
     const broadcastVer = localStorage.getItem('loyalty_owner_broadcast_version') || (this.latestUpdateInfo ? this.latestUpdateInfo.broadcastVersion : null) || this.appVersion;
     const custVer = customer.appVersion;
     if (!custVer) return false;
-    return this.isUpdateAvailable(broadcastVer, custVer);
+    const targetCode = (this.latestUpdateInfo && (this.latestUpdateInfo.broadcastVersionCode || this.latestUpdateInfo.customerVersionCode || this.latestUpdateInfo.versionCode)) || this.versionCode;
+    const custCode = customer.versionCode;
+    return this.isUpdateAvailable(broadcastVer, custVer, targetCode, custCode);
   }
 
   sendWhatsAppUpdate(phone, encodedName, currentVer) {

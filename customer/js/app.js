@@ -67,8 +67,8 @@ class LoyaltyApp {
     this.customerResetOtp = '';
     this.customerResetPhone = '';
     this.repeatApprovalPollTimer = null;
-    this.appVersion = "1.6.27";
-    this.versionCode = 36;
+    this.appVersion = "1.0";
+    this.versionCode = 37;
     this.latestUpdateInfo = null;
 
     if (typeof window !== 'undefined') {
@@ -438,24 +438,21 @@ class LoyaltyApp {
     const remoteStamps = parseInt(remoteMe.stamps, 10) || 0;
     const localStamps = parseInt(this.currentUser.stamps, 10) || 0;
 
-    if (remoteStamps > localStamps) {
-      // Remote cashier added stamps
+    if (remoteStamps !== localStamps) {
+      // Remote cashier / cloud is authoritative for stamps (both add & remove)
       this.currentUser.stamps = remoteStamps;
       if (remoteMe.giftsEarned !== undefined) this.currentUser.giftsEarned = remoteMe.giftsEarned;
       if (Array.isArray(remoteMe.history) && remoteMe.history.length > 0) {
         this.currentUser.history = remoteMe.history;
       }
       changed = true;
-    } else if (localStamps > remoteStamps) {
-      // Customer claimed stamp locally/offline, push to cloud
-      needPush = true;
     } else {
       if (remoteMe.giftsEarned !== undefined && remoteMe.giftsEarned !== this.currentUser.giftsEarned) {
         this.currentUser.giftsEarned = remoteMe.giftsEarned;
         changed = true;
       }
       if (Array.isArray(remoteMe.history) && remoteMe.history.length > 0) {
-        if (!this.currentUser.history || remoteMe.history.length > this.currentUser.history.length) {
+        if (!this.currentUser.history || remoteMe.history.length !== this.currentUser.history.length || JSON.stringify(remoteMe.history) !== JSON.stringify(this.currentUser.history)) {
           this.currentUser.history = remoteMe.history;
           changed = true;
         }
@@ -467,8 +464,8 @@ class LoyaltyApp {
     const isUpdateAlert = latestEvent && latestEvent.type === 'update_alert';
     const targetVer = (isUpdateAlert && latestEvent.targetVersion)
       ? latestEvent.targetVersion
-      : (remoteMe.updateAlert ? remoteMe.updateAlert.targetVersion : "1.6.9");
-    const isOutdated = this.isUpdateAvailable(targetVer, this.appVersion);
+      : (remoteMe.updateAlert ? remoteMe.updateAlert.targetVersion : null);
+    const isOutdated = targetVer ? this.isUpdateAvailable(targetVer, this.appVersion) : false;
 
     if (isOutdated && (isUpdateAlert || remoteMe.updateAlert)) {
       const alertMsg = (isUpdateAlert && latestEvent.note)
@@ -484,6 +481,10 @@ class LoyaltyApp {
       this.checkForAppUpdates(false);
     } else {
       this.renderUpdateTopBanner(false);
+      if (!isOutdated && this.currentUser.updateAlert) {
+        delete this.currentUser.updateAlert;
+        changed = true;
+      }
     }
 
     if (changed) {
@@ -2746,43 +2747,31 @@ class LoyaltyApp {
     const cleanC = String(currentVer).trim().toLowerCase().replace(/^v/, '');
     if (cleanT === cleanC) return false;
 
-    // If version codes differ (e.g. 36 !== 34), it's definitely an update
-    if (typeof remoteCode === 'number' && typeof currentCode === 'number') {
+    // If version codes differ (e.g. 37 > 36), version code is the ground truth
+    if (typeof remoteCode === 'number' && typeof currentCode === 'number' && !isNaN(remoteCode) && !isNaN(currentCode)) {
       if (remoteCode > currentCode) return true;
-      if (remoteCode < currentCode) return false;
+      if (remoteCode <= currentCode) return false;
     }
 
-    // If semver says newer
-    if (this.isNewerVersion(cleanT, cleanC)) return true;
-
-    // Any different version string when broadcasted by owner means update!
-    return true;
+    // Otherwise strictly check if target semver is newer (NEVER return true on older or equal versions)
+    return this.isNewerVersion(cleanT, cleanC, remoteCode, currentCode);
   }
 
   isNewerVersion(remoteVer, currentVer, remoteCode, currentCode) {
     if (!remoteVer || !currentVer) return false;
 
-    // Check version codes if available (e.g. Build 35 > Build 34)
-    if (typeof remoteCode === 'number' && typeof currentCode === 'number' && remoteCode !== currentCode) {
+    // Check version codes if available (e.g. Build 37 > Build 36)
+    if (typeof remoteCode === 'number' && typeof currentCode === 'number' && !isNaN(remoteCode) && !isNaN(currentCode) && remoteCode !== currentCode) {
       return remoteCode > currentCode;
     }
 
-    // Special transition: Upgrading from legacy beta test builds (1.6.x) to official Version 1 (1.0 or v1.0)
-    const isLegacyBeta = (v) => String(v).includes('1.6.');
-    const isV1 = (v) => {
-      const s = String(v).toLowerCase().trim();
-      return s === '1.0' || s === '1.0.0' || s === 'v1.0' || s === 'version 1' || s === 'version1' || s === 'v1' || s === '1';
-    };
-    if (isLegacyBeta(currentVer) && isV1(remoteVer)) {
-      return true;
-    }
-    if (isV1(currentVer) && isLegacyBeta(remoteVer)) {
-      return false;
-    }
+    const cleanR = String(remoteVer).trim().toLowerCase().replace(/^v/, '');
+    const cleanC = String(currentVer).trim().toLowerCase().replace(/^v/, '');
+    if (cleanR === cleanC) return false;
 
     const parse = (v) => String(v).replace(/^[^\d]*/, '').split('.').map(n => parseInt(n, 10) || 0);
-    const r = parse(remoteVer);
-    const c = parse(currentVer);
+    const r = parse(cleanR);
+    const c = parse(cleanC);
     const len = Math.max(r.length, c.length);
     for (let i = 0; i < len; i++) {
       const rNum = r[i] || 0;
@@ -2820,17 +2809,23 @@ class LoyaltyApp {
     }
 
     // 2. Secondary check: Direct updateAlert sent to this customer's card by Store Owner
-    if (!updateData && this.currentUser && this.currentUser.updateAlert && this.currentUser.updateAlert.targetVersion) {
+    if (this.currentUser && this.currentUser.updateAlert && this.currentUser.updateAlert.targetVersion) {
       const alertVer = this.currentUser.updateAlert.targetVersion;
       if (this.isUpdateAvailable(alertVer, this.appVersion)) {
-        isBroadcastedByOwner = true;
-        updateData = {
-          version: alertVer,
-          customerVersion: alertVer,
-          broadcastVersion: alertVer,
-          broadcastByOwner: true,
-          notes: "Store Owner released a new update for your Loyalty Pass!"
-        };
+        if (!updateData) {
+          isBroadcastedByOwner = true;
+          updateData = {
+            version: alertVer,
+            customerVersion: alertVer,
+            broadcastVersion: alertVer,
+            broadcastByOwner: true,
+            notes: "Store Owner released a new update for your Loyalty Pass!"
+          };
+        }
+      } else {
+        // Clear stale update alert that is no longer newer than installed version
+        delete this.currentUser.updateAlert;
+        this.saveCurrentUser();
       }
     }
 
@@ -2845,6 +2840,10 @@ class LoyaltyApp {
           if (parsed.broadcastByOwner === true && targetVer && this.isUpdateAvailable(targetVer, this.appVersion, targetCode, this.versionCode)) {
             updateData = parsed;
             isBroadcastedByOwner = true;
+          } else {
+            // Clean up stale or outdated local broadcast
+            localStorage.removeItem('loyalty_broadcast_version');
+            localStorage.removeItem('loyalty_cached_version');
           }
         }
       } catch (e) {}
@@ -3095,7 +3094,7 @@ class LoyaltyApp {
       target = this.latestUpdateInfo.customerVersion || this.latestUpdateInfo.version;
     }
     if (!target) {
-      target = "1.6.27";
+      target = this.appVersion || "1.0";
     }
     if (title) title.textContent = `New Update Available (v${target})`;
     if (desc && note) desc.textContent = note;
