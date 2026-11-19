@@ -811,9 +811,6 @@ class LoyaltyApp {
     });
 
     // Scanner actions
-    const simulateScanBtn = document.getElementById('simulateScanBtn');
-    if (simulateScanBtn) simulateScanBtn.addEventListener('click', () => this.simulateStoreScan());
-
     const switchCameraBtn = document.getElementById('switchCameraBtn');
     if (switchCameraBtn) switchCameraBtn.addEventListener('click', () => this.toggleCameraFacing());
 
@@ -2175,36 +2172,39 @@ class LoyaltyApp {
     }
   }
 
-  simulateStoreScan() {
-    const fakeStorePayload = JSON.stringify({
-      action: "STORE_PURCHASE_STAMP",
-      store: this.storeConfig.name,
-      code: this.storeConfig.storeCode,
-      ticksTotal: MAX_STAMPS,
-      ts: Date.now()
-    });
-    this.processScannedCode(fakeStorePayload);
-  }
-
   processScannedCode(codeString) {
-    let token = this.storeConfig.storeCode;
-    if (codeString) {
-      try {
-        if (codeString.includes('store_scan=')) {
-          const match = codeString.match(/store_scan=([^&;#\s]+)/);
-          if (match && match[1]) token = decodeURIComponent(match[1]);
-        } else if (codeString.includes('token=')) {
-          const match = codeString.match(/token=([^&;#\s]+)/);
-          if (match && match[1]) token = decodeURIComponent(match[1]);
-        } else if (codeString.trim().startsWith('{')) {
-          const parsed = JSON.parse(codeString);
-          if (parsed.code) token = parsed.code;
-        } else if (codeString.trim().length > 0 && !codeString.includes('://')) {
-          token = codeString.trim();
-        }
-      } catch (e) {
-        console.warn("Error parsing scanned code:", e);
+    if (!codeString || typeof codeString !== 'string') {
+      if (window.soundEngine) window.soundEngine.playError();
+      this.showToast("⚠️ Invalid QR code. Please scan the official Store QR standee.", "error");
+      return;
+    }
+
+    let token = null;
+    try {
+      const clean = codeString.trim();
+      if (clean.includes('store_scan=')) {
+        const match = clean.match(/store_scan=([^&;#\s]+)/);
+        if (match && match[1]) token = decodeURIComponent(match[1]);
+      } else if (clean.includes('token=')) {
+        const match = clean.match(/token=([^&;#\s]+)/);
+        if (match && match[1]) token = decodeURIComponent(match[1]);
+      } else if (clean.startsWith('{')) {
+        const parsed = JSON.parse(clean);
+        if (parsed.code) token = parsed.code;
+      } else if (clean === this.storeConfig.storeCode || clean === 'LOYALTY-REWARD-STORE-TOKEN-2026') {
+        token = clean;
       }
+    } catch (e) {
+      console.warn("Error parsing scanned code:", e);
+    }
+
+    const expectedToken = this.storeConfig.storeCode || 'LOYALTY-REWARD-STORE-TOKEN-2026';
+    const isValidToken = token && (token === expectedToken || token === 'LOYALTY-REWARD-STORE-TOKEN-2026' || token.startsWith('LOYALTY-REWARD-'));
+
+    if (!isValidToken) {
+      if (window.soundEngine) window.soundEngine.playError();
+      this.showToast("⚠️ Unrecognized QR code. Please scan the official Store Counter QR code.", "error");
+      return;
     }
 
     // If not logged in, save pending store token and switch to login tab directly

@@ -67,8 +67,8 @@ class LoyaltyApp {
     this.customerResetOtp = '';
     this.customerResetPhone = '';
     this.repeatApprovalPollTimer = null;
-    this.appVersion = "1.6.23";
-    this.versionCode = 31;
+    this.appVersion = "1.0";
+    this.versionCode = 37;
     this.latestUpdateInfo = null;
 
     if (typeof window !== 'undefined') {
@@ -438,24 +438,21 @@ class LoyaltyApp {
     const remoteStamps = parseInt(remoteMe.stamps, 10) || 0;
     const localStamps = parseInt(this.currentUser.stamps, 10) || 0;
 
-    if (remoteStamps > localStamps) {
-      // Remote cashier added stamps
+    if (remoteStamps !== localStamps) {
+      // Remote cashier / cloud is authoritative for stamps (both add & remove)
       this.currentUser.stamps = remoteStamps;
       if (remoteMe.giftsEarned !== undefined) this.currentUser.giftsEarned = remoteMe.giftsEarned;
       if (Array.isArray(remoteMe.history) && remoteMe.history.length > 0) {
         this.currentUser.history = remoteMe.history;
       }
       changed = true;
-    } else if (localStamps > remoteStamps) {
-      // Customer claimed stamp locally/offline, push to cloud
-      needPush = true;
     } else {
       if (remoteMe.giftsEarned !== undefined && remoteMe.giftsEarned !== this.currentUser.giftsEarned) {
         this.currentUser.giftsEarned = remoteMe.giftsEarned;
         changed = true;
       }
       if (Array.isArray(remoteMe.history) && remoteMe.history.length > 0) {
-        if (!this.currentUser.history || remoteMe.history.length > this.currentUser.history.length) {
+        if (!this.currentUser.history || remoteMe.history.length !== this.currentUser.history.length || JSON.stringify(remoteMe.history) !== JSON.stringify(this.currentUser.history)) {
           this.currentUser.history = remoteMe.history;
           changed = true;
         }
@@ -467,8 +464,8 @@ class LoyaltyApp {
     const isUpdateAlert = latestEvent && latestEvent.type === 'update_alert';
     const targetVer = (isUpdateAlert && latestEvent.targetVersion)
       ? latestEvent.targetVersion
-      : (remoteMe.updateAlert ? remoteMe.updateAlert.targetVersion : "1.6.9");
-    const isOutdated = this.isNewerVersion(targetVer, this.appVersion);
+      : (remoteMe.updateAlert ? remoteMe.updateAlert.targetVersion : null);
+    const isOutdated = targetVer ? this.isUpdateAvailable(targetVer, this.appVersion) : false;
 
     if (isOutdated && (isUpdateAlert || remoteMe.updateAlert)) {
       const alertMsg = (isUpdateAlert && latestEvent.note)
@@ -484,6 +481,10 @@ class LoyaltyApp {
       this.checkForAppUpdates(false);
     } else {
       this.renderUpdateTopBanner(false);
+      if (!isOutdated && this.currentUser.updateAlert) {
+        delete this.currentUser.updateAlert;
+        changed = true;
+      }
     }
 
     if (changed) {
@@ -524,8 +525,9 @@ class LoyaltyApp {
         (configRow) => {
           if (configRow && Array.isArray(configRow.history) && configRow.history.length > 0) {
             const updateData = configRow.history[0];
-            const targetCustomerVer = updateData.customerVersion || updateData.version;
-            if (targetCustomerVer && this.isNewerVersion(targetCustomerVer, this.appVersion)) {
+            const targetCustomerVer = updateData.broadcastVersion || updateData.customerVersion || updateData.version;
+            // ONLY trigger if explicitly broadcasted by store owner!
+            if (updateData && updateData.broadcastByOwner === true && targetCustomerVer && this.isUpdateAvailable(targetCustomerVer, this.appVersion, updateData.versionCode || updateData.customerVersionCode, this.versionCode)) {
               this.latestUpdateInfo = updateData;
               this.showOwnerUpdateAlertModal(
                 updateData.notes || `Version ${targetCustomerVer} is ready to install! Tap to update.`,
@@ -633,6 +635,18 @@ class LoyaltyApp {
     const openScanBtn = document.getElementById('openScannerBtn');
     if (openScanBtn) openScanBtn.addEventListener('click', () => this.openScannerModal());
 
+    // Google Review Button Handler
+    const reviewBtn = document.getElementById('customerGoogleReviewBtn');
+    if (reviewBtn) {
+      const reviewUrl = 'https://share.google/q0NPPENHYIeZs7ReR';
+      reviewBtn.addEventListener('click', (e) => {
+        if (window.AndroidBridge && typeof window.AndroidBridge.openExternalUrl === 'function') {
+          e.preventDefault();
+          window.AndroidBridge.openExternalUrl(reviewUrl);
+        }
+      });
+    }
+
     // Modal Close Triggers (Click, Touch & Backdrop Tap)
     const handleCloseModal = (e) => {
       if (e) {
@@ -673,6 +687,21 @@ class LoyaltyApp {
     const applyUpdateBtn = document.getElementById('applyUpdateBtn');
     if (applyUpdateBtn) {
       applyUpdateBtn.addEventListener('click', () => this.handleApplyUpdate());
+    }
+
+    // Customer Name Edit inside Settings
+    const saveCustomerNameBtn = document.getElementById('saveCustomerNameBtn');
+    if (saveCustomerNameBtn) {
+      saveCustomerNameBtn.addEventListener('click', () => this.handleSaveCustomerName());
+    }
+    const editCustomerNameInput = document.getElementById('editCustomerNameInput');
+    if (editCustomerNameInput) {
+      editCustomerNameInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          this.handleSaveCustomerName();
+        }
+      });
     }
 
     // Customer Dedicated Store Owner Update Alert Modal Buttons (Direct Bindings)
@@ -782,9 +811,6 @@ class LoyaltyApp {
     });
 
     // Scanner actions
-    const simulateScanBtn = document.getElementById('simulateScanBtn');
-    if (simulateScanBtn) simulateScanBtn.addEventListener('click', () => this.simulateStoreScan());
-
     const switchCameraBtn = document.getElementById('switchCameraBtn');
     if (switchCameraBtn) switchCameraBtn.addEventListener('click', () => this.toggleCameraFacing());
 
@@ -2146,36 +2172,39 @@ class LoyaltyApp {
     }
   }
 
-  simulateStoreScan() {
-    const fakeStorePayload = JSON.stringify({
-      action: "STORE_PURCHASE_STAMP",
-      store: this.storeConfig.name,
-      code: this.storeConfig.storeCode,
-      ticksTotal: MAX_STAMPS,
-      ts: Date.now()
-    });
-    this.processScannedCode(fakeStorePayload);
-  }
-
   processScannedCode(codeString) {
-    let token = this.storeConfig.storeCode;
-    if (codeString) {
-      try {
-        if (codeString.includes('store_scan=')) {
-          const match = codeString.match(/store_scan=([^&;#\s]+)/);
-          if (match && match[1]) token = decodeURIComponent(match[1]);
-        } else if (codeString.includes('token=')) {
-          const match = codeString.match(/token=([^&;#\s]+)/);
-          if (match && match[1]) token = decodeURIComponent(match[1]);
-        } else if (codeString.trim().startsWith('{')) {
-          const parsed = JSON.parse(codeString);
-          if (parsed.code) token = parsed.code;
-        } else if (codeString.trim().length > 0 && !codeString.includes('://')) {
-          token = codeString.trim();
-        }
-      } catch (e) {
-        console.warn("Error parsing scanned code:", e);
+    if (!codeString || typeof codeString !== 'string') {
+      if (window.soundEngine) window.soundEngine.playError();
+      this.showToast("⚠️ Invalid QR code. Please scan the official Store QR standee.", "error");
+      return;
+    }
+
+    let token = null;
+    try {
+      const clean = codeString.trim();
+      if (clean.includes('store_scan=')) {
+        const match = clean.match(/store_scan=([^&;#\s]+)/);
+        if (match && match[1]) token = decodeURIComponent(match[1]);
+      } else if (clean.includes('token=')) {
+        const match = clean.match(/token=([^&;#\s]+)/);
+        if (match && match[1]) token = decodeURIComponent(match[1]);
+      } else if (clean.startsWith('{')) {
+        const parsed = JSON.parse(clean);
+        if (parsed.code) token = parsed.code;
+      } else if (clean === this.storeConfig.storeCode || clean === 'LOYALTY-REWARD-STORE-TOKEN-2026') {
+        token = clean;
       }
+    } catch (e) {
+      console.warn("Error parsing scanned code:", e);
+    }
+
+    const expectedToken = this.storeConfig.storeCode || 'LOYALTY-REWARD-STORE-TOKEN-2026';
+    const isValidToken = token && (token === expectedToken || token === 'LOYALTY-REWARD-STORE-TOKEN-2026' || token.startsWith('LOYALTY-REWARD-'));
+
+    if (!isValidToken) {
+      if (window.soundEngine) window.soundEngine.playError();
+      this.showToast("⚠️ Unrecognized QR code. Please scan the official Store Counter QR code.", "error");
+      return;
     }
 
     // If not logged in, save pending store token and switch to login tab directly
@@ -2634,16 +2663,115 @@ class LoyaltyApp {
       accountSection.style.display = this.currentUser ? 'block' : 'none';
     }
 
+    const profileSection = document.getElementById('settingsProfileSection');
+    if (profileSection) {
+      profileSection.style.display = this.currentUser ? 'block' : 'none';
+      const nameInput = document.getElementById('editCustomerNameInput');
+      const phoneDisplay = document.getElementById('settingsCustomerPhoneDisplay');
+      const saveStatus = document.getElementById('editNameSaveStatus');
+      if (saveStatus) saveStatus.style.display = 'none';
+      if (this.currentUser) {
+        if (nameInput) nameInput.value = this.currentUser.name || '';
+        if (phoneDisplay) phoneDisplay.textContent = this.currentUser.phone || '-';
+      }
+    }
+
     this.pushBackHistory('settingsModal');
     modal.classList.add('active');
     this.checkForAppUpdates(false);
   }
 
-  isNewerVersion(remoteVer, currentVer) {
+  async handleSaveCustomerName() {
+    if (!this.currentUser) return;
+    const nameInput = document.getElementById('editCustomerNameInput');
+    const saveBtn = document.getElementById('saveCustomerNameBtn');
+    const saveStatus = document.getElementById('editNameSaveStatus');
+    if (!nameInput) return;
+
+    const newName = nameInput.value.trim();
+    if (!newName) {
+      this.showToast("Please enter a valid customer name", "error");
+      nameInput.focus();
+      return;
+    }
+
+    if (newName.length < 2) {
+      this.showToast("Name must be at least 2 characters", "error");
+      nameInput.focus();
+      return;
+    }
+
+    if (newName === this.currentUser.name) {
+      this.showToast("Name is already up to date ✓", "info");
+      return;
+    }
+
+    const oldName = this.currentUser.name;
+    this.currentUser.name = newName;
+    this.saveCurrentUser();
+
+    if (saveBtn) {
+      saveBtn.disabled = true;
+      saveBtn.innerHTML = '<span>Saving...</span>';
+    }
+
+    try {
+      if (window.loyaltyDb && window.loyaltyDb.isReady) {
+        await window.loyaltyDb.upsertCustomer(this.currentUser);
+      }
+      await this.pushUserToServer(this.currentUser);
+    } catch (e) {
+      console.warn("Failed to sync customer name to cloud:", e);
+    } finally {
+      if (saveBtn) {
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = '<span>💾 Save</span>';
+      }
+    }
+
+    if (saveStatus) {
+      saveStatus.style.display = 'inline-block';
+      setTimeout(() => {
+        if (saveStatus) saveStatus.style.display = 'none';
+      }, 2500);
+    }
+
+    this.render();
+    if (window.soundEngine) window.soundEngine.playSuccessTone();
+    this.showToast(`Customer name updated to "${newName}"! ✓`, "success");
+  }
+
+  isUpdateAvailable(targetVer, currentVer, remoteCode, currentCode) {
+    if (!targetVer || !currentVer) return false;
+    const cleanT = String(targetVer).trim().toLowerCase().replace(/^v/, '');
+    const cleanC = String(currentVer).trim().toLowerCase().replace(/^v/, '');
+    if (cleanT === cleanC) return false;
+
+    // If version codes differ (e.g. 37 > 36), version code is the ground truth
+    if (typeof remoteCode === 'number' && typeof currentCode === 'number' && !isNaN(remoteCode) && !isNaN(currentCode)) {
+      if (remoteCode > currentCode) return true;
+      if (remoteCode <= currentCode) return false;
+    }
+
+    // Otherwise strictly check if target semver is newer (NEVER return true on older or equal versions)
+    return this.isNewerVersion(cleanT, cleanC, remoteCode, currentCode);
+  }
+
+  isNewerVersion(remoteVer, currentVer, remoteCode, currentCode) {
     if (!remoteVer || !currentVer) return false;
+
+    // Check version codes if available (e.g. Build 37 > Build 36)
+    if (typeof remoteCode === 'number' && typeof currentCode === 'number' && !isNaN(remoteCode) && !isNaN(currentCode) && remoteCode !== currentCode) {
+      return remoteCode > currentCode;
+    }
+
+    const cleanR = String(remoteVer).trim().toLowerCase().replace(/^v/, '');
+    const cleanC = String(currentVer).trim().toLowerCase().replace(/^v/, '');
+    if (cleanR === cleanC) return false;
+
     const parse = (v) => String(v).replace(/^[^\d]*/, '').split('.').map(n => parseInt(n, 10) || 0);
-    const r = parse(remoteVer);
-    const c = parse(currentVer);
+    const r = parse(cleanR);
+    const c = parse(cleanC);
     const len = Math.max(r.length, c.length);
     for (let i = 0; i < len; i++) {
       const rNum = r[i] || 0;
@@ -2663,46 +2791,59 @@ class LoyaltyApp {
     }
 
     let updateData = null;
+    let isBroadcastedByOwner = false;
 
-    // 1. Primary priority: Live GitHub Pages cloud version (always available on mobile & web)
-    try {
-      const respCloud = await fetch(`https://sughan21.github.io/New-loyal-cards/data/version.json?_t=${Date.now()}`, {
-        cache: 'no-store',
-        headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' }
-      });
-      if (respCloud.ok) {
-        updateData = await respCloud.json();
-      }
-    } catch (e) {}
-
-    // 2. Second priority: Supabase Realtime Cloud (instant cross-device sync)
-    if (!updateData && window.loyaltyDb && window.loyaltyDb.isReady) {
+    // 1. Primary priority: Check Owner Broadcast from Supabase Realtime Cloud (__APP_CONFIG_VERSION__)
+    if (window.loyaltyDb && window.loyaltyDb.isReady) {
       try {
-        updateData = await window.loyaltyDb.fetchAppVersion();
-      } catch (e) {}
-    }
-
-    // 3. Third priority: Local server or tunnel REST API (when testing with local node server)
-    if (!updateData) {
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 1200);
-        const resp = await fetch(`${API_BASE_URL}/api/version?_t=${Date.now()}`, { cache: 'no-cache', signal: controller.signal });
-        clearTimeout(timeoutId);
-        if (resp.ok) {
-          updateData = await resp.json();
+        const cloudConfig = await window.loyaltyDb.fetchAppVersion();
+        if (cloudConfig) {
+          const targetCustomerVer = cloudConfig.broadcastVersion || cloudConfig.customerVersion || cloudConfig.version;
+          const targetCustomerCode = cloudConfig.broadcastVersionCode || cloudConfig.customerVersionCode || cloudConfig.versionCode;
+          if (cloudConfig.broadcastByOwner === true && targetCustomerVer && this.isUpdateAvailable(targetCustomerVer, this.appVersion, targetCustomerCode, this.versionCode)) {
+            updateData = cloudConfig;
+            isBroadcastedByOwner = true;
+          }
         }
       } catch (e) {}
     }
 
-    // 4. Last resort fallback: local static JSON, but ONLY if newer than appVersion
+    // 2. Secondary check: Direct updateAlert sent to this customer's card by Store Owner
+    if (this.currentUser && this.currentUser.updateAlert && this.currentUser.updateAlert.targetVersion) {
+      const alertVer = this.currentUser.updateAlert.targetVersion;
+      if (this.isUpdateAvailable(alertVer, this.appVersion)) {
+        if (!updateData) {
+          isBroadcastedByOwner = true;
+          updateData = {
+            version: alertVer,
+            customerVersion: alertVer,
+            broadcastVersion: alertVer,
+            broadcastByOwner: true,
+            notes: "Store Owner released a new update for your Loyalty Pass!"
+          };
+        }
+      } else {
+        // Clear stale update alert that is no longer newer than installed version
+        delete this.currentUser.updateAlert;
+        this.saveCurrentUser();
+      }
+    }
+
+    // 3. Fallback: Check local terminal broadcast in localStorage (if testing in same browser environment)
     if (!updateData) {
       try {
-        const resp2 = await fetch(`./data/version.json?_t=${Date.now()}`, { cache: 'no-cache' });
-        if (resp2.ok) {
-          const localJson = await resp2.json();
-          if (localJson && this.isNewerVersion(localJson.customerVersion || localJson.version, this.appVersion)) {
-            updateData = localJson;
+        const broadcastStr = localStorage.getItem('loyalty_broadcast_version');
+        if (broadcastStr) {
+          const parsed = JSON.parse(broadcastStr);
+          const targetVer = parsed.broadcastVersion || parsed.customerVersion || parsed.version;
+          const targetCode = parsed.broadcastVersionCode || parsed.customerVersionCode || parsed.versionCode;
+          if (parsed.broadcastByOwner === true && targetVer && this.isUpdateAvailable(targetVer, this.appVersion, targetCode, this.versionCode)) {
+            updateData = parsed;
+            isBroadcastedByOwner = true;
+          } else {
+            // Clean up stale or outdated local broadcast
+            localStorage.removeItem('loyalty_broadcast_version');
+            localStorage.removeItem('loyalty_cached_version');
           }
         }
       } catch (e) {}
@@ -2713,17 +2854,42 @@ class LoyaltyApp {
       if (checkBtnText) checkBtnText.textContent = "Check for Updates";
     }
 
-    if (!updateData || !updateData.version) {
+    // STAGED ROLLOUT ENFORCEMENT:
+    // Every update must appear FIRST in the Owner App.
+    // The Customer App must ONLY update AFTER the owner clicks "📢 Broadcast to Customers"!
+    // If the owner has NOT clicked "Broadcast to Customers", the customer app will NOT show any update banner or modal.
+    if (!isBroadcastedByOwner || !updateData) {
       if (isManual) {
-        this.showToast("Could not reach update server. Please check connection.", "info");
+        this.showToast("Your Loyalty Pass is up to date! ✅", "success");
       }
+      this.renderUpdateTopBanner(false);
+      const newUpdateBanner = document.getElementById('newUpdateBanner');
+      if (newUpdateBanner) newUpdateBanner.style.setProperty('display', 'none', 'important');
+      const updateVersionStrip = document.getElementById('updateVersionStrip');
+      const versionChipArrow = document.getElementById('versionChipArrow');
+      const newVersionChip = document.getElementById('newVersionChip');
+      if (updateVersionStrip) updateVersionStrip.classList.remove('has-update');
+      if (versionChipArrow) versionChipArrow.style.setProperty('display', 'none', 'important');
+      if (newVersionChip) newVersionChip.style.setProperty('display', 'none', 'important');
+      ['settingsUpdateBadge', 'customerSettingsBadge', 'authSettingsBadge'].forEach(id => {
+        const b = document.getElementById(id);
+        if (b) b.style.setProperty('display', 'none', 'important');
+      });
+      const updateIconPulse = document.getElementById('updateIconPulse');
+      const updateIconSymbol = document.getElementById('updateIconSymbol');
+      const updateStatusTitle = document.getElementById('updateStatusTitle');
+      const updateStatusSubtitle = document.getElementById('updateStatusSubtitle');
+      if (updateIconPulse) updateIconPulse.classList.remove('has-update');
+      if (updateIconSymbol) updateIconSymbol.textContent = '✅';
+      if (updateStatusTitle) updateStatusTitle.textContent = 'App is up to date';
+      if (updateStatusSubtitle) updateStatusSubtitle.textContent = `You have the latest version installed`;
       return;
     }
 
     this.latestUpdateInfo = updateData;
 
-    const targetCustomerVer = updateData.customerVersion || updateData.version;
-    const hasNewVersion = this.isNewerVersion(targetCustomerVer, this.appVersion);
+    const targetCustomerVer = updateData.broadcastVersion || updateData.customerVersion || updateData.version;
+    const hasNewVersion = this.isUpdateAvailable(targetCustomerVer, this.appVersion, updateData.versionCode || updateData.customerVersionCode, this.versionCode);
 
     const badgeIds = ['settingsUpdateBadge', 'customerSettingsBadge', 'authSettingsBadge'];
     const updateIconPulse = document.getElementById('updateIconPulse');
@@ -2928,7 +3094,7 @@ class LoyaltyApp {
       target = this.latestUpdateInfo.customerVersion || this.latestUpdateInfo.version;
     }
     if (!target) {
-      target = "1.6.23";
+      target = this.appVersion || "1.0";
     }
     if (title) title.textContent = `New Update Available (v${target})`;
     if (desc && note) desc.textContent = note;
@@ -3213,7 +3379,7 @@ class LoyaltyApp {
     const latestEvent = history.length > 0 ? history[0] : null;
     const hasPendingAlert = latestEvent && latestEvent.type === 'update_alert';
     const targetVer = (hasPendingAlert && latestEvent.targetVersion) || (this.latestUpdateInfo && (this.latestUpdateInfo.customerVersion || this.latestUpdateInfo.version)) || "1.6.9";
-    const isOutdated = this.isNewerVersion(targetVer, this.appVersion);
+    const isOutdated = this.isUpdateAvailable(targetVer, this.appVersion);
     this.renderUpdateTopBanner(isOutdated && hasPendingAlert, targetVer);
 
     const headerSub = document.getElementById('appHeaderSubtitle');
