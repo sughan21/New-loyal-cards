@@ -67,8 +67,8 @@ class LoyaltyApp {
     this.customerResetOtp = '';
     this.customerResetPhone = '';
     this.repeatApprovalPollTimer = null;
-    this.appVersion = "1.0.1";
-    this.versionCode = 38;
+    this.appVersion = "1.0.2";
+    this.versionCode = 39;
     this.latestUpdateInfo = null;
 
     if (typeof window !== 'undefined') {
@@ -813,9 +813,6 @@ class LoyaltyApp {
     // Scanner actions
     const switchCameraBtn = document.getElementById('switchCameraBtn');
     if (switchCameraBtn) switchCameraBtn.addEventListener('click', () => this.toggleCameraFacing());
-
-    const qrFileInput = document.getElementById('qrFileInput');
-    if (qrFileInput) qrFileInput.addEventListener('change', (e) => this.handleQrFileUpload(e));
 
     // Claim / Redeem Reward Buttons
     const claimRewardBannerBtn = document.getElementById('claimRewardBannerBtn');
