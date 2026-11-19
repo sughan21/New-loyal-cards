@@ -67,8 +67,8 @@ class LoyaltyApp {
     this.customerResetOtp = '';
     this.customerResetPhone = '';
     this.repeatApprovalPollTimer = null;
-    this.appVersion = "1.0";
-    this.versionCode = 37;
+    this.appVersion = "1.0.1";
+    this.versionCode = 38;
     this.latestUpdateInfo = null;
 
     if (typeof window !== 'undefined') {
