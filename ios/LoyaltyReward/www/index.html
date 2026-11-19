@@ -1129,24 +1129,22 @@
       <div id="settingsProfileSection" class="settings-section">
         <div class="settings-section-title">Customer Profile</div>
         <div class="setting-profile-card">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-            <label for="editCustomerNameInput" style="font-size: 0.78rem; font-weight: 800; color: #b87c32; text-transform: uppercase; letter-spacing: 0.05em;">Customer Name</label>
-            <span id="editNameSaveStatus" style="font-size: 0.72rem; color: #059669; font-weight: 700; display: none;">Saved! ✓</span>
+          <div class="profile-card-header">
+            <label for="editCustomerNameInput" class="profile-card-label">Customer Name</label>
+            <span id="editNameSaveStatus" class="profile-save-status">Saved! ✓</span>
           </div>
-          <div style="display: flex; gap: 8px;">
-            <input type="text" id="editCustomerNameInput" class="custom-input" placeholder="Enter your full name" maxlength="40"
-              style="flex: 1; font-size: 0.92rem; padding: 10px 12px; background: #ffffff; border: 1.5px solid #ded5c8; color: #1c120c; border-radius: 12px; font-weight: 600; outline: none; transition: border-color 0.2s;">
-            <button type="button" id="saveCustomerNameBtn" class="primary-btn"
-              style="white-space: nowrap; padding: 10px 18px; margin: 0; font-size: 0.85rem; font-weight: 800; border-radius: 12px; background: linear-gradient(135deg, #2b1810 0%, #170d08 100%); color: #ffffff; border: none; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 4px 12px rgba(35, 20, 10, 0.2);">
+          <div class="profile-input-row">
+            <input type="text" id="editCustomerNameInput" class="profile-name-input custom-input" placeholder="Enter your full name" maxlength="40">
+            <button type="button" id="saveCustomerNameBtn" class="profile-save-btn primary-btn">
               <span>💾 Save</span>
             </button>
           </div>
-          <div style="margin-top: 10px; display: flex; align-items: center; justify-content: space-between; font-size: 0.75rem; color: #695547; border-top: 1px dashed #e7ded2; padding-top: 8px;">
-            <span style="display: flex; align-items: center; gap: 4px;">
-              <span>🔒 Registered Phone:</span>
-              <strong id="settingsCustomerPhoneDisplay" style="color: #1c120c; font-weight: 700;">-</strong>
-            </span>
-            <span style="font-size: 0.7rem; color: #a89485; font-style: italic;">(Phone locked • Name editable)</span>
+          <div class="profile-phone-row">
+            <div class="profile-phone-meta">
+              <span class="profile-phone-label">🔒 Registered Phone:</span>
+              <strong id="settingsCustomerPhoneDisplay" class="profile-phone-val">-</strong>
+            </div>
+            <span class="profile-phone-badge">🔒 Locked</span>
           </div>
         </div>
       </div>

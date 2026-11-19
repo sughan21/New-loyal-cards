@@ -5424,17 +5424,136 @@ body.modal-open {
 }
 
 .setting-profile-card {
-  background: #fbf9f6 !important;
-  border: 1.5px solid #ebe2d5 !important;
+  background: #fcfbfa !important;
+  border: 1.5px solid #eae2d6 !important;
   border-radius: 18px !important;
-  padding: 14px 16px !important;
-  margin-top: 6px !important;
+  padding: 16px !important;
+  margin-top: 8px !important;
   box-sizing: border-box !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 12px !important;
+  box-shadow: 0 2px 8px rgba(40, 25, 15, 0.03) !important;
 }
 
-#editCustomerNameInput:focus {
+.profile-card-header {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+}
+
+.profile-card-label {
+  font-size: 0.74rem !important;
+  font-weight: 800 !important;
+  color: #a46d2d !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.06em !important;
+}
+
+.profile-save-status {
+  font-size: 0.72rem !important;
+  color: #059669 !important;
+  font-weight: 700 !important;
+  display: none;
+  background: rgba(5, 150, 105, 0.1) !important;
+  padding: 2px 8px !important;
+  border-radius: 6px !important;
+}
+
+.profile-input-row {
+  display: flex !important;
+  gap: 8px !important;
+  align-items: center !important;
+}
+
+.profile-name-input {
+  flex: 1 !important;
+  min-width: 0 !important;
+  font-size: 0.95rem !important;
+  padding: 11px 14px !important;
+  background: #ffffff !important;
+  border: 1.5px solid #ded5c8 !important;
+  color: #1c120c !important;
+  border-radius: 12px !important;
+  font-weight: 600 !important;
+  outline: none !important;
+  box-sizing: border-box !important;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
+}
+
+.profile-name-input:focus {
   border-color: #b87c32 !important;
   box-shadow: 0 0 0 3px rgba(184, 124, 50, 0.15) !important;
+}
+
+.profile-save-btn {
+  white-space: nowrap !important;
+  padding: 11px 18px !important;
+  margin: 0 !important;
+  font-size: 0.85rem !important;
+  font-weight: 800 !important;
+  border-radius: 12px !important;
+  background: linear-gradient(135deg, #2b1810 0%, #170d08 100%) !important;
+  color: #ffffff !important;
+  border: none !important;
+  cursor: pointer !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  box-shadow: 0 4px 12px rgba(35, 20, 10, 0.2) !important;
+  flex-shrink: 0 !important;
+  transition: transform 0.15s ease, opacity 0.15s ease !important;
+}
+
+.profile-save-btn:active {
+  transform: scale(0.97) !important;
+}
+
+.profile-phone-row {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  border-top: 1px dashed #e4dacf !important;
+  padding-top: 10px !important;
+  font-size: 0.78rem !important;
+  color: #695547 !important;
+  flex-wrap: wrap !important;
+  gap: 6px !important;
+}
+
+.profile-phone-meta {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  white-space: nowrap !important;
+}
+
+.profile-phone-label {
+  color: #7d6b5c !important;
+  font-weight: 500 !important;
+  white-space: nowrap !important;
+}
+
+.profile-phone-val {
+  color: #1c120c !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.03em !important;
+  white-space: nowrap !important;
+}
+
+.profile-phone-badge {
+  font-size: 0.68rem !important;
+  color: #8c7665 !important;
+  background: #f0e9df !important;
+  border: 1px solid #e0d5c7 !important;
+  padding: 3px 8px !important;
+  border-radius: 20px !important;
+  font-weight: 600 !important;
+  white-space: nowrap !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 3px !important;
 }
 
 .update-card-header {
