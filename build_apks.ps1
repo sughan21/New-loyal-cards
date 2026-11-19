@@ -4,7 +4,7 @@ $env:PATH = "$javaPath\bin;" + $env:PATH
 
 # Automatically sync latest web files to Android assets before compilation
 Write-Host "Syncing web assets to Android build directory..." -ForegroundColor Cyan
-Copy-Item "$PSScriptRoot\index.html", "$PSScriptRoot\owner.html", "$PSScriptRoot\download.html", "$PSScriptRoot\manifest.json", "$PSScriptRoot\manifest-owner.json" -Destination "$PSScriptRoot\android\app\src\main\assets\" -Force
+Copy-Item "$PSScriptRoot\index.html", "$PSScriptRoot\owner.html", "$PSScriptRoot\download.html", "$PSScriptRoot\style.css", "$PSScriptRoot\manifest.json", "$PSScriptRoot\manifest-owner.json" -Destination "$PSScriptRoot\android\app\src\main\assets\" -Force
 Copy-Item "$PSScriptRoot\css\*" -Destination "$PSScriptRoot\android\app\src\main\assets\css\" -Recurse -Force
 Copy-Item "$PSScriptRoot\js\*" -Destination "$PSScriptRoot\android\app\src\main\assets\js\" -Recurse -Force
 if (-not (Test-Path "$PSScriptRoot\android\app\src\main\assets\data")) { New-Item -ItemType Directory -Path "$PSScriptRoot\android\app\src\main\assets\data" -Force | Out-Null }

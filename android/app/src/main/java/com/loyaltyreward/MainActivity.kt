@@ -250,6 +250,18 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
 
+                // Any external web navigation (e.g. Google Reviews, Google Maps, external URLs) opens outside WebView
+                if ((scheme == "http" || scheme == "https") && uri.host != "appassets.androidplatform.net") {
+                    try {
+                        val intent = Intent(Intent.ACTION_VIEW, uri)
+                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        startActivity(intent)
+                        return true
+                    } catch (e: Exception) {
+                        return false
+                    }
+                }
+
                 return false
             }
 

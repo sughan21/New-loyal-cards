@@ -1,18 +1,207 @@
 [
   {
+    "phone": "8015589598",
+    "name": "Sakthivel s",
+    "password": "crazygetzi06",
+    "stamps": 1,
+    "gifts_earned": 0,
+    "member_id": "GP-86179",
+    "history": [
+      {
+        "date": "24 Oct, 05:35 PM",
+        "note": "Store Purchase (2nd Visit Cashier Approved) - Tick #1 of 11 Collected",
+        "type": "stamp",
+        "appVersion": "1.6.16",
+        "versionCode": 12
+      },
+      {
+        "date": "24 Oct 2026",
+        "note": "Joined Loyalty Reward from Apple iPhone (iOS 26.6)",
+        "type": "joined",
+        "device": "Apple iPhone (iOS 26.6)",
+        "deviceId": "DEV_HN2E3Z4V_MVMCPUYF"
+      }
+    ],
+    "last_stamp_date": "2026-10-24",
+    "created_at": "2026-10-24T12:04:40.517455+00:00",
+    "last_updated": 1794918500000,
+    "device_name": "Apple iPhone (iOS 26.6)",
+    "device_id": "DEV_HN2E3Z4V_MVMCPUYF"
+  },
+  {
+    "phone": "9999988888",
+    "name": "Test New User",
+    "password": "123",
+    "stamps": 1,
+    "gifts_earned": 0,
+    "member_id": "GP-12345",
+    "history": [
+      {
+        "date": "12 Nov",
+        "note": "Joined",
+        "type": "joined",
+        "appVersion": "1.6.4",
+        "versionCode": 12
+      }
+    ],
+    "last_stamp_date": "2026-11-12",
+    "created_at": "2026-11-13T14:14:56.460806+00:00",
+    "last_updated": 1794916769286,
+    "device_name": "Mobile Device",
+    "device_id": "DEV_123"
+  },
+  {
+    "phone": "9944214325",
+    "name": "Lingesh",
+    "password": "Lingesh@19",
+    "stamps": 2,
+    "gifts_earned": 0,
+    "member_id": "GP-86895",
+    "history": [
+      {
+        "date": "3 Nov, 20:51",
+        "note": "Store Purchase (2nd Visit Cashier Approved) - Tick #2 of 11 Collected",
+        "type": "stamp",
+        "appVersion": "1.6.16",
+        "versionCode": 12
+      },
+      {
+        "date": "3 Nov, 20:47",
+        "note": "Welcome Reward Claimed: 1st Loyalty Tick Unlocked! (Tick #1 of 11)",
+        "type": "stamp",
+        "device": "Apple iPhone (iOS 27.0)",
+        "deviceId": "DEV_JOE5S9RF_MW0U0O41"
+      },
+      {
+        "date": "3 Nov 2026",
+        "note": "Joined Loyalty Reward from Apple iPhone (iOS 27.0)",
+        "type": "joined",
+        "device": "Apple iPhone (iOS 27.0)",
+        "deviceId": "DEV_JOE5S9RF_MW0U0O41"
+      }
+    ],
+    "last_stamp_date": "2026-11-03",
+    "created_at": "2026-11-03T15:17:44.858768+00:00",
+    "last_updated": 1794918217639,
+    "device_name": "Apple iPhone (iOS 27.0)",
+    "device_id": "DEV_JOE5S9RF_MW0U0O41"
+  },
+  {
+    "phone": "9487544539",
+    "name": "Nithish Kumar.P",
+    "password": "Nk@#9487544",
+    "stamps": 1,
+    "gifts_earned": 0,
+    "member_id": "GP-30287",
+    "history": [
+      {
+        "date": "19 Nov",
+        "note": "Store Owner released a new update (v1.0.2)",
+        "type": "update_alert",
+        "targetVersion": "1.0.2"
+      },
+      {
+        "date": "13 Nov, 19:48",
+        "note": "Welcome Reward Claimed: 1st Loyalty Tick Unlocked! (Tick #1 of 11)",
+        "type": "stamp",
+        "device": "Vivo I2214",
+        "deviceId": "41d356aa-09c3-47a1-9ecd-07a24dd40bcd",
+        "appVersion": "1.6.5",
+        "versionCode": 13
+      },
+      {
+        "date": "13 Nov 2026",
+        "note": "Joined Loyalty Reward from Vivo I2214",
+        "type": "joined",
+        "device": "Vivo I2214",
+        "deviceId": "41d356aa-09c3-47a1-9ecd-07a24dd40bcd"
+      }
+    ],
+    "last_stamp_date": "2026-11-13",
+    "created_at": "2026-11-13T14:18:30.629692+00:00",
+    "last_updated": 1795072007678,
+    "device_name": "Vivo I2214",
+    "device_id": "41d356aa-09c3-47a1-9ecd-07a24dd40bcd"
+  },
+  {
+    "phone": "8428243504",
+    "name": "Manoj",
+    "password": "MANOJkennedy@07",
+    "stamps": 1,
+    "gifts_earned": 0,
+    "member_id": "GP-22696",
+    "history": [
+      {
+        "date": "24 Oct, 17:56",
+        "note": "Welcome Reward Claimed: 1st Loyalty Tick Unlocked! (Tick #1 of 11)",
+        "type": "stamp",
+        "device": "Apple iPhone (iOS 27.0)",
+        "deviceId": "DEV_39FRVSGX_MVMDHSFC",
+        "appVersion": "1.6.4",
+        "versionCode": 12
+      },
+      {
+        "date": "24 Oct 2026",
+        "note": "Joined Loyalty Reward from Apple iPhone (iOS 27.0)",
+        "type": "joined",
+        "device": "Apple iPhone (iOS 27.0)",
+        "deviceId": "DEV_39FRVSGX_MVMDHSFC"
+      }
+    ],
+    "last_stamp_date": "2026-10-24",
+    "created_at": "2026-10-24T12:26:23.591116+00:00",
+    "last_updated": 1794918217639,
+    "device_name": "Apple iPhone (iOS 27.0)",
+    "device_id": "DEV_39FRVSGX_MVMDHSFC"
+  },
+  {
+    "phone": "9840112233",
+    "name": "New Login Customer",
+    "password": "pass",
+    "stamps": 1,
+    "gifts_earned": 0,
+    "member_id": "GP-88888",
+    "history": [
+      {
+        "date": "12 Nov 2026",
+        "note": "Welcome 1st Stamp",
+        "type": "joined",
+        "appVersion": "1.6.4",
+        "versionCode": 12
+      }
+    ],
+    "last_stamp_date": "2026-11-12",
+    "created_at": "2026-11-13T14:14:56.460806+00:00",
+    "last_updated": 1794916769286,
+    "device_name": "Mobile Device",
+    "device_id": "DEV_123"
+  },
+  {
     "phone": "9698970896",
     "name": "Sughan",
     "password": "1234",
-    "memberId": "GP-20360",
-    "stamps": 4,
-    "giftsEarned": 1,
+    "stamps": 2,
+    "gifts_earned": 1,
+    "member_id": "GP-20360",
     "history": [
+      {
+        "date": "19 Nov, 12:09",
+        "note": "\u21a9\ufe0f Stamp Removed by Cashier (Tick #3 deleted. Current: 2/11)",
+        "type": "stamp_cancelled",
+        "appVersion": "1.0"
+      },
+      {
+        "date": "19 Nov, 12:09",
+        "note": "\u21a9\ufe0f Stamp Removed by Cashier (Tick #4 deleted. Current: 3/11)",
+        "type": "stamp_cancelled",
+        "appVersion": "1.0"
+      },
       {
         "date": "18 Nov, 18:41",
         "note": "Store Purchase - Tick #4 of 11 Collected",
         "type": "stamp",
-        "appVersion": "1.6.27",
-        "versionCode": 36
+        "appVersion": "1.0",
+        "versionCode": 37
       },
       {
         "date": "17 Nov, 06:25",
@@ -77,231 +266,19 @@
         "type": "joined"
       }
     ],
-    "lastStampDate": "2026-11-12",
-    "deviceName": "OPPO CPH2697",
-    "deviceId": "DEV_X1LS9BHO_MVJCMZAH",
-    "appVersion": "1.0",
-    "versionCode": 37,
-    "lastUpdated": 1795007264230
-  },
-  {
-    "phone": "57676766466757",
-    "name": "Loyalty Member 6757",
-    "password": "hsyaua",
-    "memberId": "GP-76840",
-    "stamps": 1,
-    "giftsEarned": 0,
-    "history": [
-      {
-        "date": "17 Nov, 21:46",
-        "note": "Welcome Reward Claimed: 1st Loyalty Tick Unlocked! (Tick #1 of 11)",
-        "type": "stamp",
-        "device": "Realme RMX5051",
-        "deviceId": "25ab7205-6449-4544-b935-5fc420ca776b",
-        "appVersion": "1.6.16",
-        "versionCode": 24
-      },
-      {
-        "date": "17 Nov 2026",
-        "note": "Joined Loyalty Reward from Realme RMX5051",
-        "type": "joined",
-        "device": "Realme RMX5051",
-        "deviceId": "25ab7205-6449-4544-b935-5fc420ca776b",
-        "appVersion": "1.6.16",
-        "versionCode": 24
-      }
-    ],
-    "lastStampDate": "2026-11-17",
-    "deviceName": "Realme RMX5051",
-    "deviceId": "25ab7205-6449-4544-b935-5fc420ca776b",
-    "appVersion": "1.0",
-    "versionCode": 37,
-    "lastUpdated": 1795068611623
-  },
-  {
-    "phone": "8015589598",
-    "name": "Sakthivel s",
-    "password": "crazygetzi06",
-    "memberId": "GP-86179",
-    "stamps": 1,
-    "giftsEarned": 0,
-    "history": [
-      {
-        "date": "24 Oct, 05:35 PM",
-        "note": "Store Purchase (2nd Visit Cashier Approved) - Tick #1 of 11 Collected",
-        "type": "stamp",
-        "appVersion": "1.6.16",
-        "versionCode": 12
-      },
-      {
-        "date": "24 Oct 2026",
-        "note": "Joined Loyalty Reward from Apple iPhone (iOS 26.6)",
-        "type": "joined",
-        "device": "Apple iPhone (iOS 26.6)",
-        "deviceId": "DEV_HN2E3Z4V_MVMCPUYF"
-      }
-    ],
-    "lastStampDate": "2026-10-24",
-    "deviceName": "Apple iPhone (iOS 26.6)",
-    "deviceId": "DEV_HN2E3Z4V_MVMCPUYF",
-    "appVersion": "1.0",
-    "versionCode": 37,
-    "lastUpdated": 1794918500000
-  },
-  {
-    "phone": "9999988888",
-    "name": "Test New User",
-    "password": "123",
-    "memberId": "GP-12345",
-    "stamps": 1,
-    "giftsEarned": 0,
-    "history": [
-      {
-        "date": "12 Nov",
-        "note": "Joined",
-        "type": "joined",
-        "appVersion": "1.6.4",
-        "versionCode": 12
-      }
-    ],
-    "lastStampDate": "2026-11-12",
-    "deviceName": "Mobile Device",
-    "deviceId": "DEV_123",
-    "appVersion": "1.0",
-    "versionCode": 37,
-    "lastUpdated": 1794916769286
-  },
-  {
-    "phone": "9944214325",
-    "name": "Lingesh",
-    "password": "Lingesh@19",
-    "memberId": "GP-86895",
-    "stamps": 2,
-    "giftsEarned": 0,
-    "history": [
-      {
-        "date": "3 Nov, 20:51",
-        "note": "Store Purchase (2nd Visit Cashier Approved) - Tick #2 of 11 Collected",
-        "type": "stamp",
-        "appVersion": "1.6.16",
-        "versionCode": 12
-      },
-      {
-        "date": "3 Nov, 20:47",
-        "note": "Welcome Reward Claimed: 1st Loyalty Tick Unlocked! (Tick #1 of 11)",
-        "type": "stamp",
-        "device": "Apple iPhone (iOS 27.0)",
-        "deviceId": "DEV_JOE5S9RF_MW0U0O41"
-      },
-      {
-        "date": "3 Nov 2026",
-        "note": "Joined Loyalty Reward from Apple iPhone (iOS 27.0)",
-        "type": "joined",
-        "device": "Apple iPhone (iOS 27.0)",
-        "deviceId": "DEV_JOE5S9RF_MW0U0O41"
-      }
-    ],
-    "lastStampDate": "2026-11-03",
-    "deviceName": "Apple iPhone (iOS 27.0)",
-    "deviceId": "DEV_JOE5S9RF_MW0U0O41",
-    "appVersion": "1.0",
-    "versionCode": 37,
-    "lastUpdated": 1794918217639
-  },
-  {
-    "phone": "9487544539",
-    "name": "Nithish Kumar.P",
-    "password": "Nk@#9487544",
-    "memberId": "GP-30287",
-    "stamps": 1,
-    "giftsEarned": 0,
-    "history": [
-      {
-        "date": "13 Nov, 19:48",
-        "note": "Welcome Reward Claimed: 1st Loyalty Tick Unlocked! (Tick #1 of 11)",
-        "type": "stamp",
-        "device": "Vivo I2214",
-        "deviceId": "41d356aa-09c3-47a1-9ecd-07a24dd40bcd",
-        "appVersion": "1.6.5",
-        "versionCode": 13
-      },
-      {
-        "date": "13 Nov 2026",
-        "note": "Joined Loyalty Reward from Vivo I2214",
-        "type": "joined",
-        "device": "Vivo I2214",
-        "deviceId": "41d356aa-09c3-47a1-9ecd-07a24dd40bcd"
-      }
-    ],
-    "lastStampDate": "2026-11-13",
-    "deviceName": "Vivo I2214",
-    "deviceId": "41d356aa-09c3-47a1-9ecd-07a24dd40bcd",
-    "appVersion": "1.0",
-    "versionCode": 37,
-    "lastUpdated": 1795007264230
-  },
-  {
-    "phone": "9840112233",
-    "name": "New Login Customer",
-    "password": "pass",
-    "memberId": "GP-88888",
-    "stamps": 1,
-    "giftsEarned": 0,
-    "history": [
-      {
-        "date": "12 Nov 2026",
-        "note": "Welcome 1st Stamp",
-        "type": "joined",
-        "appVersion": "1.6.4",
-        "versionCode": 12
-      }
-    ],
-    "lastStampDate": "2026-11-12",
-    "deviceName": "Mobile Device",
-    "deviceId": "DEV_123",
-    "appVersion": "1.0",
-    "versionCode": 37,
-    "lastUpdated": 1794916769286
-  },
-  {
-    "phone": "8428243504",
-    "name": "Manoj",
-    "password": "MANOJkennedy@07",
-    "memberId": "GP-22696",
-    "stamps": 1,
-    "giftsEarned": 0,
-    "history": [
-      {
-        "date": "24 Oct, 17:56",
-        "note": "Welcome Reward Claimed: 1st Loyalty Tick Unlocked! (Tick #1 of 11)",
-        "type": "stamp",
-        "device": "Apple iPhone (iOS 27.0)",
-        "deviceId": "DEV_39FRVSGX_MVMDHSFC",
-        "appVersion": "1.6.4",
-        "versionCode": 12
-      },
-      {
-        "date": "24 Oct 2026",
-        "note": "Joined Loyalty Reward from Apple iPhone (iOS 27.0)",
-        "type": "joined",
-        "device": "Apple iPhone (iOS 27.0)",
-        "deviceId": "DEV_39FRVSGX_MVMDHSFC"
-      }
-    ],
-    "lastStampDate": "2026-10-24",
-    "deviceName": "Apple iPhone (iOS 27.0)",
-    "deviceId": "DEV_39FRVSGX_MVMDHSFC",
-    "appVersion": "1.0",
-    "versionCode": 37,
-    "lastUpdated": 1794918217639
+    "last_stamp_date": "2026-11-12",
+    "created_at": "2026-10-22T03:33:45.650575+00:00",
+    "last_updated": 1795070391593,
+    "device_name": "OPPO CPH2697",
+    "device_id": "DEV_X1LS9BHO_MVJCMZAH"
   },
   {
     "phone": "9876543211",
     "name": "Test Customer",
     "password": "1234",
-    "memberId": "GP-55382",
     "stamps": 0,
-    "giftsEarned": 0,
+    "gifts_earned": 0,
+    "member_id": "GP-55382",
     "history": [
       {
         "date": "22 Oct 2026",
@@ -311,20 +288,19 @@
         "deviceId": ""
       }
     ],
-    "lastStampDate": null,
-    "deviceName": "Mobile Device",
-    "deviceId": null,
-    "appVersion": "1.0",
-    "versionCode": 37,
-    "lastUpdated": 1794916769286
+    "last_stamp_date": null,
+    "created_at": "2026-11-13T14:14:56.460806+00:00",
+    "last_updated": 1794916769286,
+    "device_name": "Mobile Device",
+    "device_id": null
   },
   {
     "phone": "9840123456",
     "name": "Kannan S",
     "password": "secret123",
-    "memberId": "GP-65174",
     "stamps": 0,
-    "giftsEarned": 0,
+    "gifts_earned": 0,
+    "member_id": "GP-65174",
     "history": [
       {
         "date": "22 Oct 2026",
@@ -334,21 +310,26 @@
         "deviceId": "DEV_SUYBE7OF_MVJCPE5M"
       }
     ],
-    "lastStampDate": null,
-    "deviceName": "Mobile Device",
-    "deviceId": "DEV_SUYBE7OF_MVJCPE5M",
-    "appVersion": "1.0",
-    "versionCode": 37,
-    "lastUpdated": 1794916769286
+    "last_stamp_date": null,
+    "created_at": "2026-11-13T14:14:56.460806+00:00",
+    "last_updated": 1794916769286,
+    "device_name": "Mobile Device",
+    "device_id": "DEV_SUYBE7OF_MVJCPE5M"
   },
   {
     "phone": "6381663753",
     "name": "Seema Bhegam",
     "password": "123456789",
-    "memberId": "GP-65052",
     "stamps": 4,
-    "giftsEarned": 0,
+    "gifts_earned": 0,
+    "member_id": "GP-65052",
     "history": [
+      {
+        "date": "19 Nov",
+        "note": "Store Owner released a new update (v1.0.2)",
+        "type": "update_alert",
+        "targetVersion": "1.0.2"
+      },
       {
         "date": "13 Nov, 19:50",
         "note": "\u21a9\ufe0f Stamp Removed by Cashier (Tick #5 deleted. Current: 4/11)",
@@ -388,93 +369,10 @@
         "deviceId": "59c0077746a284bf"
       }
     ],
-    "lastStampDate": "2026-10-23",
-    "deviceName": "Samsung SM-A346E",
-    "deviceId": "59c0077746a284bf",
-    "appVersion": "1.0",
-    "versionCode": 37,
-    "lastUpdated": 1795007264230
-  },
-  {
-    "phone": "8940757402",
-    "name": "Loyalty Member 7402",
-    "password": "1234",
-    "memberId": "GP-96698",
-    "stamps": 3,
-    "giftsEarned": 0,
-    "history": [
-      {
-        "date": "19 Nov, 11:40",
-        "note": "Store Purchase - Tick #3 of 11 Collected",
-        "type": "stamp",
-        "appVersion": "1.6.27",
-        "versionCode": 36
-      },
-      {
-        "date": "18 Nov, 19:15",
-        "note": "Store Purchase - Tick #2 of 11 Collected",
-        "type": "stamp",
-        "appVersion": "1.6.27",
-        "versionCode": 36
-      },
-      {
-        "date": "17 Nov, 21:40",
-        "note": "Welcome Reward Claimed: 1st Loyalty Tick Unlocked! (Tick #1 of 11)",
-        "type": "stamp",
-        "device": "Realme RMX5051",
-        "deviceId": "25ab7205-6449-4544-b935-5fc420ca776b",
-        "appVersion": "1.6.16",
-        "versionCode": 24
-      },
-      {
-        "date": "17 Nov 2026",
-        "note": "Joined Loyalty Reward from Realme RMX5051",
-        "type": "joined",
-        "device": "Realme RMX5051",
-        "deviceId": "25ab7205-6449-4544-b935-5fc420ca776b",
-        "appVersion": "1.6.16",
-        "versionCode": 24
-      }
-    ],
-    "lastStampDate": "2026-11-19",
-    "deviceName": "Realme RMX5051",
-    "deviceId": "25ab7205-6449-4544-b935-5fc420ca776b",
-    "appVersion": "1.0",
-    "versionCode": 37,
-    "lastUpdated": 1795009483093
-  },
-  {
-    "phone": "5807426874",
-    "name": "Loyalty Member 6874",
-    "password": "1234",
-    "memberId": "GP-40253",
-    "stamps": 1,
-    "giftsEarned": 0,
-    "history": [
-      {
-        "date": "17 Nov, 21:43",
-        "note": "Welcome Reward Claimed: 1st Loyalty Tick Unlocked! (Tick #1 of 11)",
-        "type": "stamp",
-        "device": "Realme RMX5051",
-        "deviceId": "25ab7205-6449-4544-b935-5fc420ca776b",
-        "appVersion": "1.6.16",
-        "versionCode": 24
-      },
-      {
-        "date": "17 Nov 2026",
-        "note": "Joined Loyalty Reward from Realme RMX5051",
-        "type": "joined",
-        "device": "Realme RMX5051",
-        "deviceId": "25ab7205-6449-4544-b935-5fc420ca776b",
-        "appVersion": "1.6.16",
-        "versionCode": 24
-      }
-    ],
-    "lastStampDate": "2026-11-17",
-    "deviceName": "Realme RMX5051",
-    "deviceId": "25ab7205-6449-4544-b935-5fc420ca776b",
-    "appVersion": "1.0",
-    "versionCode": 37,
-    "lastUpdated": 1795068611623
+    "last_stamp_date": "2026-10-23",
+    "created_at": "2026-10-23T17:59:20.928528+00:00",
+    "last_updated": 1795072010684,
+    "device_name": "Samsung SM-A346E",
+    "device_id": "59c0077746a284bf"
   }
 ]
